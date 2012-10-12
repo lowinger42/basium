@@ -109,9 +109,8 @@ class Logger():
             msg = msg.replace('\n', ', ')
         self.log.debug(msg)
 
-print "Starting logger"
 log = Logger()
-
+log.info("basium logger started.")
 
 import basium_model
 import basium_orm

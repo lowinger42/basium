@@ -55,7 +55,6 @@ class ObjectFactory(object):
     
     def new(self, cls, p):
         obj = cls()
-        # pprint.pprint( getmembers(obj)  , indent=4)
         for colname, column in obj._columns.items():
             if column.primary_key:
                 continue
@@ -90,7 +89,6 @@ class ObjectFactory(object):
                 sys.exit(1)
 #            obj.set(colname, val)
             obj._values[colname] = val
-        # pprint.pprint( getmembers(obj)  , indent=4)
         
         return obj
     
@@ -98,12 +96,8 @@ class ObjectFactory(object):
 #
 #
 #
-def printHeader(text):
-    print "#" * 79
-    print "#"
-    print "#", text
-    print "#"
-    print "#" * 79
+def logHeader(text):
+    log.info("##### %s #####" % (text))
 
 
 #
@@ -124,17 +118,9 @@ class RunTest1():
     def run(self, db, obj1, obj2):
         global errcount
 
-        print "-" * 79
-        print "Store rows in table", obj1._table
-        print
-    
+        log.info("Store object in table '%s'" % obj1._table )
         db.store(obj1)
-        print obj1
-        print
-        
-        print "-" * 79
-        print "Load rows from table", obj1._table
-        print
+        log.info("Load same object from table '%s'" % (obj1._table) )
         obj2.id = obj1.id
         response = db.load(obj2)
         if not response.isError():
@@ -142,21 +128,18 @@ class RunTest1():
             if len(rows) == 1:
                 obj2 = rows[0]
                 if obj1 == obj2:
-                    print "Same content!"
+                    log.info("  Ok: Same content!")
                 else:
-                    print "Not same content"
-                    print obj2
+                    log.error("  Error: Not same content")
                     errcount += 1
             else:
-                print "Error: expected one object returned, got %d" % (len(rows))
+                log.error("  Error: expected one object returned, got %d" % (len(rows)) )
                 errcount += 1
         else:
-            print response.getError()
+            log.error( response.getError() )
             errcount += 1
     
-        print
-        print "There is a total of %i rows in the '%s' table" % (db.count(obj1), obj1._table )
-        print
+        log.info("  There is a total of %i rows in the '%s' table" % (db.count(obj1), obj1._table ) )
 
 
 #
@@ -164,7 +147,7 @@ class RunTest1():
 #
 def test1(db, runtest, Cls):
 
-    printHeader('Test of %s, store/load' % (Cls.__name__))
+    logHeader('Test of %s, store/load' % (Cls.__name__))
     objFactory = ObjectFactory()
     
     #
@@ -184,24 +167,55 @@ def test1(db, runtest, Cls):
 # Test the query functionality
 #  
 def test2(db, runtest, Cls):
-    printHeader('Test of %s, query' % (Cls.__name__))
+    logHeader('Test of %s, query' % (Cls.__name__))
 
-    print "-" * 79
-    print "Test of query"
     query = basium_orm.Query( db, Cls )
     query.filter('id', '>', '10').filter('id', '<', '13')
     response = db.load(query)
     if response.isError():
-        print response.getError()
+        log.error( response.getError() )
         errcount += 1
         return
     
     data = response.get('data')
     for obj in data:
-        print obj
-    print
-    print "Found %i objects" % len(data)
+        log.info("%s %s" % ( obj.id, obj.varcharTest ) )
+    log.info("Found %i objects" % len(data) )
+
+
+#
+# Test the update functionality
+#  
+def testUpdate(db, runtest, Cls):
+    logHeader('Test of %s, update' % (Cls.__name__))
+
+    objFactory = ObjectFactory()
     
+    #
+    test1 = objFactory.new( Cls, 1 )
+    res = db.store(test1)
+    if res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+    
+    test1.varcharTest += " more text"
+    res = db.store(test1)
+    if res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+    
+    test2 = Cls()
+    test2.id = test1.id
+    res = db.load(test2)
+    if res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+    test2 = res.get('data')[0]
+    if test1.varcharTest != test2.varcharTest:
+        log.error( "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
 
 
 #
@@ -214,8 +228,9 @@ def doTests(db, Cls):
 
     test2(db, runtest1, Cls)
 
-    print
-    print "All done, a total of %i errors" % errcount
+    testUpdate(db, runtest1, Cls)
+
+    log.info( "All done, a total of %i errors" % errcount )
 
 #
 #

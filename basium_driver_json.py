@@ -162,7 +162,6 @@ class Driver:
         else:
             # real query 
             url = '%s/%s/filter?%s' %(self.uri, query._cls._table, query.encode() )
-        # print "url =", url
         o = urllib2.urlopen(url)
         data = json.load(o)
         if data['_errno'] == 0:
@@ -184,9 +183,8 @@ class Driver:
     def insert(self, table, values):
         log.debug("Store obj in database, using HTTP API")
         response = basium_common.Response()
-        response.set('data', 112)
 
-        url = '%s/%s' % (self.uri, table)                # insert
+        url = '%s/%s' % (self.uri, table)
         jdata = json.dumps(values, cls=basium_common.JsonOrmEncoder)
         o = urllib2.urlopen(url, jdata)                 # POST
         res = json.load(o)
@@ -200,9 +198,15 @@ class Driver:
     #
     #
     #
-    def update(self, table, values, id_):
+    def update(self, table, values):
         log.debug("Update obj in database, using HTTP API")
         response = basium_common.Response()
+        url = '%s/%s/%i' % (self.uri, table, values['id'])
+        jdata = json.dumps(values, cls=basium_common.JsonOrmEncoder)
+        req = RequestWithMethod(url, method='PUT')
+        o = urllib2.urlopen(req, jdata)
+        res = json.load(o)
+        response.setError(res['_errno'], res['_errmsg'])
         return response
 
     #

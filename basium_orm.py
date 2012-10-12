@@ -207,23 +207,17 @@ class BasiumDatabase:
     def store(self, obj):
         columns = {}
         for (colname, column) in obj._columns.items():
-            if not obj.isPrimaryKey(colname):
-                columns[colname] = column.toSql(obj._values[colname])
+            columns[colname] = column.toSql(obj._values[colname])
 
         if obj.id >= 0:
             # update
-            primary_key = {'id': obj.id}
-            response = self.driver.update(obj._table, columns, primary_key)
-            if response.isError():
-                return False
+            response = self.driver.update(obj._table, columns)
         else:
             # insert
             response = self.driver.insert(obj._table, columns)
-            if response.isError():
-                return False
-#            print response
-            obj.id = response.get('data')
-        return True
+            if not response.isError():
+                obj.id = response.get('data')
+        return response
     
     #
     #  "DELETE FROM BasiumTest WHERE AGE > '%d'" % (20)
@@ -408,7 +402,6 @@ class Query():
     #
     def decode(self, url):
         u = urlparse.parse_qsl(url)
-        print u
         self.reset()
         for (key, val) in u:
             if key == 'w':

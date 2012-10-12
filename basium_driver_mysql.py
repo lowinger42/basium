@@ -285,7 +285,7 @@ class Driver:
         values = []
         sql2, values = query.toSql()
         sql += sql2
-        log.debug('count(*), sql=%s, values=%s' % (sql, values))
+        log.debug('sql=%s  values=%s' % (sql, values))
         rows = 0
         for i in range(0,2):
             if not self.connect():
@@ -315,7 +315,7 @@ class Driver:
         sql = "SELECT * FROM %s" % query._cls._table 
         sql2, values = query.toSql()
         sql += sql2
-        log.debug('sql=%s, values=%s)' %( sql, values))
+        log.debug('sql=%s  values=%s)' %( sql, values))
         for i in range(0,2):
             if not self.connect():
                 return self.connectionStatus
@@ -342,14 +342,21 @@ class Driver:
     #
     def insert(self, table, values):
         response = Response()
-        parms = "%s, " * len(values) #[:-2]   #
-        sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ", ".join(values.keys()), parms[:-2])
-        log.debug('sql=%s, values=%s)' %( sql, values))
+        parms = []
+        holder = []
+        vals = []
+        for key, val in values.items():
+            if key != 'id':
+                parms.append(key)
+                holder.append("%s")
+                vals.append(val)
+        sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ",".join(parms), ",".join(holder))
+        log.debug('sql=%s  values=%s)' %(  sql, vals))
         for i in range(0,2):
             if not self.connect():
                 return self.connectionStatus
             try:
-                self.cursor.execute(sql, values.values())
+                self.cursor.execute(sql, tuple(vals))
                 self.conn.commit()
                 response.set('data', self.cursor.lastrowid)
                 break
@@ -361,17 +368,24 @@ class Driver:
     #
     # update a row in the table
     #
-    def update(self, table, values, primary_key):
+    def update(self, table, values):
         response = Response()
-        columns = "=%s, " * len(values)[:-2]
-        values.append(primary_key['id'])
-        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, columns, 'id')
-        log.debug('sql=%s, values=%s)' %( sql, values))
+        parms = []
+        vals = []
+        for key, val in values.items():
+            if key != 'id':
+                parms.append("%s=%%s" % key)
+                vals.append(val)
+            else:
+                primary_key_val = val
+        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), 'id')
+        vals.append(primary_key_val)
+        log.debug('sql=%s  values=%s)' %( sql, vals))
         for i in range(0,2):
             if not self.connect():
                 return self.connectionStatus
             try:
-                self.cursor.execute(sql, tuple(values))
+                self.cursor.execute(sql, tuple(vals))
                 self.conn.commit()
                 break
             except MySQLdb.Error, e:
@@ -391,7 +405,7 @@ class Driver:
             response.setError(1, 'Missing query on delete(), empty query is not accepted')
             return response
         sql += sql2
-        log.debug('sql=%s, values=%s)' %( sql, values))
+        log.debug('sql=%s  values=%s)' %( sql, values))
         for i in range(0,2):
             if not self.connect():
                 return self.connectionStatus

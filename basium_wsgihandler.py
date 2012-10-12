@@ -126,6 +126,9 @@ def show_start_response(status, response_headers):
     pprint.pprint(response_headers, indent=4)
     
 
+#
+# Main WSGI handler
+#
 class AppServer(object):
     
     def __init__(self, basium):
@@ -161,7 +164,6 @@ class AppServer(object):
             self.out += msg
             self.status = '404 ' + msg
             return
-        # print "response: ", str(response)
         lst = response.get('data')
         if id_ != None and id_ != 'filter' and len(lst) == 0:
             msg = "Unknown ID %s in table '%s'" % (id_, obj._table)
@@ -180,7 +182,6 @@ class AppServer(object):
             return
 
         postdata = json.loads(self.request_body)    # decode data that should be stored in database
-        # print "postdata =", postdata
         response = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
         self.status = '200 OK'
@@ -195,8 +196,7 @@ class AppServer(object):
         # update row
         obj = classname()
         putdata = json.loads(self.request_body)    # decode data that should be stored in database
-        primary_key = putdata['id_']
-        response = db.driver.update(obj._table, putdata, primary_key) # we call driver direct for efficiency reason
+        response = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
         self.status = '200 OK'
 
@@ -233,7 +233,6 @@ class AppServer(object):
 #            self.out += msg
             self.status = '404 ' + msg
             return
-        print "response: ", response.get('data')
         self.headers.append( ('X-Result-Count', str(response.get('data')) ), )
 
     
