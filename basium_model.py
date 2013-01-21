@@ -76,6 +76,8 @@ class Column(object):
     #        'Null': 'NO',
     #        'Type': 'timestamp'},
     #
+    # Todo: This should be part of the db driver
+    #
     def tableTypeToSql(self, tabletype):
         if  tabletype['Key'] == 'PRI':
             tmp = 'serial'
@@ -90,6 +92,7 @@ class Column(object):
 
 # stores boolean as number: 0 or 1
 class BooleanCol(Column):
+
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -300,9 +303,12 @@ class VarcharCol(Column):
         return value
 
 
+class Q(object):
+    pass
+    
 #
 # This metaclass helps constructing the classes that should be persisted
-#
+# 
 class ModelMetaClass(type):
 
 #    def __new__(cls, name, bases, dct):
@@ -328,20 +334,32 @@ class ModelMetaClass(type):
 #
 class Model(object):
     __metaclass__ = ModelMetaClass
-    
+
     def __init__(self):
         # print "name =", self.__class__.__name__
         object.__setattr__(self, '_primary_key', [ 'id' ])
-        columns = { 'id': IntegerCol(primary_key=True, default=-1) }
+        id_ = IntegerCol(primary_key=True, default=-1)
+        id_._model = self
+        id_.name = 'id'
+        columns = { 'id': id_ }
         values = { 'id': -1 }
         # create instance variables of the class columns
         for (colname, column) in inspect.getmembers(self):
             if colname[0] != '_' and isinstance(column, Column):
+#                setattr(column, 'name', colname)
+#                setattr(column, '_model', self)
                 column.name = colname
+                column._model = self  # backpointer from column to model class
+                column._model = self  # backpointer to model class
                 columns[colname] = column
                 values[colname] = column.getDefault()
+        q = Q()
+        q.id = columns['id']
+        for colname, column in columns.items():
+            setattr(q, colname, column)
         object.__setattr__(self, '_columns', columns)
         object.__setattr__(self, '_values', values)
+        object.__setattr__(self, 'q', q)
     
     def __setattr__(self, attr, value):
         if attr in self._columns:
@@ -359,8 +377,9 @@ class Model(object):
         return pprint.pformat(self.getValues(), indent=4)
 
     def __eq__(self, other):
+        if other == None:
+            return False
         for colname in self._columns.keys():
-#        for (colname, col) in self._columns.items():
             if colname != '_':
                 if getattr(self, colname) != getattr(other, colname):
                     return False
