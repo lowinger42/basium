@@ -8,7 +8,7 @@
 #
 # Usage:
 #  Create a new instance of the class, with the correct driver
-#  Register the tables that should be persistable
+#  Register the tables that should be persisted
 #  
 
 
