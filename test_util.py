@@ -31,6 +31,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+__metaclass__ = type
+
 import pprint
 import decimal
 from inspect import getmembers
@@ -87,7 +89,6 @@ class ObjectFactory(object):
             else:
                 log.error('Unknown column type: %s' % column)
                 sys.exit(1)
-#            obj.set(colname, val)
             obj._values[colname] = val
         
         return obj
@@ -97,7 +98,7 @@ class ObjectFactory(object):
 #
 #
 def logHeader(text):
-    log.info("##### %s #####" % (text))
+    log.info("---------- %s ----------" % (text))
 
 
 #
@@ -120,9 +121,11 @@ class RunTest1():
 
         log.info("Store object in table '%s'" % obj1._table )
         db.store(obj1)
+        
         log.info("Load same object from table '%s'" % (obj1._table) )
         obj2.id = obj1.id
         response = db.load(obj2)
+        
         if not response.isError():
             rows = response.get('data')
             if len(rows) == 1:
@@ -133,7 +136,7 @@ class RunTest1():
                     log.error("  Error: Not same content")
                     errcount += 1
             else:
-                log.error("  Error: expected one object returned, got %d" % (len(rows)) )
+                log.error("  Error: expected one object returned, got %d objects" % (len(rows)) )
                 errcount += 1
         else:
             log.error( response.getError() )
@@ -151,16 +154,16 @@ def test1(db, runtest, Cls):
     objFactory = ObjectFactory()
     
     #
-    test1 = objFactory.new( Cls, 1 )
-    test2 = Cls()
+    obj1 = objFactory.new( Cls, 1 )
+    obj2 = Cls()
     
-    runtest.run(db, test1, test2)
+    runtest.run(db, obj1, obj2)
 
     #    
-    test3 = objFactory.new( Cls, 2 )
-    test4 = Cls()
+    obj3 = objFactory.new( Cls, 2 )
+    obj4 = Cls()
     
-    runtest.run(db, test3, test4)
+    runtest.run(db, obj3, obj4)
 
 
 #
@@ -169,8 +172,11 @@ def test1(db, runtest, Cls):
 def test2(db, runtest, Cls):
     logHeader('Test of %s, query' % (Cls.__name__))
 
-    query = basium_orm.Query( db, Cls )
-    query.filter('id', '>', '10').filter('id', '<', '13')
+#     query = basium_orm.Query(db)
+    query = db.query()
+    obj = Cls()
+#    query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 13)
+    query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 20)
     response = db.load(query)
     if response.isError():
         log.error( response.getError() )
