@@ -153,7 +153,7 @@ class BasiumDatabase:
     #           
     def count(self, query_):
         if isinstance(query_, Model):
-            query = Query(self, query_.__class__)
+            query = Query(self, query_)
         elif isinstance(query_, Query):
             query = query_
         else:
@@ -180,7 +180,7 @@ class BasiumDatabase:
     def load(self, query_):
         response = basium_common.Response()
         if isinstance(query_, Model):
-            query = Query(self, query_.__class__).filter('id', EQ, query_.id)
+            query = Query(self).filter(query_.q.id, EQ, query_.id)
         elif isinstance(query_, Query):
             query = query_
         else:
@@ -191,7 +191,7 @@ class BasiumDatabase:
             return response
         rows = []
         for row in response.get('data'):
-            newobj = query._cls()
+            newobj = query._model.__class__()
             for (colname, column) in newobj._columns.items():
                 newobj._values[colname] = column.toPython( row[colname] )
             rows.append(newobj)
@@ -236,8 +236,8 @@ class BasiumDatabase:
 
     #
     # Create and return a query object
-    def query(self, Cls):
-        q = Query(self, Cls)
+    def query(self, obj = None):
+        q = Query(self, obj)
         return q
 
 
@@ -250,22 +250,43 @@ class BasiumDatabase:
 class Query():
 
     #
+    def __init__(self, db, model = None):
+        self._db = db
+        self._model = model
+        self.reset()
+
+    #
+    def reset(self):
+        self._where = []
+        self._group = []
+        self._order = []
+        self._limit = None
+
+    def getTable(self):
+        if self._model != None:
+            return self._model._table
+        log.error('Fatal: No table name')
+        sys.exit(1)
+
+    #
     class Where:
         def __init__(self, column = None, operand = None, value = None):
             self.column = column
             self.operand = operand
             self.value = value
 
-        def toSql(self, column):
-            sql = '%s %s %%s' % (self.column, self.operand )
-            value = column.toSql( self.value )
+        def toSql(self):
+            # print "column =", dir(self.column)
+            sql = '%s %s %%s' % (self.column.name, self.operand )
+            value = self.column.toSql( self.value )
             return (sql, value)
         
         def encode(self):
-            return "w=" + urllib.quote("%s,%s,%s" % (self.column, self.operand, self.value), ',:=' )
+            return "w=" + urllib.quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
-        def decode(self, value):
-            self.column, self.operand, self.value = value.split(',')
+        def decode(self, obj, value):
+            column, self.operand, self.value = value.split(',')
+            self.column = obj._columns[column]
 
     #
     class Group:
@@ -296,33 +317,26 @@ class Query():
             pass
 
     #
-    def reset(self):
-        self._where = []
-        self._group = []
-        self._order = []
-        self._limit = None
-    
-    #
-    def __init__(self, db, cls):
-        if not isinstance(cls, (type, types.ClassType)):
-            log.debug('Fatal: Query constructor called with an instance of an object')
-            sys.exit(1)
-        self._db = db
-        self._cls = cls
-        self.reset()
-
-    #
     def isId(self):
         if len(self._where) != 1:
             return False
         w = self._where[0]
-        return w.column == 'id' and w.operand == '='
+        return w.column.name == 'id' and w.operand == '='
 
     #
     # Add a filter. Returns self so it can be chained
     #
     def filter(self, column, operand, value):
-        self._where.append(self.Where(column=column, operand=operand, value=value))
+        if not isinstance(column, Column):
+            log.error('Fatal: filter() called with a non-Column')
+            sys.exit(1)
+        # print dir(column)
+        if self._model == None:
+            self._model = column._model
+        elif self._model != column._model:
+            log.error('Fatal: filter from multiple tables not implemented')
+            sys.exit(1)
+        self._where.append( self.Where(column=column, operand=operand, value=value) )
         return self
 
     #
@@ -370,9 +384,7 @@ class Query():
                     sql += ' and '
                 else:
                     add = True
-                # get the instance variable for the column
-                column = self._cls._columns[where.column]
-                sql2, value2 = where.toSql(column)
+                sql2, value2 = where.toSql()
                 sql += sql2
                 value.append(value2)
             sql += ')'
@@ -406,7 +418,7 @@ class Query():
         for (key, val) in u:
             if key == 'w':
                 w = self.Where()
-                w.decode(val)
+                w.decode(self._model, val)
                 self._where.append(w)
             elif key == 'g':
                 g = self.Group()
