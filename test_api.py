@@ -34,12 +34,13 @@
 #
 
 import sys
+import time
 
 import basium_common
+import basium_wsgihandler
 
 from test_tables import *
 from test_util import *
-
 
 # ----------------------------------------------------------------------------
 #
@@ -48,7 +49,20 @@ from test_util import *
 # ----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    
+
+    # start appserver in separate thread
+    embeddedServer = True
+    if len(sys.argv) == 2 and sys.argv[1] == 'noserver':
+        embeddedServer = False
+
+    if embeddedServer:
+        server = basium_wsgihandler.Server()
+        server.daemon = True
+        server.start()    # run in thread
+        while not server.ready:
+            time.sleep(0.1)
+
+    # we need a database connection(json), for the api test
     conn={'host':'localhost', 
           'port':'8051', 
           'user':'basium_user', 

@@ -37,9 +37,9 @@ import sys
 import datetime
 import pprint
 import decimal
+import threading
 
 import json
-import urllib2
 from urlparse import parse_qs
 
 import basium_orm
@@ -66,61 +66,6 @@ mapExtToContenType = {
 # ----- End of stuff to configure --------------------------------------------
 
 
-# ----------------------------------------------------------------------------
-#
-# Server side Database Class
-# Use JSON over HTTP to manipulate the local DB
-#
-# ----------------------------------------------------------------------------
-#
-#class JSONserver:
-#    
-#    def __init__(self, db):
-#        self.db = db
-#
-#    # count the number of rows in a table
-#    def count(self, obj, id):
-#        response = Response()
-#        co = self.db.count(obj)
-#        if co != None:
-#            response.set('count', co)
-#        else:
-#            response.setError(1, '')
-#        return json.dumps(response.get())
-#
-#        
-#    # fetch a row from the SQL database and return as json formatted data
-#    def load(self, obj):
-#        res = Response()
-#        self.db.load(obj)
-#        if obj.id >= 0:
-#            res.set('data', obj.getValues() )
-#        else:
-#            res.setError(1, '')
-#        return json.dumps(res.get())
-#
-#    # take the JSON formatted data, create an object and store in SQL database
-#    # returns id, formatted as json so client can update the id if insert was done
-#    def store(self, obj, jsontext):
-#        res = Response()
-#        jdata = json.loads(jsontext)
-#        for (colname, column) in obj._columns.items():
-#            obj._values[colname] = column.toPython( jdata[colname] )
-#        if self.db.store(obj):
-#            res.set('id', obj.id)
-#        else:
-#            res.setError(1, '')
-#        return json.dumps(res.get())
-#
-#    # delete the object from the SQL database
-#    def delete(self, obj):
-#        res = Response()
-#        res['_errno'] = 1
-#        res['_errmsg'] = 'Not implemented'
-#        return json.dumps(res.get())
-
-
-
 def show_start_response(status, response_headers):
     print "status="
     pprint.pprint(status, indent=4)
@@ -140,9 +85,10 @@ class Response2():
 #
 class AppServer(object):
     
-    def __init__(self, basium):
+    def __init__(self, basium, documentroot=None):
         self.basium = basium
         self.db = basium.db
+        self.documentroot = documentroot
 
     def getSession(self):
         pass
@@ -155,18 +101,18 @@ class AppServer(object):
         if id_ == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(db, obj)
+            dbquery = basium_orm.Query(self.db, obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(db, obj)
+            dbquery = basium_orm.Query(self.db, obj)
             dbquery.decode(self.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium_orm.Query(db).filter(obj.q.id, '=', id_)
+            dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = db.driver.select(dbquery)  # we call driver direct for efficiency reason
+        response = self.db.driver.select(dbquery)  # we call driver direct for efficiency reason
         if response.isError():
             msg = "Could not load objects from table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
@@ -191,7 +137,7 @@ class AppServer(object):
             return
 
         postdata = json.loads(self.request_body)    # decode data that should be stored in database
-        response = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
         self.status = '200 OK'
 
@@ -205,7 +151,7 @@ class AppServer(object):
         # update row
         obj = classname()
         putdata = json.loads(self.request_body)    # decode data that should be stored in database
-        response = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
         self.status = '200 OK'
 
@@ -228,14 +174,14 @@ class AppServer(object):
         if id_ == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(db, obj)
+            dbquery = basium_orm.Query(self.db, obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(db, obj)
+            dbquery = basium_orm.Query(self.db, obj)
             dbquery.decode(self.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = db.driver.count(dbquery)  # we call driver direct for efficiency reason
+        response = self.db.driver.count(dbquery)  # we call driver direct for efficiency reason
         if response.isError():
             msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
@@ -386,36 +332,60 @@ class AppServer(object):
 # Will respond to the basic request needed by the API, so functional
 # test can be done
 #
-def server(basium):
-    from wsgiref.simple_server import make_server
-    
-    global db
-    global jsonserver
-    
-    print "-" * 79
-    print "Starting WSGI server, press Ctrl-c to quit"
+class Server(threading.Thread):
 
-    # jsonserver = JSONserver(db)
-    
-    db = basium.start()
-    if db == None:
-        sys.exit(1)
+    def __init__(self, basium = None, documentroot = None):
+        super(Server, self).__init__()
+        self.basium = None
+        self.running = True
+        self.ready = False
+        self.host = '0.0.0.0'
+        self.port = 8051
+        if documentroot != None:
+            self.documentroot = documentroot
+        else:
+            self.documentroot = os.path.dirname( os.path.abspath(sys.argv[0]))
+        print "wsgiserver using %s as documentroot" % self.documentroot
 
-    appServer = AppServer(basium)
+    def run(self):
+#        from wsgiref.simple_server import make_server
+        import wsgiref.simple_server
+        
+        print "-" * 79
+        print "Starting WSGI server, press Ctrl-c to quit"
     
-    # Instantiate the WSGI server.
-    # It will receive the request, pass it to the application
-    # and send the application's response to the client
-    try:
-        httpd = make_server(
-           '0.0.0.0', # The host name.
-           8051, # A port number where to wait for the request.
-           appServer # Our application object name
-           )
-    
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("Ctrl-C, server shutting down...")
+        if self.basium == None:
+            conn={'host': '127.0.0.1', 
+                  'port': 3306, 
+                  'user':'basium_user', 
+                  'pass':'secret', 
+                  'name': 'basium_db'}
+            basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+            basium.addClass(BasiumTest)
+            
+            self.db = basium.start()
+            if self.db == None:
+                sys.exit(1)
+
+        appServer = AppServer(basium, documentroot=documentroot)
+        
+        # Instantiate the WSGI server.
+        # It will receive the request, pass it to the application
+        # and send the application's response to the client
+        
+        httpd = wsgiref.simple_server.make_server( self.host, self.port, appServer)
+        self.ready = True
+        while self.running:
+            try:
+                httpd.handle_request()
+            except KeyboardInterrupt:
+                print("Ctrl-C, server shutting down...")
+                break
+            except:
+                self.running = False
+        self.ready = False
+        print "Thread stopping"
+        
 
 # ----------------------------------------------------------------------------
 #
@@ -423,18 +393,9 @@ def server(basium):
 #
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
-    
-    conn={'host':'localhost', 
-          'port':'8051', 
-          'user':'basium_user', 
-          'pass':'secret', 
-          'name': 'basium_db'}
-    basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
-    basium.addClass(BasiumTest)
-    
-    server(basium)
+    server = Server()
+    server.run()
 
-    
 #
 # Some test code
 #
