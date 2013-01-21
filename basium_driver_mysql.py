@@ -281,7 +281,7 @@ class Driver:
     #           
     def count(self, query):
         response = Response()
-        sql = "select count(*) from %s" % (query._cls._table)
+        sql = "select count(*) from %s" % (query._model._table)
         values = []
         sql2, values = query.toSql()
         sql += sql2
@@ -296,7 +296,7 @@ class Driver:
                 if row != None:
                     rows = int(row['count(*)'])
                 else:
-                    response.setError(1, 'Cannot query for count(*) in %s' % (query._cls._table))
+                    response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))
                 break
             except MySQLdb.Error, e:
                 response.set(e.args[0], e.args[1])
@@ -312,7 +312,7 @@ class Driver:
     def select(self, query):
         response = Response()
         rows = []
-        sql = "SELECT * FROM %s" % query._cls._table 
+        sql = "SELECT * FROM %s" % query._model._table 
         sql2, values = query.toSql()
         sql += sql2
         log.debug('sql=%s  values=%s)' %( sql, values))

@@ -135,9 +135,9 @@ class Driver:
         response = basium_common.Response()
         tmp = query.encode()
         if tmp == '':
-            url = '%s/%s' %(self.uri, query._cls._table )
+            url = '%s/%s' %(self.uri, query._model._table )
         else:
-            url = '%s/%s/filter?%s' %(self.uri, query._cls._table, query.encode() )
+            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         
         req = RequestWithMethod(url, method='HEAD')
         
@@ -158,10 +158,10 @@ class Driver:
 
         if query.isId():
             # simple
-            url = '%s/%s/%i' % (self.uri, query._cls._table, query._where[0].value)
+            url = '%s/%s/%i' % (self.uri, query._model._table, query._where[0].value)
         else:
             # real query 
-            url = '%s/%s/filter?%s' %(self.uri, query._cls._table, query.encode() )
+            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         o = urllib2.urlopen(url)
         data = json.load(o)
         if data['_errno'] == 0:
