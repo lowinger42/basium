@@ -56,9 +56,11 @@ log = basium_common.log
 documentroot = '/var/www/candor'
 
 mapExtToContenType = {
-    '.html' : 'text/html',
-    '.css': 'text/css',
-    '.js' : 'text/javascript',
+    '.html' : 'text/html'
+    ,'.css' : 'text/css'
+    ,'.js'  : 'text/javascript'
+    ,".gif" : "image/gif"
+    ,".png" : "image/png"
 }
 
 # ----- End of stuff to configure --------------------------------------------
@@ -124,7 +126,14 @@ def show_start_response(status, response_headers):
     pprint.pprint(status, indent=4)
     print "response_headers="
     pprint.pprint(response_headers, indent=4)
-    
+
+
+class Response2():
+    def __init__(self):
+        self.out = ''
+    def write(self, msg):
+        self.out += msg
+
 
 #
 # Main WSGI handler
@@ -146,15 +155,15 @@ class AppServer(object):
         if id_ == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(db, classname)
+            dbquery = basium_orm.Query(db, obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(db, classname)
+            dbquery = basium_orm.Query(db, obj)
             dbquery.decode(self.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium_orm.Query(db, classname).filter('id', '=', id_)
+            dbquery = basium_orm.Query(db).filter(obj.q.id, '=', id_)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
         response = db.driver.select(dbquery)  # we call driver direct for efficiency reason
@@ -219,10 +228,10 @@ class AppServer(object):
         if id_ == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(db, classname)
+            dbquery = basium_orm.Query(db, obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(db, classname)
+            dbquery = basium_orm.Query(db, obj)
             dbquery.decode(self.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
@@ -273,20 +282,31 @@ class AppServer(object):
         path = self.path
         if path == "":
             path = "/index.html"
+        
         path = documentroot + path
         if not os.path.exists(path):
             return False
-        
-        f = file(path, 'rb')
-        self.out += f.read()
-        f.close()
         
         # guess content type
         ext = os.path.splitext(path)
         if len(ext) > 1:
             ext = ext[1]
-            if ext in mapExtToContenType:
+            try:
                 self.contentType = mapExtToContenType[ext]
+            except KeyError:
+                pass
+            if ext == '.py':
+                # we execute this
+                mod = self.environ['PATH_INFO'][1:-2]
+                a = __import__(mod)
+                response=Response2()
+                a.run(response)
+                self.out += response.out
+            else:
+                f = file(path, 'rb')
+                self.out += f.read()
+                f.close()
+
         return True
 
     #
