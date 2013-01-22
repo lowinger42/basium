@@ -193,8 +193,8 @@ class Basium(object):
 class Response():
     def __init__(self):
         self.data = {}
-        self.data['_errno'] = 0
-        self.data['_errmsg'] = ''
+        self.data['errno'] = 0
+        self.data['errmsg'] = ''
 
     def __str__(self):
         res = []
@@ -203,14 +203,14 @@ class Response():
         return ", ".join(res)
 
     def isError(self):
-        return self.data['_errno'] != 0
+        return self.data['errno'] != 0
 
     def getError(self):
-        return "Errno: %d Errmsg: '%s'" % (self.data['_errno'], self.data['_errmsg'])
+        return "Errno: %d Errmsg: '%s'" % (self.data['errno'], self.data['errmsg'])
 
-    def setError(self, errno, errmsg=''):
-        self.data['_errno'] = errno
-        self.data['_errmsg'] = errmsg
+    def setError(self, errno=1, errmsg=''):
+        self.data['errno'] = errno
+        self.data['errmsg'] = errmsg
 
     def get(self, key=None):
         if key == None:
