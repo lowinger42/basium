@@ -34,7 +34,6 @@
 import sys
 import inspect
 import datetime
-import MySQLdb
 import pprint
 import urllib
 import urllib2

@@ -108,6 +108,7 @@ class AppServer(object):
         if path == "":
             path = "/index.html"
         abspath = self.documentroot + path
+        attr = []
         if not os.path.isfile(abspath):
 
             # no direct match, search for filematch, part of uri
@@ -140,7 +141,7 @@ class AppServer(object):
                 module = module[1:]
             if module[-3:] == '.py':
                 module = module[:-3]
-            print "Importing module=%s  attr=%s" % (module, attr)
+            # print "Importing module=%s  attr=%s" % (module, attr)
             old_stdout = sys.stdout
             old_stderr = sys.stderr
             sys.stdout = self.response  # catch all output as html code
@@ -149,10 +150,9 @@ class AppServer(object):
                 extpage = __import__(module)
                 extpage = reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
                 extpage.run(self.request, self.response, self.basium)
-#                print "response=", self.response.out
             except:
-                # if debug, show stacktrace
-                # make this a custom error page
+                # todo: make this a custom error page
+                # if debug, show additional info, stacktrace
                 self.response.contentType = 'text/plain'
                 traceback.print_exc()
                 sys.stdout = old_stdout
@@ -223,10 +223,6 @@ class AppServer(object):
             # in the file like wsgi.input environment variable.
             self.request.body = self.request.environ['wsgi.input'].read(self.request.body_size)
 
-#        uri = self.request.path.split('/')
-#        if len(uri) > 1 and uri[1] == 'api':
-#            self.handleAPI(uri[2:])
-#        else:
         if not self.handleFile():
             self.handleError()
 
@@ -244,13 +240,13 @@ class AppServer(object):
 #
 class Server(threading.Thread):
 
-    def __init__(self, basium = None, documentroot = None):
+    def __init__(self, basium = None, documentroot = None, host='0.0.0.0', port=8051):
         super(Server, self).__init__()
-        self.basium = None
+        self.basium = basium
         self.running = True
         self.ready = False
-        self.host = '0.0.0.0'
-        self.port = 8051
+        self.host = host
+        self.port = port
         if documentroot != None:
             self.documentroot = documentroot
         else:
@@ -258,7 +254,6 @@ class Server(threading.Thread):
         print "wsgiserver using %s as documentroot" % self.documentroot
 
     def run(self):
-#        from wsgiref.simple_server import make_server
         import wsgiref.simple_server
         
         print "-" * 79
@@ -270,14 +265,14 @@ class Server(threading.Thread):
                   'user':'basium_user', 
                   'pass':'secret', 
                   'name': 'basium_db'}
-            basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
-            basium.addClass(BasiumTest)
+            self.basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+            self.basium.addClass(BasiumTest)
             
-            self.db = basium.start()
+            self.db = self.basium.start()
             if self.db == None:
                 sys.exit(1)
 
-        appServer = AppServer(basium, documentroot=self.documentroot)
+        appServer = AppServer(self.basium, documentroot=self.documentroot)
         
         # Instantiate the WSGI server.
         # It will receive the request, pass it to the application

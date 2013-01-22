@@ -152,9 +152,7 @@ class Basium(object):
         if self.driver == 'mysql':
             import basium_driver_mysql as driver
         elif self.driver == 'psql':
-            log.error('Postgresql driver not implemented')
-            sys.exit(1)
-#            import basium_driver_psql as driver
+            import basium_driver_psql as driver
         elif self.driver == 'json':
             import basium_driver_json as driver
         else:
