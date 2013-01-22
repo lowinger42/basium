@@ -164,7 +164,7 @@ class Driver:
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         o = urllib2.urlopen(url)
         data = json.load(o)
-        if data['_errno'] == 0:
+        if data['errno'] == 0:
             rows = []
             for row in data['data']:
                 resp = {}
@@ -173,7 +173,7 @@ class Driver:
                 rows.append(resp)
             response.set('data', rows)
         else:
-            response.setError(data['_errno'], data['_errmsg'])
+            response.setError(data['errno'], data['errmsg'])
         return response
 
 
@@ -188,10 +188,10 @@ class Driver:
         jdata = json.dumps(values, cls=basium_common.JsonOrmEncoder)
         o = urllib2.urlopen(url, jdata)                 # POST
         res = json.load(o)
-        if res['_errno'] == 0:
+        if res['errno'] == 0:
             response.set('data', res['data'])
         else:
-            response.setError(res['_errno'], res['_errmsg'])
+            response.setError(res['errno'], res['errmsg'])
         return response
 
 
@@ -206,7 +206,7 @@ class Driver:
         req = RequestWithMethod(url, method='PUT')
         o = urllib2.urlopen(req, jdata)
         res = json.load(o)
-        response.setError(res['_errno'], res['_errmsg'])
+        response.setError(res['errno'], res['errmsg'])
         return response
 
     #
