@@ -134,6 +134,7 @@ class AppServer(object):
             self.response.contentType = mimetype[0]
         if mimetype[0] == 'text/x-python':
             # we import and execute code in the module
+            self.response.contentType = 'text/html'
             module = abspath[len(self.documentroot):]
             if module[0] == '/': 
                 module = module[1:]
