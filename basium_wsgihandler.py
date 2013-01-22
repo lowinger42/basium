@@ -38,7 +38,9 @@ import datetime
 import pprint
 import decimal
 import threading
+import traceback
 
+import mimetypes
 import json
 from urlparse import parse_qs
 
@@ -53,15 +55,7 @@ log = basium_common.log
 
 # ----- Stuff to configure ---------------------------------------------------
 
-documentroot = '/var/www/candor'
-
-mapExtToContenType = {
-    '.html' : 'text/html'
-    ,'.css' : 'text/css'
-    ,'.js'  : 'text/javascript'
-    ,".gif" : "image/gif"
-    ,".png" : "image/png"
-}
+# documentroot = '/var/www/candor'
 
 # ----- End of stuff to configure --------------------------------------------
 
@@ -73,12 +67,22 @@ def show_start_response(status, response_headers):
     pprint.pprint(response_headers, indent=4)
 
 
+
+class Request():
+    pass
+
 class Response2():
     def __init__(self):
+        self.status = "200 OK"
+        self.contentType = 'text/plain'
+        self.headers = []
         self.out = ''
+
     def write(self, msg):
         self.out += msg
 
+    def addHeader(self, header, value):
+        self.headers.append((header, value,))
 
 #
 # Main WSGI handler
@@ -93,166 +97,72 @@ class AppServer(object):
     def getSession(self):
         pass
 
-    #
-    #
-    #
-    def handleGet(self, classname, id_, uri):
-        obj = classname()
-        if id_ == None:
-            log.debug('Get all rows in table %s' % obj._table)
-            # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(self.db, obj)
-        elif id_ == 'filter':
-            # filter out specific rows
-            dbquery = basium_orm.Query(self.db, obj)
-            dbquery.decode(self.querystr)
-            log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
-        else:
-            # one row, identified by rowID
-            dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
-            log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
-
-        response = self.db.driver.select(dbquery)  # we call driver direct for efficiency reason
-        if response.isError():
-            msg = "Could not load objects from table '%s'. %s" % (obj._table, response.getError())
-            log.debug(msg)
-            self.out += msg
-            self.status = '404 ' + msg
-            return
-        lst = response.get('data')
-        if id_ != None and id_ != 'filter' and len(lst) == 0:
-            msg = "Unknown ID %s in table '%s'" % (id_, obj._table)
-            response.setError(1, msg)
-            log.debug(msg)
-            self.status = '404 ' + msg
-        self.out += json.dumps(response, cls=basium_common.JsonOrmEncoder)
-
-    #
-    #
-    #    
-    def handlePost(self, classname, id_, uri):
-        obj = classname()
-        if id_ != None:
-            self.status = "400 Bad Request, no ID needed to insert a row"
-            return
-
-        postdata = json.loads(self.request_body)    # decode data that should be stored in database
-        response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
-        self.status = '200 OK'
-
-    #
-    #
-    #    
-    def handlePut(self, classname, id_, uri):
-        if id_ == None:
-            self.status = "400 Bad Request, need ID to update a row"
-            return
-        # update row
-        obj = classname()
-        putdata = json.loads(self.request_body)    # decode data that should be stored in database
-        response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        self.out += json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
-        self.status = '200 OK'
-
-    #
-    #
-    #    
-    def handleDelete(self, classname, id_, uri):
-        if id_ == None:
-            self.status = "400 Bad Request, need ID to delete a row"
-            return
-#        obj = classname()
-
-
-    #
-    # Count the number of rows matching a query
-    # Return data in a HTML header
-    #
-    def handleHead(self, classname, id_, uri):
-        obj = classname()
-        if id_ == None:
-            log.debug('Count all rows in table %s' % obj._table)
-            # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(self.db, obj)
-        elif id_ == 'filter':
-            # filter out specific rows
-            dbquery = basium_orm.Query(self.db, obj)
-            dbquery.decode(self.querystr)
-            log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
-
-        response = self.db.driver.count(dbquery)  # we call driver direct for efficiency reason
-        if response.isError():
-            msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
-            log.debug(msg)
-#            self.out += msg
-            self.status = '404 ' + msg
-            return
-        self.headers.append( ('X-Result-Count', str(response.get('data')) ), )
-
-    
-    #
-    #
-    #    
-    def handleAPI(self, uri):
-        ix = 0
-        if not uri[ix] in self.basium.cls:
-            self.status = "404 table '%s' not found" % (uri[ix])
-            return
-        classname = self.basium.cls[uri[ix]]
-        ix += 1
-        if len(uri) > ix:
-            id_ = uri[ix]
-            ix += 1
-        else:
-            id_ = None
-        if self.method == 'GET':
-            self.handleGet(classname, id_, uri[ix:])
-        elif self.method == "POST":
-            self.handlePost(classname, id_, uri[ix:])
-        elif self.method == "PUT":
-            self.handlePut(classname, id_, uri[ix:])
-        elif self.method == "DELETE":
-            self.handleDelete(classname, id_, uri[ix:])
-        elif self.method == "HEAD":
-            self.handleHead(classname, id_, uri[ix:])
-        else:
-            # not a request we understand
-            self.status = "400 Bad Request"
 
     #
     #
     #    
     def handleFile(self):
         # ok, must be a file in the file system
-        path = self.path
+        path = self.request.path
+        self.request.attr = []
         if path == "":
             path = "/index.html"
-        
-        path = documentroot + path
-        if not os.path.exists(path):
-            return False
-        
-        # guess content type
-        ext = os.path.splitext(path)
-        if len(ext) > 1:
-            ext = ext[1]
-            try:
-                self.contentType = mapExtToContenType[ext]
-            except KeyError:
-                pass
-            if ext == '.py':
-                # we execute this
-                mod = self.environ['PATH_INFO'][1:-2]
-                a = __import__(mod)
-                response=Response2()
-                a.run(response)
-                self.out += response.out
-            else:
-                f = file(path, 'rb')
-                self.out += f.read()
-                f.close()
+        abspath = self.documentroot + path
+        if not os.path.isfile(abspath):
 
+            # no direct match, search for filematch, part of uri
+            attr = self.request.path.split("/")
+            
+            if len(attr) > 0 and attr[0] == '':
+                attr.pop(0)
+            uri = []
+            while True:
+                abspath = self.documentroot + "/" + "/".join(uri)
+                if os.path.isfile(abspath):
+                    break
+                abspath += ".py"
+                if os.path.isfile(abspath):
+                    break
+                if len(attr) == 0:
+                    return False
+                uri.append( attr.pop(0))
+                
+        self.request.attr = attr
+        
+        mimetype = mimetypes.guess_type(abspath)
+        if mimetype[0] != None:
+            self.response.contentType = mimetype[0]
+        if mimetype[0] == 'text/x-python':
+            # we import and execute code in the module
+            module = abspath[len(self.documentroot):]
+            if module[0] == '/': 
+                module = module[1:]
+            if module[-3:] == '.py':
+                module = module[:-3]
+            print "Importing module=%s  attr=%s" % (module, attr)
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+            sys.stdout = self.response  # catch all output as html code
+            sys.stderr = self.response  # catch all output as html code
+            try:
+                extpage = __import__(module)
+                extpage = reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
+                extpage.run(self.request, self.response, self.basium)
+#                print "response=", self.response.out
+            except:
+                # if debug, show stacktrace
+                # make this a custom error page
+                self.response.contentType = 'text/plain'
+                traceback.print_exc()
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+                traceback.print_exc()
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+        else:
+            f = file(abspath, 'rb')
+            self.write( f.read() )
+            f.close()
         return True
 
     #
@@ -261,17 +171,17 @@ class AppServer(object):
     def handleError(self):
         # file does not exist
 
-        self.out += "\n REQUEST_METHOD=" + self.method
-        self.out += "\n PATH_INFO=" + self.path
-        self.out += "\n QUERY_STRING=" + self.querystr
+        self.write( "\n REQUEST_METHOD=%s" % self.request.method )
+        self.write( "\n PATH_INFO     =%s" % self.request.path )
+        self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
         
         # parse query variables
-        queryp = parse_qs(self.environ['QUERY_STRING'])
+        queryp = parse_qs(self.request.environ['QUERY_STRING'])
         for key,val in queryp.items():
-            self.out += "\nkey: %s, val: %s" % (key, val)
+            self.write("\nkey: %s, val: %s" % (key, val) )
                                                  
-        for key,val in self.environ.items():
-            self.out += "\n%s=%s" % (key, val)
+        for key,val in self.request.environ.items():
+            self.write("\n%s=%s" % (key, val) )
 
         self.status = '404 File or directory not found'
         
@@ -280,15 +190,15 @@ class AppServer(object):
     #
     #    
     def __call__(self, environ, start_response):
-        self.out = ''
-        self.status = "200 OK"
-        self.headers = []
-        self.contentType = 'text/plain'
+        self.request = Request()
+        self.request.environ = environ
+        self.request.path = environ['PATH_INFO']
+        self.request.method = environ['REQUEST_METHOD']
+        self.request.querystr = environ['QUERY_STRING']
         
-        self.environ = environ
-        self.path = environ['PATH_INFO']
-        self.method = environ['REQUEST_METHOD']
-        self.querystr = environ['QUERY_STRING']
+        self.response = Response2()
+        self.write = self.response.write
+
         
         # query = parse_qs(querystr)
     
@@ -299,32 +209,31 @@ class AppServer(object):
         #    age = escape(age)
         #    hobbies = [escape(hobby) for hobby in hobbies]
         
-        
-        if self.method in ['POST', 'PUT']:
+        if self.request.method in ['POST', 'PUT']:
             # get the posted data
             # the environment variable CONTENT_LENGTH may be empty or missing
             try:
-                self.request_body_size = int(self.environ.get('CONTENT_LENGTH', 0))
+                self.request.body_size = int(self.request.environ.get('CONTENT_LENGTH', 0))
             except (ValueError):
-                self.request_body_size = 0
+                self.request.body_size = 0
     
             # When the method is POST/PUT the query string will be sent
             # in the HTTP request body which is passed by the WSGI server
             # in the file like wsgi.input environment variable.
-            self.request_body = self.environ['wsgi.input'].read(self.request_body_size)
+            self.request.body = self.request.environ['wsgi.input'].read(self.request.body_size)
 
-        uri = self.path.split('/')
-        if len(uri) > 1 and uri[1] == 'api':
-            self.handleAPI(uri[2:])
-        else:
-            if not self.handleFile():
-                self.handleError()
+#        uri = self.request.path.split('/')
+#        if len(uri) > 1 and uri[1] == 'api':
+#            self.handleAPI(uri[2:])
+#        else:
+        if not self.handleFile():
+            self.handleError()
 
-        self.headers.append( ('content-type', self.contentType ), )
-        self.headers.append( ('Content-Length', str(len(self.out)) ), )
+        self.response.addHeader( 'content-type', self.response.contentType )
+        self.response.addHeader( 'Content-Length', str(len(self.response.out) ) )
         
-        start_response(self.status, self.headers)
-        return [self.out]
+        start_response(self.response.status, self.response.headers)
+        return [self.response.out]
     
 #
 # Start a simple WSGI server
@@ -367,7 +276,7 @@ class Server(threading.Thread):
             if self.db == None:
                 sys.exit(1)
 
-        appServer = AppServer(basium, documentroot=documentroot)
+        appServer = AppServer(basium, documentroot=self.documentroot)
         
         # Instantiate the WSGI server.
         # It will receive the request, pass it to the application
