@@ -1,11 +1,16 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+
+# -----------------------------------------------------------------------------
+#
+# Object persistence for Python
+#
+# This class handles all mapping between objects and dictionaries,
+# before calling database driver, or returning objects
+#
+# -----------------------------------------------------------------------------
 
 #
-# Object persistence for Python and MySQL
-#
-
-#
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,23 +36,18 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+__metaclass__ = type
+
 import sys
 import inspect
-import datetime
-import pprint
-import urllib
-import urllib2
 import urlparse
-import json
-import types
-import decimal
+import urllib
 
 import basium_common
-
-from basium_model import *
+import basium_model
+import basium_driver
 
 log = basium_common.log
-
 
 # to make less errors in queries
 LT = '<'
@@ -58,21 +58,33 @@ GE = '>='
 NE = '!='
 
 
-# ----------------------------------------------------------------------------
-#
-#  Main database class, implement load, store, count, delete of objects
-#  Uses a database driver, MySQL or JSON to do the actual work
-#
-# ----------------------------------------------------------------------------
+class BasiumOrm:
 
-class BasiumDatabase:
-
-    #
-    def __init__(self, driver = None):
+    def __init__(self, driver = None, drivermodule = None):
         self.driver = driver
-#        self.driver.connect()
+        self.drivermodule = drivermodule
 
-    
+        # mixin, let the various model classes also inherit from the
+        # corresponding driver classes. We change the class so all
+        # future instances will have correct base classes
+        #
+        # todo: is there a better way to do this?
+        #       it would be nice to have the model instance decoupled from the driver
+        #
+        drvclasses = {}
+        for tmp in inspect.getmembers(self.drivermodule, inspect.isclass):
+            drvclasses[tmp[0]] = tmp[1]
+        for modelclsname, modelcls in inspect.getmembers(basium_model, inspect.isclass):
+            if issubclass(modelcls, basium_model.Column) and modelclsname != 'Column':
+                # ok, found one, get the drivers corresponding class
+                if modelclsname in drvclasses:
+#                    print "found %s!" % modelclsname
+#                    print "  ", modelcls.__bases__
+                    modelcls.__bases__ = modelcls.__bases__  + (drvclasses[modelclsname],)
+#                    print "  ", modelcls.__bases__
+                else:
+                    log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
+
     #
     # Returns
     #    True if the database exist
@@ -82,16 +94,14 @@ class BasiumDatabase:
     def isDatabase(self, dbName):
         result = self.driver.isDatabase(dbName)
         if result.isError():
-            log.error("Cannot check if database exist. %s" % (result.getError()) )
+            log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
             return None
-
-        exist = result.get('data') 
+        exist = result.get('data')
         if exist:
             log.debug("SQL Database '%s' exist" % dbName)
         else:
-            log.error("SQL Database does NOT exist, it needs to be created")
-        return exit
-
+            log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
+        return exist
 
     #
     # Check if a table exist in the database
@@ -99,7 +109,7 @@ class BasiumDatabase:
     def isTable(self, obj):
         result = self.driver.isTable(obj._table)
         if result == None:
-            log.error("Cannot check if SQL Table '%s' exist. %s" % (obj._table, result.getError()))
+            log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
             return False
         exist = result.get('data')
         if exist:
@@ -108,15 +118,13 @@ class BasiumDatabase:
             log.debug("SQL Table '%s' does NOT exist" % obj._table)
         return exist
 
-    
-
     #
     # Create a obj
     #
     def createTable(self, obj):
         result = self.driver.createTable(obj)
         if result.isError():
-            log.error("Creation of SQL Table '%s' failed. %s" % (result.getError()))
+            log.error("Create SQL Table '%s' failed. %s" % (obj._table, result.getError()))
             return False
         return True
 
@@ -138,11 +146,11 @@ class BasiumDatabase:
 
     #
     # Update table to latest definiton of class
-    # actions is the result from verifytable
+    # actions is the result from verifyTtable
     #
     def modifyTable(self, obj, actions):
         result = self.driver.modifyTable(obj, actions)
-        if result == None:
+        if result.isError():
             log.error('Fatal: Cannot update table structure for %s. %s' % (obj._table, result.getError()))
             return False
         return True
@@ -151,7 +159,7 @@ class BasiumDatabase:
     #
     #           
     def count(self, query_):
-        if isinstance(query_, Model):
+        if isinstance(query_, basium_model.Model):
             query = Query(self, query_)
         elif isinstance(query_, Query):
             query = query_
@@ -160,10 +168,9 @@ class BasiumDatabase:
             return None
         result = self.driver.count(query)
         if result.isError():
-            log.error('Cannot do count(*) on %s' % (query._table))
+            log.error('Cannot do count(*) on %s' % (query._model._table))
             return None
         return int(result.get('data'))
-
 
     #
     # Fetch one or multiple rows from table, each stored in a object
@@ -175,11 +182,14 @@ class BasiumDatabase:
     #   list of objects, one or more if ok
     #   None if error
     #
+    # Note: querying for a single object with id returns error if not found
     #
     def load(self, query_):
         response = basium_common.Response()
-        if isinstance(query_, Model):
+        one = False
+        if isinstance(query_, basium_model.Model):
             query = Query(self).filter(query_.q.id, EQ, query_.id)
+            one = True
         elif isinstance(query_, Query):
             query = query_
         else:
@@ -195,12 +205,14 @@ class BasiumDatabase:
                 newobj._values[colname] = column.toPython( row[colname] )
             rows.append(newobj)
         response.set('data', rows)
+        if one and len(rows) < 1:
+            response.setError(1, "Unknown UD %s in table %s" % (query_.id, query_._table))
         return response
 
     
     #
     # Store the query in the database
-    # If the objects ID is set, we update the current db row,
+    # If the objects ID is set, we update the current row in the table,
     # otherwise we create a new row
     #
     def store(self, obj):
@@ -219,22 +231,35 @@ class BasiumDatabase:
         return response
     
     #
-    #  "DELETE FROM BasiumTest WHERE AGE > '%d'" % (20)
+    # Delete objects in the table.
+    #   query_ can be either
+    #     An instance of Model
+    #     Query()
+    #
+    #   If instance of model, that instance will be deleted
+    #   If query, the objects matching the query is deleted 
     #
     def delete(self, query_):
         response = basium_common.Response()
-        if isinstance(query_, Model):
-            query = Query(self, query_.__class__).filter('id', EQ, query_.id)
+        clearID = False
+        if isinstance(query_, basium_model.Model):
+            query = Query(self).filter(query_.q.id, EQ, query_.id)
+            clearID = True
         elif isinstance(query_, Query):
             query = query_
         else:
             response.setError(1, "Fatal: incorrect object type in delete()")
             return response
-        response = self.driver.delete(query) 
+        response = self.driver.delete(query)
+        if not response.isError() and clearID:
+            query_.id = -1
         return response
 
     #
     # Create and return a query object
+    # Convenience method, makes it unnecessary to import the basium_orm module
+    # just for doing queries
+    #
     def query(self, obj = None):
         q = Query(self, obj)
         return q
@@ -261,6 +286,12 @@ class Query():
         self._order = []
         self._limit = None
 
+    def isId(self):
+        if len(self._where) != 1:
+            return False
+        w = self._where[0]
+        return w.column.name == 'id' and w.operand == '='
+
     def getTable(self):
         if self._model != None:
             return self._model._table
@@ -275,7 +306,6 @@ class Query():
             self.value = value
 
         def toSql(self):
-            # print "column =", dir(self.column)
             sql = '%s %s %%s' % (self.column.name, self.operand )
             value = self.column.toSql( self.value )
             return (sql, value)
@@ -291,15 +321,44 @@ class Query():
     class Group:
         def __init__(self):
             pass
+        
+        def toSql(self):
+            return None
+        
+        def encode(self):
+            return None
+
+        def decode(self, obj, value):
+            return None
 
     #        
     class Order:
-        def __init__(self):
-            pass
+        def __init__(self, column=None, desc=False):
+            self.column = column
+            self.desc = desc
+        
+        def toSql(self):
+            sql = '%s' % (self.column.name)
+            if self.desc:
+                sql += ' DESC'
+            return sql
+        
+        def encode(self):
+            return "o=" + urllib.quote("%s,%s" % (self.column.name, self.desc ))
+        
+        def decode(self, obj, value):
+            tmp = value.split(',')
+            if len(tmp) < 1 or len(tmp) > 2:
+                return
+            column = tmp[0]
+            self.column = obj._columns[column]
+            if len(tmp) == 2:
+                self.desc = tmp[1] == 'True'
+
 
     #
     class Limit:
-        def __init__(self, offset = None, rowcount = None):
+        def __init__(self, offset=None, rowcount=None):
             self.offset = offset
             self.rowcount = rowcount
 
@@ -316,20 +375,12 @@ class Query():
             pass
 
     #
-    def isId(self):
-        if len(self._where) != 1:
-            return False
-        w = self._where[0]
-        return w.column.name == 'id' and w.operand == '='
-
-    #
     # Add a filter. Returns self so it can be chained
     #
     def filter(self, column, operand, value):
-        if not isinstance(column, Column):
-            log.error('Fatal: filter() called with a non-Column')
-            sys.exit(1)
-        # print dir(column)
+        if not isinstance(column, basium_model.Column):
+            log.error('Fatal: filter() called with a non-Column %s' % column)
+            return None
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
@@ -348,8 +399,16 @@ class Query():
     #
     # Add a sort order. Returns self so it can be chained
     #
-    def order(self, order, desc = False):
-        self._order = order 
+    def order(self, column, desc = False):
+        if not isinstance(column, basium_model.Column):
+            log.error('Fatal: order() called with a non-Column %s' % column)
+            return None
+        if self._model == None:
+            self._model = column._model
+        elif self._model != column._model:
+            log.error('Fatal: filter from multiple tables not implemented')
+            return None
+        self._order.append( self.Order(column=column, desc=desc) )
         return self
 
     #
@@ -357,14 +416,13 @@ class Query():
     # Offset is optional
     # Maximum number of rows is mandatory
     # Can be called once, if multiple calls last one wins
-    # 
     #
-    def limit(self, offset = None, rowcount = None):
-        self._rowcount = rowcount
+    def limit(self, offset=None, rowcount=None):
+        self._limit = self.Limit(offset, rowcount)
         return self
         
     #
-    # Return the query 
+    # Return the query as SQL
     # Handles
     # - WHERE
     # - GROUP BY
@@ -372,24 +430,35 @@ class Query():
     # - LIMIT
     #
     def toSql(self):
-        if len(self._where) < 1:
-            return ('', [])
-        sql = ' where ('
         value = []
-        add = False
-        if self._where != None:
-            for where in self._where:
-                if add:
-                    sql += ' and '
+        sql = ''
+        if len(self._where) > 0:
+            sql += ' where ('
+            addComma = False
+            if self._where != None:
+                for where in self._where:
+                    if addComma:
+                        sql += ' and '
+                    else:
+                        addComma = True
+                    sql2, value2 = where.toSql()
+                    sql += sql2
+                    value.append(value2)
+                sql += ')'
+
+        if len(self._order) > 0:
+            sql += " ORDER BY "
+            addComma = False
+            for order in self._order:
+                if addComma:
+                    sql += ','
                 else:
-                    add = True
-                sql2, value2 = where.toSql()
-                sql += sql2
-                value.append(value2)
-            sql += ')'
-        
+                    addComma = True
+                sql += order.toSql()
+
         if self._limit != None:
             sql += self._limit.encode()
+
         return (sql, value)
 
     #
@@ -404,8 +473,11 @@ class Query():
         # group
         
         # order
+        for order in self._order:
+            url.append(order.encode() )
         
         # limit
+        
         return "&".join(url)
 
     #
@@ -427,17 +499,9 @@ class Query():
                 o = self.Order()
                 o.decode(val)
                 self._order.append(o)
-                pass
             elif key == 'l':
                 l = self.Limit()
                 l.decode(val)
                 self._limit = l
             else:
                 log.error("Incorrect key=%s, url='%s' in URL" % (key, url))
-
-
-#
-# Future tests
-#
-if __name__ == "__main__":
-    pass
