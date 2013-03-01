@@ -1,13 +1,49 @@
+#!/usr/bin/env python
+
+# ----------------------------------------------------------------------------
+#
+# Page for the Basium WSGI handler
+# Implements a basic HTTP REST API for the Basium registered classes
+#
+# ----------------------------------------------------------------------------
+
+#
+# Copyright (c) 2013, Anders Lowinger, Abundo AB
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#    * Neither the name of the <organization> nor the
+#      names of its contributors may be used to endorse or promote products
+#      derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+__metaclass__ = type
+
 import json
+import urlparse
 
 import basium_orm
 import basium_common
 
 log = basium_common.log
-db = None
 
-
-class API(object):
+class API():
     def __init__(self, request, response, basium):
         self.request = request
         self.response = response
@@ -31,7 +67,7 @@ class API(object):
             dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = self.db.driver.select(dbquery)  # we call driver direct for efficiency reason
+        response = self.db.driver.select(dbquery)  # we call driver directly for efficiency reason
         if response.isError():
             msg = "Could not load objects from table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
@@ -54,8 +90,10 @@ class API(object):
         if id_ != None:
             self.response.status = "400 Bad Request, no ID needed to insert a row"
             return
-
-        postdata = json.loads(self.request.body)    # decode data that should be stored in database
+        postdata = urlparse.parse_qs(self.request.body)
+        for key in postdata.keys():
+            postdata[key] = postdata[key][0]
+        # print "postdata =", postdata
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
 
@@ -68,20 +106,34 @@ class API(object):
             return
         # update row
         obj = classname()
-        putdata = json.loads(self.request.body)    # decode data that should be stored in database
+        putdata = urlparse.parse_qs(self.request.body)
+        for key in putdata.keys():
+            putdata[key] = putdata[key][0]
+        putdata['id'] = id_
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        self.write( json.dumps(response.get(), cls=basium_common.JsonOrmEncoder) )
+        print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
 
     #
     #
     #    
     def handleDelete(self, classname, id_, attr):
+        obj = classname()
         if id_ == None:
-            self.response.status = "400 Bad Request, need ID to delete a row"
+            msg = "Refusing to delete all rows in table '%s" % obj._table
+            log.debug(msg)
+            self.response.status = "400 %s" % msg
             return
-            self.response.status = "400 Bad Request, delete not implemented yet"
-#        obj = classname()
-
+        elif id_ == 'filter':
+            # filter out specific rows
+            dbquery = basium_orm.Query(self.db, obj)
+            dbquery.decode(self.request.querystr)
+            log.debug("Delete all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
+        else:
+            # one row, identified by rowID
+            dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
+            log.debug("Delete one row in table '%s' matching id %s" % (obj._table, id_))
+        response = self.db.driver.delete(dbquery)
+        self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
 
     #
     # Count the number of rows matching a query
@@ -96,7 +148,7 @@ class API(object):
         elif id_ == 'filter':
             # filter out specific rows
             dbquery = basium_orm.Query(self.db, obj)
-            dbquery.decode(self.querystr)
+            dbquery.decode(self.request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
         response = self.db.driver.count(dbquery)  # we call driver direct for efficiency reason
@@ -138,9 +190,6 @@ class API(object):
             # not a request we understand
             self.response.status = "400 Unknown request %s" % self.request.method
 
-#
-#
-#    
 def run(request, response, basium):
     api = API(request, response, basium)
     api.handleAPI()
