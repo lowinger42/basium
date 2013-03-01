@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
-# 
-# Basium wsgi handler
-# implements a web framework with object persistence
+# -----------------------------------------------------------------------------
 #
+# Basium WSGI handler
+# Can handle static files and importing and running python modules depending
+#
+# -----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,32 +34,21 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+__metaclass__ = type
+
 import os
 import sys
-import datetime
 import pprint
-import decimal
 import threading
 import traceback
 
 import mimetypes
-import json
-from urlparse import parse_qs
+import urlparse
 
-import basium_orm
 import basium_common
-from basium_common import Response
-from basium_model import *
 
-from test_tables import *
-
+Response = basium_common.Response
 log = basium_common.log
-
-# ----- Stuff to configure ---------------------------------------------------
-
-# documentroot = '/var/www/candor'
-
-# ----- End of stuff to configure --------------------------------------------
 
 
 def show_start_response(status, response_headers):
@@ -65,7 +56,6 @@ def show_start_response(status, response_headers):
     pprint.pprint(status, indent=4)
     print "response_headers="
     pprint.pprint(response_headers, indent=4)
-
 
 
 class Request():
@@ -97,10 +87,6 @@ class AppServer(object):
     def getSession(self):
         pass
 
-
-    #
-    #
-    #    
     def handleFile(self):
         # ok, must be a file in the file system
         path = self.request.path
@@ -150,6 +136,7 @@ class AppServer(object):
                 extpage = __import__(module)
                 extpage = reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
                 extpage.run(self.request, self.response, self.basium)
+                # log.debug(self.response.out)
             except:
                 # todo: make this a custom error page
                 # if debug, show additional info, stacktrace
@@ -166,18 +153,15 @@ class AppServer(object):
             f.close()
         return True
 
-    #
-    #
-    #    
+    # file does not exist
     def handleError(self):
-        # file does not exist
 
         self.write( "\n REQUEST_METHOD=%s" % self.request.method )
         self.write( "\n PATH_INFO     =%s" % self.request.path )
         self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
         
         # parse query variables
-        queryp = parse_qs(self.request.environ['QUERY_STRING'])
+        queryp = urlparse.parse_qs(self.request.environ['QUERY_STRING'])
         for key,val in queryp.items():
             self.write("\nkey: %s, val: %s" % (key, val) )
                                                  
@@ -186,11 +170,11 @@ class AppServer(object):
 
         self.status = '404 File or directory not found'
         
-
-    #
-    #
-    #    
+    # main entrypoint for HTTP requests
     def __call__(self, environ, start_response):
+        
+        # we store these in self.request, so we can easily pass them over
+        # to dynamic loaded modules (pages)
         self.request = Request()
         self.request.environ = environ
         self.request.path = environ['PATH_INFO']
@@ -198,17 +182,7 @@ class AppServer(object):
         self.request.querystr = environ['QUERY_STRING']
         
         self.response = Response2()
-        self.write = self.response.write
-
-        
-        # query = parse_qs(querystr)
-    
-        #    age = d.get('age', [''])[0] # Returns the first age value.
-        #    hobbies = d.get('hobbies', []) # Returns a list of hobbies.
-        #    
-        #    # Always escape user input to avoid script injection
-        #    age = escape(age)
-        #    hobbies = [escape(hobby) for hobby in hobbies]
+        self.write = self.response.write    # make sure stdout works
         
         if self.request.method in ['POST', 'PUT']:
             # get the posted data
@@ -233,10 +207,10 @@ class AppServer(object):
         return [self.response.out]
     
 #
-# Start a simple WSGI server
+# Start a WSGI server
 #
-# Will respond to the basic request needed by the API, so functional
-# test can be done
+# Will respond to the basic request needed by the API, mainly used 
+# for development and functional tests
 #
 class Server(threading.Thread):
 
@@ -259,19 +233,6 @@ class Server(threading.Thread):
         print "-" * 79
         print "Starting WSGI server, press Ctrl-c to quit"
     
-        if self.basium == None:
-            conn={'host': '127.0.0.1', 
-                  'port': 3306, 
-                  'user':'basium_user', 
-                  'pass':'secret', 
-                  'name': 'basium_db'}
-            self.basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
-            self.basium.addClass(BasiumTest)
-            
-            self.db = self.basium.start()
-            if self.db == None:
-                sys.exit(1)
-
         appServer = AppServer(self.basium, documentroot=self.documentroot)
         
         # Instantiate the WSGI server.
@@ -289,20 +250,46 @@ class Server(threading.Thread):
             except:
                 self.running = False
         self.ready = False
-        print "Thread stopping"
+        print "WSGI server stopping"
         
 
 # ----------------------------------------------------------------------------
 #
-#  Main program
+#  Main program, used for unit test
 #
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
-    server = Server()
+    import test_tables
+    
+    driver = 'psql'
+
+    if driver == 'psql':
+        conn={'host':'localhost', 
+              'port':'5432',
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+    
+    elif driver == 'mysql':
+        conn={'host':'localhost', 
+              'port':'8051', 
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+    else:
+        print "Fatal: Unknown driver %s" % driver
+        sys.exit(1)
+
+    basium.addClass(test_tables.BasiumTest)
+    db = basium.start()
+    if db == None:
+        sys.exit(1)
+    
+    server = Server(basium=basium)
     server.run()
 
-#
-# Some test code
 #
 # REQUEST_METHOD
 # The HTTP request method, such as "GET" or "POST". This cannot ever be an empty string, 
@@ -350,4 +337,3 @@ if __name__ == "__main__":
 #    env['PATH_INFO'] = '/protocoltest/33'
 #    env['QUERY_STRING'] = ''
 #    env['REQUEST_METHOD'] = 'GET' # The HTTP request method, such as "GET" or "POST". This cannot ever be an empty string, and so is always required.
-#    print application(env, show_start_response)
