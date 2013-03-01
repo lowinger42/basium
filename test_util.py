@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-#
+# -----------------------------------------------------------------------------
 # Common code used during unit testing
-#
+# -----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,10 @@
 
 __metaclass__ = type
 
-import pprint
+import sys
 import decimal
-from inspect import getmembers
+import datetime
 
-import basium_orm
 import basium_common
 from basium_model import *
 
@@ -112,22 +111,22 @@ class RunTest1():
     def __init__(self):
         pass
 
-
-    #
-    #
-    #    
     def run(self, db, obj1, obj2):
         global errcount
 
         log.info("Store object in table '%s'" % obj1._table )
-        db.store(obj1)
+        response1 = db.store(obj1)
+        if response1.isError():
+            log.error('Could not store object')
+            errcount += 1
+            return
         
         log.info("Load same object from table '%s'" % (obj1._table) )
         obj2.id = obj1.id
-        response = db.load(obj2)
+        response2 = db.load(obj2)
         
-        if not response.isError():
-            rows = response.get('data')
+        if not response2.isError():
+            rows = response2.get('data')
             if len(rows) == 1:
                 obj2 = rows[0]
                 if obj1 == obj2:
@@ -139,11 +138,10 @@ class RunTest1():
                 log.error("  Error: expected one object returned, got %d objects" % (len(rows)) )
                 errcount += 1
         else:
-            log.error( response.getError() )
+            log.error( response2.getError() )
             errcount += 1
     
         log.info("  There is a total of %i rows in the '%s' table" % (db.count(obj1), obj1._table ) )
-
 
 #
 # Store an object, read it out again and compare if they are equal
@@ -156,26 +154,22 @@ def test1(db, runtest, Cls):
     #
     obj1 = objFactory.new( Cls, 1 )
     obj2 = Cls()
-    
     runtest.run(db, obj1, obj2)
 
     #    
     obj3 = objFactory.new( Cls, 2 )
     obj4 = Cls()
-    
     runtest.run(db, obj3, obj4)
-
 
 #
 # Test the query functionality
 #  
-def test2(db, runtest, Cls):
+def test2(db, Cls):
+    global errcount
     logHeader('Test of %s, query' % (Cls.__name__))
 
-#     query = basium_orm.Query(db)
     query = db.query()
     obj = Cls()
-#    query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 13)
     query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 20)
     response = db.load(query)
     if response.isError():
@@ -192,7 +186,9 @@ def test2(db, runtest, Cls):
 #
 # Test the update functionality
 #  
-def testUpdate(db, runtest, Cls):
+def testUpdate(db, Cls):
+    global errcount
+
     logHeader('Test of %s, update' % (Cls.__name__))
 
     objFactory = ObjectFactory()
@@ -224,6 +220,45 @@ def testUpdate(db, runtest, Cls):
         log.error( "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
 
 
+def testDelete(db, Cls):
+    global errcount
+
+    logHeader('Test of %s, delete' % (Cls.__name__))
+
+    objFactory = ObjectFactory()
+    
+    #
+    test1 = objFactory.new( Cls, 1 )
+    log.info("Store object in table '%s'" % test1._table )
+    res = db.store(test1)
+    if res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+    id_ = test1.id
+
+    log.info("Delete object in table '%s'" % test1._table )
+    res = db.delete(test1)
+    if res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+    rowsaffected = res.get('data')
+    if rowsaffected != 1:
+        errcount += 1
+        log.error("Expected delete to affect one row, %s got affected" % rowsaffected)
+        return
+
+    # Try to get the object we just deleted        
+    log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table )
+    test2 = Cls()
+    test2.id = id_
+    res = db.load(test2)
+    if not res.isError():
+        errcount += 1
+        log.error( res.getError() )
+        return
+
 #
 # Main testrunner
 #
@@ -232,9 +267,11 @@ def doTests(db, Cls):
 
     test1(db, runtest1, Cls)
 
-    test2(db, runtest1, Cls)
+    test2(db, Cls)
 
-    testUpdate(db, runtest1, Cls)
+    testUpdate(db, Cls)
+    
+    testDelete(db, Cls)
 
     log.info( "All done, a total of %i errors" % errcount )
 
