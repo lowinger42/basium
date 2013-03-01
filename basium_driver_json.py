@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 
+# ----------------------------------------------------------------------------
 #
-# Object persistence for Python. The database or json interface is accessed
-# through a driver, which makes it easy to implement new databases.
+# Basium database driver that handles remote JSON server
 #
+# ----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,19 +33,127 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import sys
+__metaclass__ = type
+
 import datetime
+import urllib
 import urllib2
-import urlparse
 import json
-import types
 import decimal
+import httplib
 
 import basium_common
+import basium_driver
 from basium_model import *
 
 log = basium_common.log
 
+#
+# These are shadow classes from the basium_model
+# handles the database specific functions such
+# as converting to/from SQL types
+#
+
+class BooleanCol(basium_driver.BooleanCol):
+
+    def toPython(self, value):
+        return value == 1
+
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        if value:
+            return 'TRUE'
+        return 'FALSE'
+ 
+# stores a date
+class DateCol(basium_driver.DateCol):
+    
+    def toPython(self, value):
+        if isinstance(value, datetime.datetime):
+            value = value.date()
+        elif isinstance(value, basestring):
+            value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
+        return value
+        
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return value
+
+# stores date+time
+# ignores microseconds
+# if default is 'NOW' the current date+time is stored
+class DateTimeCol(basium_driver.DateTimeCol):
+    
+    def getDefault(self):
+        if self.default == 'NOW':
+            return datetime.datetime.now().replace(microsecond=0)
+        return self.default
+
+    def toPython(self, value):
+        if isinstance(value, basestring):
+            value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        return value
+
+# stores a fixed precision number
+class DecimalCol(basium_driver.DecimalCol):
+    
+    def typeToSql(self):
+        sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
+        if self.nullable:
+            sql += " null"
+        else:
+            sql += " not null" 
+        if self.default != None:
+            sql += " default '%s'" % str(self.default)
+        return sql
+
+    def toPython(self, value):
+        if value == None:
+            return None
+        if isinstance(value, decimal.Decimal):
+            return value
+        return decimal.Decimal(value)
+        
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return value
+
+# stores a floating point number
+class FloatCol(basium_driver.FloatCol):
+    
+    def toPython(self, value):
+        if isinstance(value, basestring):
+            value = float(value)
+        return value
+        
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return str(value)
+
+# stores an integer
+class IntegerCol(basium_driver.IntegerCol):
+    
+    def toPython(self, value):
+        if isinstance(value, basestring):
+            value = int(value)
+        return value
+        
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return value
+
+# stores a string
+class VarcharCol(basium_driver.VarcharCol):
+
+    def toPython(self, value):
+        if isinstance(value, unicode):
+            value = str(value)
+        return value
 
 #
 # Helper class, to implement all four HTTP methods
@@ -68,83 +177,129 @@ class RequestWithMethod(urllib2.Request):
 # tables on the server
 #
 # ----------------------------------------------------------------------------
-class Driver:
-    def __init__(self, host=None, port=None, username=None, password=None, name=None):
+class Driver(basium_driver.Driver):
+    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
         self.name = name
+        self.debugSql = debugSql
         
         self.uri = 'http://%s:%s/api' % (self.host, self.port)
 
     #
     # dummy, json api is stateless, we don't need connect
+    # todo, could potentially check if server can be reached
     #
     def connect(self):
         pass
 
 
+    def execute(self, method=None, url=None, data=None, decode=False):
+        if self.debugSql:
+            log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
+        response = basium_common.Response()
+        req = RequestWithMethod(url, method=method)
+        try:
+            if data:
+                o = urllib2.urlopen(req, urllib.urlencode(data))
+            else:
+                o = urllib2.urlopen(req)
+            response.set('info', o.info)
+        except urllib2.HTTPError, e:
+            response.setError(1, "HTTPerror %s" % e)
+            return response
+        except urllib2.URLError, e:
+            response.setError(1, "URLerror %s" % e)
+            return response
+        except httplib.HTTPException, e:
+            response.setError(1, 'HTTPException %s' % e)
+            return response
+
+        if decode:
+            try:
+                res = json.load(o)
+            except TypeError:
+                response.setError(1, "JSON TypeError")
+                return response
+            try:
+                if res['errno'] == 0:
+                    response.set('data', res['data'])
+                else:
+                    response.setError(res['errno'], res['errmsg'])
+            except KeyError:
+                response.setError(1, "Result keyerror")
+
+        return response
+
     #
     # Check if a database exist
+    # There is no API for this, and the server will not start/reply
+    # if the database is not there so we cheat, always respond with: Yes, DB is there
     #
-    def isDatabase(self, dbName):
-        response = basium_common.Response()
-        response.set('data', True)
-        return response
+#    def isDatabase(self, dbName):
+#        response = basium_common.Response()
+#        response.set('data', True)
+#        return response
 
 
     #
     # Check if a table exist
+    # Todo: This should be possible to check over http
     #
-    def isTable(self, tableName):
-        response = basium_common.Response()
-        response.set('data', True)
-        return response
+#    def isTable(self, tableName):
+#        response = basium_common.Response()
+#        response.set('data', True)
+#        return response
 
 
     #
     # Create table, this is not valid for JSON API
+    # Todo: This should be possible to check over http
     #
-    def createTable(self, obj):
-        response = basium_common.Response()
-        return response
+#    def createTable(self, obj):
+#        response = basium_common.Response()
+#        return response
 
 
     #
     # Verify that a table is equal the objects attributes and types
+    # Todo: This should be possible to check over http
+    #    One idea is to calulate a checksum on all columns and their
+    #    attributes, and then compare client and server checksum
     #    
-    def verifyTable(self, obj):
-        response = basium_common.Response()
-        response.set('actions', [])
-        return response
+#    def verifyTable(self, obj):
+#        response = basium_common.Response()
+#        response.set('actions', [])
+#        return response
     
     #
     # Modify a database table so it corresponds to a object attributes and types
     # Not valid for JSON, due to security
     #    
-    def modifyTable(self, obj, actions):
-        return True
+#    def modifyTable(self, obj, actions):
+#        return True
 
     
     #
-    #
+    # Count the number of objects, filtered by query
     #    
-    def count(self, query=None):
+    def count(self, query):
         log.debug("Count query from database, using HTTP API")
-        response = basium_common.Response()
-        tmp = query.encode()
-        if tmp == '':
+        if len(query._where) == 0:
             url = '%s/%s' %(self.uri, query._model._table )
         else:
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
-        
-        req = RequestWithMethod(url, method='HEAD')
-        
-        o = urllib2.urlopen(req)
-        rows = o.info().getheader('X-Result-Count')
-    
-        response.set('data', rows)
+        response = self.execute(method='HEAD', url=url)
+        if not response.isError():
+    #        req = RequestWithMethod(url, method='HEAD')
+    #        o = urllib2.urlopen(req)
+            info = response.get('info')
+            print info
+            rows = info().getheader('X-Result-Count')
+            response.set('data', rows)
+            print rows
         return response
     
     #
@@ -162,20 +317,21 @@ class Driver:
         else:
             # real query 
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
-        o = urllib2.urlopen(url)
-        data = json.load(o)
-        if data['errno'] == 0:
-            rows = []
-            for row in data['data']:
-                resp = {}
-                for colname in row:
-                    resp[colname] = row[colname]
-                rows.append(resp)
-            response.set('data', rows)
-        else:
-            response.setError(data['errno'], data['errmsg'])
+        response = self.execute(method='GET', url=url, decode=True)
         return response
-
+#        o = urllib2.urlopen(url)
+#        data = json.load(o)
+#        if not response.isError():
+#            rows = []
+#            for row in response.get('data'):
+#                resp = {}
+#                for colname in row:
+#                    resp[colname] = row[colname]
+#                rows.append(resp)
+#            response.set('data', rows)
+#        else:
+#            response.setError(data['errno'], data['errmsg'])
+#        return response
 
     #
     #
@@ -185,15 +341,28 @@ class Driver:
         response = basium_common.Response()
 
         url = '%s/%s' % (self.uri, table)
-        jdata = json.dumps(values, cls=basium_common.JsonOrmEncoder)
-        o = urllib2.urlopen(url, jdata)                 # POST
-        res = json.load(o)
-        if res['errno'] == 0:
-            response.set('data', res['data'])
-        else:
-            response.setError(res['errno'], res['errmsg'])
-        return response
+        try:
+            o = urllib2.urlopen(url, urllib.urlencode(values))
+        except urllib2.URLError:
+            response.setError(1, "URLerror")
+            return response
+        except urllib2.HTTPError:
+            response.setError(1, "HTTPerror")
+            return response
 
+        try:
+            res = json.load(o)
+        except TypeError:
+            response.setError(1, "JSON TypeError")
+            return response
+        try:
+            if res['errno'] == 0:
+                response.set('data', res['data'])
+            else:
+                response.setError(res['errno'], res['errmsg'])
+        except KeyError:
+            response.setError(1, "Result keyerror")
+        return response
 
     #
     #
@@ -202,9 +371,8 @@ class Driver:
         log.debug("Update obj in database, using HTTP API")
         response = basium_common.Response()
         url = '%s/%s/%i' % (self.uri, table, values['id'])
-        jdata = json.dumps(values, cls=basium_common.JsonOrmEncoder)
         req = RequestWithMethod(url, method='PUT')
-        o = urllib2.urlopen(req, jdata)
+        o = urllib2.urlopen(req, urllib.urlencode(values))
         res = json.load(o)
         response.setError(res['errno'], res['errmsg'])
         return response
@@ -212,14 +380,24 @@ class Driver:
     #
     #
     #
-    def delete(self, table, id_):
+    def delete(self, query):
         log.debug("Delete obj from database, using HTTP API")
-        response = basium_common.Response()
+        if query.isId():
+            # simple
+            url = '%s/%s/%i' % (self.uri, query._model._table, query._where[0].value)
+        else:
+            # real query 
+            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
+        response = self.execute('DELETE', url, decode = True)
+#        if not result.isError():
+#        if data['errno'] == 0:
+#            rows = []
+#            for row in data['data']:
+#                resp = {}
+#                for colname in row:
+#                    resp[colname] = row[colname]
+#                rows.append(resp)
+#            response.set('data', rows)
+#        else:
+#            response.setError(data['errno'], data['errmsg'])
         return response
-
-
-#
-# Main
-#
-if __name__ == "__main__":
-    pass
