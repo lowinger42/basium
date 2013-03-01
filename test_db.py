@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-#
+# -----------------------------------------------------------------------------
 # Unit testing of the object persistence code
-# Uses the mysql driver to communicate directly with the MySQL database
-#
+# Uses any supported driver to communicate directly with the database
+# -----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+__metaclass__ = type
+
 import sys
 
 import basium_common
@@ -48,14 +50,28 @@ from test_util import *
 
 if __name__ == "__main__":
 
-    
-    conn={'host':'localhost', 
-          'port':'8051', 
-          'user':'basium_user', 
-          'pass':'secret', 
-          'name': 'basium_db'}
+    driver = 'psql'
 
-    basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn) 
+    # psql
+    if driver == 'psql':
+        conn={'host':'localhost', 
+              'port':'5432',
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+    
+    elif driver == 'mysql':
+        conn={'host':'localhost', 
+              'port':'8051', 
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+    else:
+        print "Unknown driver %s" % driver
+        sys.exit(1)
+
     basium.addClass(BasiumTest)
     db = basium.start()
     if db == None:
