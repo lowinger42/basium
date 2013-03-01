@@ -1,19 +1,20 @@
 #! /usr/bin/env python
 
-
+# -----------------------------------------------------------------------------
 #
 # This file does all the heavy lifting, setting up and initializing
 # everything that is needed to use the persistence framework, together
 # with some common code for all modules
 #
 # Usage:
-#  Create a new instance of the class, with the correct driver
+#  Create a new instance of the class, with the correct driver name
 #  Register the tables that should be persisted
-#  
-
+#  Call start
+#
+# -----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,19 +40,17 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import os
+__metaclass__ = type
+
 import sys
 import types
 import json
 import datetime
 import decimal
 
-import logging
 import logging.handlers
 
-#
-#
-#
+
 class Logger():
 
     def __init__(self, loglevel=None):
@@ -110,16 +109,13 @@ class Logger():
         self.log.debug(msg)
 
 log = Logger()
-log.info("basium logger started.")
+log.info("Basium logger started.")
 
-import basium_model
 import basium_orm
-from basium_model import *
-
-from test_tables import *
+import basium_model
 
 
-class Basium(object):
+class Basium():
 
 
     #
@@ -127,7 +123,7 @@ class Basium(object):
     #
     def __init__(self, driver=None, checkTables=True, conn=None):
         self.cls = {}
-        self.driver = driver
+        self.drivername = driver
         self.checkTables = checkTables
         self.conn = conn
 
@@ -139,7 +135,7 @@ class Basium(object):
         if not isinstance(cls, (type, types.ClassType)):
             log.error('Fatal: addClass() called with an instance of an object')
             sys.exit(1)
-        if not issubclass(cls, Model):
+        if not issubclass(cls, basium_model.Model):
             log.error('Fatal: addClass() does not inherit from basium_model.Model')
             sys.exit(1)
         self.cls[cls._table] = cls
@@ -149,25 +145,25 @@ class Basium(object):
     #
     #
     def start(self):
-        if self.driver == 'mysql':
-            import basium_driver_mysql as driver
-        elif self.driver == 'psql':
-            import basium_driver_psql as driver
-        elif self.driver == 'json':
-            import basium_driver_json as driver
+        if self.drivername == 'mysql':
+            self.drivermodule = __import__('basium_driver_mysql')
+        elif self.drivername == 'psql':
+            self.drivermodule = __import__('basium_driver_psql')
+        elif self.drivername == 'json':
+            self.drivermodule = __import__('basium_driver_json')
         else:
-            log.error('Unknown driver %s' % (self.driver))
+            log.error('Unknown drivername %s' % (self.drivername))
             sys.exit(1)
 
-        self.driver = driver.Driver(self.conn['host'], 
+        self.driver = self.drivermodule.Driver(self.conn['host'], 
                                     self.conn['port'], 
                                     self.conn['user'],
                                     self.conn['pass'],
                                     self.conn['name'])
-        self.db = basium_orm.BasiumDatabase(self.driver)
+        self.db = basium_orm.BasiumOrm(self.driver, self.drivermodule)
         if self.db == None:
             log.error('Fatal: Cannot check if database exist')
-            sys.exit(1)
+            return None
         if not self.db.isDatabase(self.conn['name']):
             log.error("Fatal: Database %s does not exist" % self.conn['name'])
             return None
@@ -176,7 +172,8 @@ class Basium(object):
             for cls in self.cls.values():
                 obj = cls()
                 if not self.db.isTable(obj):
-                    self.db.createTable(obj)
+                    if not self.db.createTable(obj):
+                        return None
                 else:
                     actions = self.db.verifyTable(obj)
                     if actions != None and len(actions) > 0:
@@ -189,10 +186,10 @@ class Basium(object):
 # and the result data
 #
 class Response():
-    def __init__(self):
+    def __init__(self, errno=0, errmsg=''):
         self.data = {}
-        self.data['errno'] = 0
-        self.data['errmsg'] = ''
+        self.data['errno'] = errno
+        self.data['errmsg'] = errmsg
 
     def __str__(self):
         res = []
