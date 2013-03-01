@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
+# -----------------------------------------------------------------------------
+# Unit testing of the basium object persistence code
+# Uses the json driver, to communicate with the server that does the
+# actual database/table operations
 #
-# Unit testing of the object persistence code
-# Uses the json driver, to communicate with the remote server
-# that hosts the database. See basium_wsgihandler.py
-#
+# Runs a wsgi server as a separate thread to do the tests
+# -----------------------------------------------------------------------------
 
 #
-# Copyright (c) 2012, Anders Lowinger, Abundo AB
+# Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +35,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+__metaclass__ = type
+
 import sys
 import time
 
@@ -56,7 +60,33 @@ if __name__ == "__main__":
         embeddedServer = False
 
     if embeddedServer:
-        server = basium_wsgihandler.Server()
+        driver = 'psql'
+    
+        if driver == 'psql':
+            conn={'host':'localhost', 
+                  'port':'5432',
+                  'user':'basium_user', 
+                  'pass':'secret', 
+                  'name': 'basium_db'}
+            basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+        
+        elif driver == 'mysql':
+            conn={'host':'localhost', 
+                  'port':'3306', 
+                  'user':'basium_user', 
+                  'pass':'secret', 
+                  'name': 'basium_db'}
+            basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+        else:
+            print "Fatal: Unknown driver %s" % driver
+            sys.exit(1)
+    
+        basium.addClass(BasiumTest)
+        db = basium.start()
+        if db == None:
+            sys.exit(1)
+        
+        server = basium_wsgihandler.Server(basium=basium)
         server.daemon = True
         server.start()    # run in thread
         while not server.ready:
@@ -68,7 +98,7 @@ if __name__ == "__main__":
           'user':'basium_user', 
           'pass':'secret', 
           'name': 'basium_db'}
-    basium = basium_common.Basium(driver='json', checkTables=True, conn=conn)
+    basium = basium_common.Basium(driver='json', checkTables=False, conn=conn)
     basium.addClass(BasiumTest)
     db = basium.start()
     if db == None:
