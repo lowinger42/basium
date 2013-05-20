@@ -40,6 +40,8 @@ import urlparse
 
 import basium_orm
 import basium_common
+import basium_model
+import basium_driver_json
 
 log = basium_common.log
 
@@ -50,7 +52,32 @@ class API():
         self.basium = basium
         self.db = basium.db
         self.write = response.write # convenience
-    
+
+    def getData(self, obj):
+        postdata = urlparse.parse_qs(self.request.body, keep_blank_values=True)
+        for key in postdata.keys():
+            if key in obj._columns:
+                column = obj._columns[key]
+                data = postdata[key][0]
+                if isinstance(column, basium_model.BooleanCol):
+                    data = basium_driver_json.BooleanCol.toPython(data)
+                elif isinstance(column, basium_model.DateCol):
+                    data = basium_driver_json.DateCol.toPython(data)
+                elif isinstance(column, basium_model.DateTimeCol):
+                    data = basium_driver_json.DateTimeCol.toPython(data)
+                elif isinstance(column, basium_model.DecimalCol):
+                    data = basium_driver_json.DecimalCol.toPython(data)
+                elif isinstance(column, basium_model.FloatCol):
+                    data = basium_driver_json.FloatCol.toPython(data)
+                elif isinstance(column, basium_model.IntegerCol):
+                    data = basium_driver_json.IntegerCol.toPython(data)
+                elif isinstance(column, basium_model.VarcharCol):
+                    data = basium_driver_json.VarcharCol.toPython(data)
+                postdata[key] = column.toSql(data)        # encode to database specific format
+            else:
+                log.debug("Warning, handlePost got unknown key/column %s" % key)
+        return postdata
+
     def handleGet(self, classname, id_, attr):
         obj = classname()
         if id_ == None:
@@ -86,14 +113,11 @@ class API():
     #
     #    
     def handlePost(self, classname, id_, attr):
-        obj = classname()
         if id_ != None:
             self.response.status = "400 Bad Request, no ID needed to insert a row"
             return
-        postdata = urlparse.parse_qs(self.request.body)
-        for key in postdata.keys():
-            postdata[key] = postdata[key][0]
-        # print "postdata =", postdata
+        obj = classname()
+        postdata = self.getData(obj)
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
 
@@ -106,9 +130,7 @@ class API():
             return
         # update row
         obj = classname()
-        putdata = urlparse.parse_qs(self.request.body)
-        for key in putdata.keys():
-            putdata[key] = putdata[key][0]
+        putdata = self.getData(obj)
         putdata['id'] = id_
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
