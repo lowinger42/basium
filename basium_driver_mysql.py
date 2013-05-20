@@ -303,6 +303,7 @@ class Driver:
                 return response
                     
             except MySQLdb.Error, e:
+                self.conn = None
                 if i == 1:
                     response.setError( e.args[0], e.args[1] )
             
