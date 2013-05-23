@@ -275,6 +275,12 @@ class Driver:
                                         db=self.name)
                 
             self.cursor = self.conn.cursor(MySQLdb.cursors.DictCursor)
+            sql = "set autocommit=1;"
+            if self.debugSql:
+                log.debug('SQL=%s' % sql)
+            self.cursor.execute(sql)
+            if self.conn:
+                self.conn.commit()
         except MySQLdb.Error, e:
             response.setError( e.args[0], e.args[1] )
             
@@ -303,6 +309,11 @@ class Driver:
                 return response
                     
             except MySQLdb.Error, e:
+                if self.conn != None:
+                    try:
+                        self.conn.commit()
+                    except MySQLdb.Error, e:
+                        pass
                 self.conn = None
                 if i == 1:
                     response.setError( e.args[0], e.args[1] )
@@ -352,7 +363,7 @@ class Driver:
             columnlist.append('%s %s' % (colname, column.typeToSql()))
         sql += "\n  ,".join(columnlist)
         sql += '\n)'
-        response = self.execute(sql)
+        response = self.execute(sql, commit=True)
         return response
 
     #
@@ -439,12 +450,12 @@ class Driver:
             if 'DROP' in action.sqlcmd:
                 print "Fixing", action.msg
                 print "  Cmd:", action.sqlcmd
-                self.cursor.execute(action.sqlcmd)
+                self.cursor.execute(action.sqlcmd, commit=True)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
                 print "Fixing", action.msg
                 print "  Cmd:", action.sqlcmd
-                self.cursor.execute(action.sqlcmd)
+                self.cursor.execute(action.sqlcmd, commit=True)
         self.conn.commit()
         return False
 
@@ -527,7 +538,7 @@ class Driver:
                 primary_key_val = val
         sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), 'id')
         vals.append(primary_key_val)
-        response = self.execute(sql, vals)
+        response = self.execute(sql, vals, commit=True)
         return response
 
     #
@@ -540,7 +551,7 @@ class Driver:
         if sql2 == '':
             return Response(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2
-        response = self.execute(sql, values)
+        response = self.execute(sql, values, commit=True)
         if not response.isError():
             try:
                 row = self.cursor.fetchone()
