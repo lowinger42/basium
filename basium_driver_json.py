@@ -62,7 +62,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        return value == 1
+        return value == "True" or value == "1"
 
     def toSql(self, value):
         if value == None:
@@ -238,8 +238,11 @@ class Driver(basium_driver.Driver):
                 # print "From server: '%s'" % tmp
                 res = json.loads(tmp)
                 o.close()
+            except ValueError:
+                response.setError(1, "JSON ValueError for " + tmp)
+                return response
             except TypeError:
-                response.setError(1, "JSON TypeError")
+                response.setError(1, "JSON TypeError for " + tmp)
                 return response
             try:
                 if res['errno'] == 0:
