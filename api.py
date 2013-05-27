@@ -104,8 +104,8 @@ class API():
         lst = response.get('data')
         if id_ != None and id_ != 'filter' and len(lst) == 0:
             msg = "Unknown ID %s in table '%s'" % (id_, obj._table)
-            response.setError(1, msg)
             log.debug(msg)
+            response.setError(1, msg)
             self.response.status = '404 ' + msg
         self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
 
@@ -114,9 +114,10 @@ class API():
     #    
     def handlePost(self, classname, id_, attr):
         if id_ != None:
-            self.response.status = "400 Bad Request, no ID needed to insert a row"
+            self.response.status = "400 Bad Request, cannot specify ID when inserting a row"
             return
         obj = classname()
+        log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
@@ -130,6 +131,7 @@ class API():
             return
         # update row
         obj = classname()
+        log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['id'] = id_
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
