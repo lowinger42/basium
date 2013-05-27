@@ -62,7 +62,9 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        return value == "True" or value == "1"
+        if isinstance(value, basestring):
+            return value.lower() == "true"
+        return value
 
     def toSql(self, value):
         if value == None:
