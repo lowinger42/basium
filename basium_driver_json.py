@@ -59,7 +59,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             return value.lower() == "true"
         return value
 
@@ -77,7 +77,7 @@ class DateCol(basium_driver.DateCol):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
         
@@ -98,7 +98,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -133,7 +133,7 @@ class FloatCol(basium_driver.FloatCol):
     
     @classmethod
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = float(value)
         return value
         
@@ -147,7 +147,7 @@ class IntegerCol(basium_driver.IntegerCol):
     
     @classmethod
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = int(value)
         return value
         
@@ -161,7 +161,7 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = str(value)
         return value
 

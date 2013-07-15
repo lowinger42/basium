@@ -94,7 +94,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -125,7 +125,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -171,7 +171,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = float(value)
         return value
         
@@ -198,7 +198,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = int(value)
         return value
         
@@ -223,7 +223,7 @@ class VarcharCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = str(value)
         return value
     
@@ -260,7 +260,7 @@ class Driver:
         self.port = port
         self.username = username
         self.password = password
-        self.name = basium_common.b(name)   # python2 driver can't handle unicode string
+        self.name = basium_common.b(name)   # python2 mysql.connector can't handle unicode string
         self.debugSql = debugSql
         
         self.conn = None

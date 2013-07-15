@@ -103,7 +103,7 @@ class DateCol(Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif basium_common.isString(value):
+        elif basium_common.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -123,7 +123,7 @@ class DateTimeCol(Column):
         return self.default
 
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -156,7 +156,7 @@ class DecimalCol(Column):
 class FloatCol(Column):
     
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = float(value)
         return value
         
@@ -169,7 +169,7 @@ class FloatCol(Column):
 class IntegerCol(Column):
     
     def toPython(self, value):
-        if basium_common.isString(value):
+        if basium_common.isstring(value):
             value = int(value)
         return value
         
@@ -183,7 +183,7 @@ class IntegerCol(Column):
 class VarcharCol(Column):
     def toPython(self, value):
         try:
-            if basium_common.isString(value):
+            if basium_common.isstring(value):
                 value = str(value)
         except:
             pass

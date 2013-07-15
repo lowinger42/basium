@@ -78,7 +78,7 @@ if major < 3:
     
     importlib_reload = reload
 
-    def isString(obj):
+    def isstring(obj):
         return isinstance(obj, basestring)
 
     rawinput = raw_input
@@ -172,7 +172,7 @@ else:
     else:
         importlib_reload = importlib.reload    
     
-    def isString(obj):
+    def isstring(obj):
         return isinstance(obj, str)
     
     rawinput = input
@@ -290,22 +290,22 @@ class Logger():
             sys.exit(1)
 
     def info(self, msg):
-        if isString(msg):
+        if isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.info(msg)
 
     def warning(self, msg):
-        if isString(msg):
+        if isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.warning(msg)
 
     def error(self, msg):
-        if isString(msg):
+        if isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.error(msg)
 
     def debug(self, msg):
-        if isString(msg):
+        if isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.debug(msg)
 
