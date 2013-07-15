@@ -35,6 +35,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
@@ -46,6 +48,43 @@ import basium_wsgihandler
 from test_tables import *
 from test_util import *
 
+#
+# run an embedded server as a separate process
+#
+def runServer():
+    log.info("Starting embedded WSGI server")
+    driver = 'psql'
+
+    if driver == 'psql':
+        conn={'host':'localhost', 
+              'port':'5432',
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+    
+    elif driver == 'mysql':
+        conn={'host':'localhost', 
+              'port':'3306', 
+              'user':'basium_user', 
+              'pass':'secret', 
+              'name': 'basium_db'}
+        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+    else:
+        print("Fatal: Unknown driver %s" % driver)
+        sys.exit(1)
+
+    basium.addClass(BasiumTest)
+    db = basium.start()
+    if db == None:
+        sys.exit(1)
+    
+    server = basium_wsgihandler.Server(basium=basium)
+    server.daemon = True
+    server.start()    # run in thread
+    while not server.ready:
+        time.sleep(0.1)
+
 # ----------------------------------------------------------------------------
 #
 #    Main
@@ -54,47 +93,16 @@ from test_util import *
 
 if __name__ == "__main__":
 
-    # start appserver in separate thread
     embeddedServer = True
     if len(sys.argv) == 2 and sys.argv[1] == 'noserver':
         embeddedServer = False
 
     if embeddedServer:
-        driver = 'psql'
-    
-        if driver == 'psql':
-            conn={'host':'localhost', 
-                  'port':'5432',
-                  'user':'basium_user', 
-                  'pass':'secret', 
-                  'name': 'basium_db'}
-            basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
-        
-        elif driver == 'mysql':
-            conn={'host':'localhost', 
-                  'port':'3306', 
-                  'user':'basium_user', 
-                  'pass':'secret', 
-                  'name': 'basium_db'}
-            basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
-        else:
-            print "Fatal: Unknown driver %s" % driver
-            sys.exit(1)
-    
-        basium.addClass(BasiumTest)
-        db = basium.start()
-        if db == None:
-            sys.exit(1)
-        
-        server = basium_wsgihandler.Server(basium=basium)
-        server.daemon = True
-        server.start()    # run in thread
-        while not server.ready:
-            time.sleep(0.1)
+        runServer()
 
     # we need a database connection(json), for the api test
-    conn={'host':'localhost', 
-          'port':'8051', 
+    conn={'host':'http://localhost:8051', 
+          'port':'', 
           'user':'basium_user', 
           'pass':'secret', 
           'name': 'basium_db'}

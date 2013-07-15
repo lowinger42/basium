@@ -36,16 +36,15 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
 import inspect
-import urlparse
-import urllib
 
 import basium_common
 import basium_model
-import basium_driver
 
 log = basium_common.log
 
@@ -67,6 +66,7 @@ class BasiumOrm:
         # mixin, let the various model classes also inherit from the
         # corresponding driver classes. We change the class so all
         # future instances will have correct base classes
+        # The driver class is inserted first, so it overrides any generic basium_model class
         #
         # todo: is there a better way to do this?
         #       it would be nice to have the model instance decoupled from the driver
@@ -78,10 +78,10 @@ class BasiumOrm:
             if issubclass(modelcls, basium_model.Column) and modelclsname != 'Column':
                 # ok, found one, get the drivers corresponding class
                 if modelclsname in drvclasses:
-#                    print "found %s!" % modelclsname
-#                    print "  ", modelcls.__bases__
-                    modelcls.__bases__ = modelcls.__bases__  + (drvclasses[modelclsname],)
-#                    print "  ", modelcls.__bases__
+#                    print("found %s!" % modelclsname)
+#                    print("  " + modelcls.__bases__)
+                    modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
+#                    print("  " + modelcls.__bases__)
                 else:
                     log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
 
@@ -311,7 +311,7 @@ class Query():
             return (sql, value)
         
         def encode(self):
-            return "w=" + urllib.quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
+            return "w=" + basium_common.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
         def decode(self, obj, value):
             column, self.operand, self.value = value.split(',')
@@ -344,7 +344,7 @@ class Query():
             return sql
         
         def encode(self):
-            return "o=" + urllib.quote("%s,%s" % (self.column.name, self.desc ))
+            return "o=" + basium_common.urllib_quote("%s,%s" % (self.column.name, self.desc ))
         
         def decode(self, obj, value):
             tmp = value.split(',')
@@ -484,7 +484,7 @@ class Query():
     # Decode an URL query and update this query object
     #
     def decode(self, url):
-        u = urlparse.parse_qsl(url)
+        u = basium_common.urllib_parse_qsl(url)
         self.reset()
         for (key, val) in u:
             if key == 'w':

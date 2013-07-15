@@ -8,7 +8,7 @@
 # connection if an error occurs. This makes all operations to reconnect if the
 # connection to the database has been lost.
 #
-# --------------------------7-------------------------------------------------
+# ----------------------------------------------------------------------------
 
 #
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -36,10 +36,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import datetime
-import MySQLdb
+import mysql.connector
 import decimal
 
 import basium_common
@@ -92,8 +94,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif isinstance(value, basestring):
-            print value
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -124,7 +125,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -170,7 +171,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = float(value)
         return value
         
@@ -197,8 +198,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
-            print value
+        if basium_common.isString(value):
             value = int(value)
         return value
         
@@ -223,7 +223,7 @@ class VarcharCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, unicode):
+        if basium_common.isString(value):
             value = str(value)
         return value
     
@@ -245,44 +245,54 @@ class Action:
         self.unattended = unattended
         self.sqlcmd = sqlcmd
 
+# a cursor class that returns rows as dictionary
+class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
+    def _row_to_python(self, rowdata, desc=None):
+        row = super(MySQLCursorDict, self)._row_to_python(rowdata, desc)
+        if row:
+            return dict(zip(self.column_names, row))
+        return None
+
+
 class Driver:
     def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
-        self.name = name
+        self.name = basium_common.b(name)   # python2 driver can't handle unicode string
         self.debugSql = debugSql
         
         self.conn = None
         self.connectionStatus = None
 
+
     def connect(self):
         response = Response()
         try:
             if self.port != None and self.port != '':
-                self.conn = MySQLdb.connect (
+                self.conn = mysql.connector.connect (
                                         host=self.host,
                                         port=int(self.port),
                                         user=self.username,
                                         passwd=self.password,
                                         db=self.name)
             else:
-                self.conn = MySQLdb.connect (
+                self.conn = mysql.connector.connect (
                                         host=self.host,
                                         user=self.username,
                                         passwd=self.password,
                                         db=self.name)
                 
-            self.cursor = self.conn.cursor(MySQLdb.cursors.DictCursor)
+            self.cursor = self.conn.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
             if self.debugSql:
                 log.debug('SQL=%s' % sql)
             self.cursor.execute(sql)
             if self.conn:
                 self.conn.commit()
-        except MySQLdb.Error, e:
-            response.setError( e.args[0], e.args[1] )
+        except mysql.connector.Error as err:
+            response.setError( err.errno, str(err) )
             
         return response
 
@@ -299,7 +309,7 @@ class Driver:
                     return response
             try:
                 if self.debugSql:
-                    log.debug('SQL=%s' % sql)
+                    log.debug('SQL=%s, values=%s' % (sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
@@ -308,15 +318,15 @@ class Driver:
                     self.conn.commit()
                 return response
                     
-            except MySQLdb.Error, e:
+            except mysql.connector.Error as err:
                 if self.conn != None:
                     try:
                         self.conn.commit()
-                    except MySQLdb.Error, e:
+                    except mysql.connector.Error as err:
                         pass
                 self.conn = None
                 if i == 1:
-                    response.setError( e.args[0], e.args[1] )
+                    response.setError( err.errno, str(err) )
             
         return response
     
@@ -330,9 +340,10 @@ class Driver:
         if not response.isError():
             try:
                 row = self.cursor.fetchone()
-                exist = row.values()[0] == 'Yes'
-            except MySQLdb.Error, e:
-                response.set(e.args[0], e.args[1])
+                key = list(row.keys())[0]
+                exist = row[key] == 'Yes'
+            except mysql.connector.Error as err:
+                response.set(err.errno, str(err))
         response.set('data', exist)
         return response
 
@@ -342,14 +353,15 @@ class Driver:
     def isTable(self, tableName):
         sql = "show tables like %s"
         exist = False
-        response = self.execute(sql, tableName)
+        response = self.execute(sql, (tableName,))
         if not response.isError():
             try:
                 row = self.cursor.fetchone()
                 if row != None:
-                    exist = row.values()[0] == tableName
-            except MySQLdb.Error, e:
-                response.set(e.args[0], e.args[1])
+                    key = list(row.keys())[0]
+                    exist = row[key] == tableName
+            except mysql.connector.Error as err:
+                response.set(err.errno, str(err))
         response.set('data', exist)
         return response
 
@@ -372,15 +384,14 @@ class Driver:
     # Returns list of Action, zero length if nothing needs to be done
     #
     def verifyTable(self, obj):
-        response = Response()
         sql = 'DESCRIBE %s' % obj._table
         response = self.execute(sql)
         if response.isError():
             return response
         tabletypes = {}
-        rows = response.get('data')
+        rows = self.cursor.fetchall()
         for row in rows:
-            tabletypes[row['Field']] = row
+            tabletypes[row["Field"]] = row
         actions = []
         for (colname, column) in obj._columns.items():
             if colname in tabletypes:
@@ -397,7 +408,7 @@ class Driver:
                             ))
             else:
                 msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-                print " ", msg
+                print(" " + msg)
                 actions.append(Action(
                         msg=msg,
                         unattended=True,
@@ -419,42 +430,41 @@ class Driver:
         return response
 
     #
-    # Update table to latest definiton of class
+    # Update table to latest definition of class
     # actions is the result from verifytable
     #
     def modifyTable(self, obj, actions):
-        response = Response()
         log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
             log.debug("  Nothing to do")
             return False
 
-        print "Actions that needs to be done:"
+        print("Actions that needs to be done:")
         askForConfirmation = False
         for action in actions:
-            print "  ", action.msg
-            print "   SQL:", action.sqlcmd
+            print("  " + action.msg)
+            print("   SQL: " + action.sqlcmd)
             if not action.unattended:
                 askForConfirmation = True
 
         if askForConfirmation:
-            print "WARNING: removal of columns can lead to data loss."
-            a = raw_input('Are you sure (yes/No)? ')
+            print("WARNING: removal of columns can lead to data loss.")
+            a = basium_common.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                print "Aborted!"
+                print("Aborted!")
                 return True
 
         # we first remove columns, so we dont get into conflicts
         # with the new columns, for example changing primary key (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
-                print "Fixing", action.msg
-                print "  Cmd:", action.sqlcmd
+                print("Fixing " + action.msg)
+                print("  Cmd: " + action.sqlcmd)
                 self.cursor.execute(action.sqlcmd, commit=True)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
-                print "Fixing", action.msg
-                print "  Cmd:", action.sqlcmd
+                print("Fixing " + action.msg)
+                print("  Cmd: " + action.sqlcmd)
                 self.cursor.execute(action.sqlcmd, commit=True)
         self.conn.commit()
         return False
@@ -475,8 +485,8 @@ class Driver:
                     rows = int(row['count(*)'])
                 else:
                     response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))
-            except MySQLdb.Error, e:
-                response.set(e.args[0], e.args[1])
+            except mysql.connector.Error as err:
+                response.set(err.errno, str(err))
         response.set('data', rows)
         return response
 
@@ -492,16 +502,14 @@ class Driver:
         response = self.execute(sql, values)
         if not response.isError():
             try:
-                rowcount = int(self.cursor.rowcount)
-                for i in range(rowcount):
-                    row = self.cursor.fetchone()
+                for row in self.cursor:
                     resp = {}
                     for colname in row.keys():
                         resp[colname] = row[colname]
                     rows.append(resp)
                 response.set('data', rows)
-            except MySQLdb.Error, e:
-                response.set(e.args[0], e.args[1])
+            except mysql.connector.Error as err:
+                response.set(err.errno, str(err))
                 self.conn = False
         return response
 
@@ -545,18 +553,13 @@ class Driver:
     # delete a row from a table
     #  "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
     #
-    def delete(self, table, query = None):
-        sql = "DELETE FROM %s" % table
+    def delete(self, query):
+        sql = "DELETE FROM %s" % query._model._table
         sql2, values = query.toSql()
         if sql2 == '':
             return Response(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2
         response = self.execute(sql, values, commit=True)
         if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                if row != None:
-                    response.set('data', row)   # todo, where is the count?
-            except MySQLdb.Error, e:
-                response.set(e.args[0], e.args[1])
+            response.set('data', self.cursor.rowcount)
         return response

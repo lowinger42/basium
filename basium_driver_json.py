@@ -36,15 +36,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import datetime
-import urllib
-import urllib2
-import json
 import decimal
-import httplib
-import base64
 
 import basium_common
 import basium_driver
@@ -62,7 +59,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             return value.lower() == "true"
         return value
 
@@ -80,8 +77,8 @@ class DateCol(basium_driver.DateCol):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif isinstance(value, basestring):
-            value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
+        if basium_common.isString(value):
+            value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
         
     def toSql(self, value):
@@ -101,7 +98,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
 
     @classmethod
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -136,7 +133,7 @@ class FloatCol(basium_driver.FloatCol):
     
     @classmethod
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = float(value)
         return value
         
@@ -150,7 +147,7 @@ class IntegerCol(basium_driver.IntegerCol):
     
     @classmethod
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = int(value)
         return value
         
@@ -164,21 +161,9 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if isinstance(value, unicode):
+        if basium_common.isString(value):
             value = str(value)
         return value
-
-#
-# Helper class, to implement all four HTTP methods
-#   GET, POST, PUT, DELETE
-#
-class RequestWithMethod(urllib2.Request):
-    def __init__(self, *args, **kwargs):
-        self._method = kwargs.pop('method', None)
-        urllib2.Request.__init__(self, *args, **kwargs)
-
-    def get_method(self):
-        return self._method if self._method else super(RequestWithMethod, self).get_method()
 
 
 # ----------------------------------------------------------------------------
@@ -198,6 +183,7 @@ class Driver(basium_driver.Driver):
         self.password = password
         self.name = name
         self.debugSql = debugSql
+        self.debugSql = True
         
         self.uri = '%s/api' % (self.host)
 
@@ -213,47 +199,8 @@ class Driver(basium_driver.Driver):
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.debugSql:
             log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        response = basium_common.Response()
-        req = RequestWithMethod(url, method=method)
-        if self.username != None:
-            base64string = base64.standard_b64encode('%s:%s' % (self.username, self.password))
-            req.add_header("Authorization", "Basic %s" % base64string)
-        try:
-            if data:
-                o = urllib2.urlopen(req, urllib.urlencode(data))
-            else:
-                o = urllib2.urlopen(req)
-            response.set('info', o.info)
-        except urllib2.HTTPError, e:
-            response.setError(1, "HTTPerror %s" % e)
-            return response
-        except urllib2.URLError, e:
-            response.setError(1, "URLerror %s" % e)
-            return response
-        except httplib.HTTPException, e:
-            response.setError(1, 'HTTPException %s' % e)
-            return response
-
-        if decode:
-            try:
-                tmp = o.read()
-                # print "From server: '%s'" % tmp
-                res = json.loads(tmp)
-                o.close()
-            except ValueError:
-                response.setError(1, "JSON ValueError for " + tmp)
-                return response
-            except TypeError:
-                response.setError(1, "JSON TypeError for " + tmp)
-                return response
-            try:
-                if res['errno'] == 0:
-                    response.set('data', res['data'])
-                else:
-                    response.setError(res['errno'], res['errmsg'])
-            except KeyError:
-                response.setError(1, "Result keyerror")
-
+        response = basium_common.urllib_request_urlopen(url, method, username=self.username, 
+                                                        password=self.password, data=data, decode=decode)
         return response
 
 
@@ -318,7 +265,7 @@ class Driver(basium_driver.Driver):
         response = self.execute(method='HEAD', url=url)
         if not response.isError():
             info = response.get('info')
-            rows = info().getheader('X-Result-Count')
+            rows = info().get('X-Result-Count')
             response.set('data', rows)
         return response
     
@@ -338,19 +285,6 @@ class Driver(basium_driver.Driver):
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         response = self.execute(method='GET', url=url, decode=True)
         return response
-#        o = urllib2.urlopen(url)
-#        data = json.load(o)
-#        if not response.isError():
-#            rows = []
-#            for row in response.get('data'):
-#                resp = {}
-#                for colname in row:
-#                    resp[colname] = row[colname]
-#                rows.append(resp)
-#            response.set('data', rows)
-#        else:
-#            response.setError(data['errno'], data['errmsg'])
-#        return response
 
     #
     #
@@ -358,7 +292,6 @@ class Driver(basium_driver.Driver):
     def insert(self, table, values):
         log.debug("Store obj in database, using HTTP API")
         url = '%s/%s' % (self.uri, table)
-        # print "basium_driver_json::insert() values =", values
         response = self.execute(method='POST', url=url, data=values, decode=True)
         return response
 
@@ -371,10 +304,6 @@ class Driver(basium_driver.Driver):
         response = self.execute(method='PUT', url=url, data=values, decode=True)
         return response
     
-#         req = RequestWithMethod(url, method='PUT')
-#         o = urllib2.urlopen(req, urllib.urlencode(values))
-#         res = json.load(o)
-#         response.setError(res['errno'], res['errmsg'])
 
     #
     #
@@ -389,14 +318,3 @@ class Driver(basium_driver.Driver):
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         response = self.execute('DELETE', url, decode = True)
         return response
-#        if not result.isError():
-#        if data['errno'] == 0:
-#            rows = []
-#            for row in data['data']:
-#                resp = {}
-#                for colname in row:
-#                    resp[colname] = row[colname]
-#                rows.append(resp)
-#            response.set('data', rows)
-#        else:
-#            response.setError(data['errno'], data['errmsg'])

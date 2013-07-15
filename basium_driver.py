@@ -33,17 +33,14 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import datetime
-import urllib
-import urllib2
-import urlparse
-import json
 import decimal
 
 import basium_common
-# from basium_model import *
 
 log = basium_common.log
 
@@ -57,7 +54,7 @@ log = basium_common.log
 # into the basium_model classes
 #
 
-class Column(object):
+class Column:
 
     def toPython(self, value):
         return value
@@ -106,7 +103,7 @@ class DateCol(Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif isinstance(value, basestring):
+        elif basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -126,7 +123,7 @@ class DateTimeCol(Column):
         return self.default
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -159,7 +156,7 @@ class DecimalCol(Column):
 class FloatCol(Column):
     
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = float(value)
         return value
         
@@ -172,7 +169,7 @@ class FloatCol(Column):
 class IntegerCol(Column):
     
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = int(value)
         return value
         
@@ -181,12 +178,15 @@ class IntegerCol(Column):
             return "NULL"
         return value
 
+# todo: python3 is unicode
 # stores a string
 class VarcharCol(Column):
-
     def toPython(self, value):
-        if isinstance(value, unicode):
-            value = str(value)
+        try:
+            if basium_common.isString(value):
+                value = str(value)
+        except:
+            pass
         return value
 
 

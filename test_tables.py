@@ -33,6 +33,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import basium_model

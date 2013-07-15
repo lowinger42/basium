@@ -34,6 +34,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import os
@@ -43,7 +45,6 @@ import threading
 import traceback
 
 import mimetypes
-import urlparse
 
 import basium_common
 
@@ -52,9 +53,9 @@ log = basium_common.log
 
 
 def show_start_response(status, response_headers):
-    print "status="
+    print("status=")
     pprint.pprint(status, indent=4)
-    print "response_headers="
+    print("response_headers=")
     pprint.pprint(response_headers, indent=4)
 
 
@@ -72,12 +73,12 @@ class Response2():
         self.out += msg
 
     def addHeader(self, header, value):
-        self.headers.append((header, value,))
+        self.headers.append( ( basium_common.b(header), basium_common.b(value)) )
 
 #
 # Main WSGI handler
 #
-class AppServer(object):
+class AppServer:
     
     def __init__(self, basium, documentroot=None):
         self.basium = basium
@@ -127,14 +128,14 @@ class AppServer(object):
                 module = module[1:]
             if module[-3:] == '.py':
                 module = module[:-3]
-            # print "Importing module=%s  attr=%s" % (module, attr)
+            # print("Importing module=%s  attr=%s" % (module, attr))
             old_stdout = sys.stdout
             old_stderr = sys.stderr
             sys.stdout = self.response  # catch all output as html code
             sys.stderr = self.response  # catch all output as html code
             try:
-                extpage = __import__(module)
-                extpage = reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
+                extpage = basium_common.importlib_import(module)
+                extpage = basium_common.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
                 extpage.run(self.request, self.response, self.basium)
                 # log.debug(self.response.out)
             except:
@@ -148,7 +149,7 @@ class AppServer(object):
             sys.stdout = old_stdout
             sys.stderr = old_stderr
         else:
-            f = file(abspath, 'rb')
+            f = open(abspath, 'rb')
             self.write( f.read() )
             f.close()
         return True
@@ -161,7 +162,7 @@ class AppServer(object):
         self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
         
         # parse query variables
-        queryp = urlparse.parse_qs(self.request.environ['QUERY_STRING'])
+        queryp = basium_common.urllib_parse_qs(self.request.environ['QUERY_STRING'])
         for key,val in queryp.items():
             self.write("\nkey: %s, val: %s" % (key, val) )
                                                  
@@ -196,15 +197,20 @@ class AppServer(object):
             # in the HTTP request body which is passed by the WSGI server
             # in the file like wsgi.input environment variable.
             self.request.body = self.request.environ['wsgi.input'].read(self.request.body_size)
+            
+            # convert to unicode, assuming utf-8 
+            self.request.body = self.request.body.decode("utf-8")
 
         if not self.handleFile():
             self.handleError()
 
-        self.response.addHeader( 'content-type', self.response.contentType )
-        self.response.addHeader( 'Content-Length', str(len(self.response.out) ) )
+        self.response.contentType += "; charset=utf-8"
+        self.response.addHeader( 'Content-type', self.response.contentType )
+        self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
-        start_response(self.response.status, self.response.headers)
-        return [self.response.out]
+        start_response(basium_common.b(self.response.status), self.response.headers)
+#        start_response(self.response.status, self.response.headers)
+        return [self.response.out.encode("utf-8")]
     
 #
 # Start a WSGI server
@@ -225,13 +231,13 @@ class Server(threading.Thread):
             self.documentroot = documentroot
         else:
             self.documentroot = os.path.dirname( os.path.abspath(sys.argv[0]))
-        print "wsgiserver using %s as documentroot" % self.documentroot
+        print("wsgiserver using %s as documentroot" % self.documentroot)
 
     def run(self):
         import wsgiref.simple_server
         
-        print "-" * 79
-        print "Starting WSGI server, press Ctrl-c to quit"
+        print("-" * 79)
+        print("Starting WSGI server, press Ctrl-c to quit")
     
         appServer = AppServer(self.basium, documentroot=self.documentroot)
         
@@ -250,7 +256,7 @@ class Server(threading.Thread):
             except:
                 self.running = False
         self.ready = False
-        print "WSGI server stopping"
+        print("WSGI server stopping")
         
 
 # ----------------------------------------------------------------------------
@@ -279,7 +285,7 @@ if __name__ == "__main__":
               'name': 'basium_db'}
         basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
     else:
-        print "Fatal: Unknown driver %s" % driver
+        print("Fatal: Unknown driver %s" % driver)
         sys.exit(1)
 
     basium.addClass(test_tables.BasiumTest)

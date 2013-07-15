@@ -31,6 +31,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
@@ -42,6 +44,7 @@ from basium_model import *
 
 # ----- Module globals
 log = basium_common.log
+log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 
 
@@ -49,7 +52,7 @@ errcount = 0
 # Create a new object and initialize the columns with decent mostly
 # unique values that can be used during testing
 #
-class ObjectFactory(object):
+class ObjectFactory:
     
     def __init__(self):
         pass
@@ -76,9 +79,7 @@ class ObjectFactory(object):
                 second = (p % 60)
                 val = datetime.datetime(year,month,day,hour,minute,second)
             elif isinstance(column, DecimalCol):
-                l = p / 100
-                r = p % 100
-                val = decimal.Decimal( str(l) + '.' + str(r) )
+                val = decimal.Decimal( "%d.%02d" % ( p, p % 100 ) )
             elif isinstance(column, FloatCol):
                 val = float(str(p) + '.' + str(p))
             elif isinstance(column, IntegerCol):
@@ -106,7 +107,7 @@ def logHeader(text):
 #  Read out an object with the id from above
 #  Compare and see if the two are equal
 #
-class RunTest1():
+class RunTest1:
     
     def __init__(self):
         pass
@@ -279,4 +280,4 @@ def doTests(db, Cls):
 #
 #
 if __name__ == "__main__":
-    print "This is a library, there is nothing to run"
+    print("This is a library, there is nothing to run")

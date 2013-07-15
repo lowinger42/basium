@@ -31,15 +31,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import inspect
 import pprint
 
+import basium_common
+
 #
 # Base class for all different column types
 #
-class Column(object):
+class Column:
 
     def getDefault(self):
         return self.default
@@ -102,7 +106,7 @@ class VarcharCol(Column):
         self.length = length
 
 
-class Q(object):
+class Q:
     pass
     
 #
@@ -118,19 +122,19 @@ class ModelMetaClass(type):
         cls._table = name.lower()
         cls._columns = columns
         cls._values = values
-#        setattr(cls, '_primary_key', [ 'id' ])
-#        setattr(cls, '_table', name.lower())
-#        setattr(cls, '_columns', columns)
-#        setattr(cls, '_values', values)
-                
+
+
+# handle python 2 & 3
+ModelMetaClass2 = ModelMetaClass(basium_common.b("ModelMetaClass2"), (object, ), {})
+               
 #
 # Base class for all classes that should be persistable
 #
-class Model(object):
+class Model(ModelMetaClass2):
     __metaclass__ = ModelMetaClass
 
     def __init__(self):
-        # print "name =", self.__class__.__name__
+        # print("name = %s" % self.__class__.__name__)
         object.__setattr__(self, '_primary_key', [ 'id' ])
         id_ = IntegerCol(primary_key=True, default=-1)
         id_._model = self

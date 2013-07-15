@@ -36,6 +36,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
@@ -55,7 +57,7 @@ log = basium_common.log
 # handles the database specific functions such
 # as convering to/from SQL types
 #
-class Column(object):
+class Column:
 
     def toPython(self, value):
         return value
@@ -130,7 +132,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif isinstance(value, basestring):
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -161,7 +163,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -207,7 +209,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = float(value)
         return value
         
@@ -234,7 +236,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, basestring):
+        if basium_common.isString(value):
             value = int(value)
         return value
         
@@ -259,7 +261,7 @@ class VarcharCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if isinstance(value, unicode):
+        if basium_common.isString(value):
             value = str(value)
         return value
 
@@ -290,7 +292,7 @@ class Driver:
                 (self.host, self.name, self.username, self.password)
             self.conn = psycopg2.connect(conn_string)
             self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        except psycopg2.DatabaseError, e:
+        except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
         return response
 
@@ -306,7 +308,7 @@ class Driver:
                 if response.isError():
                     return response
             try:
-                if self.debugSql or True:
+                if self.debugSql:
                     log.debug(self.cursor.mogrify(sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
@@ -316,7 +318,7 @@ class Driver:
                     self.conn.commit()
                 return response
                     
-            except psycopg2.DatabaseError, e:
+            except psycopg2.DatabaseError as e:
                 if i == 0:
                     self.conn = None
                 if i == 1:
@@ -344,7 +346,7 @@ class Driver:
                 return resp
             row = self.cursor.fetchone()
             exist = row[0] == dbName
-        except psycopg2.DatabaseError, e:
+        except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
 
         response.set('data', exist)
@@ -365,7 +367,7 @@ class Driver:
             row = self.cursor.fetchone()
             if row != None:
                 exist = row[0]
-        except psycopg2.DatabaseError, e:
+        except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
 
         response.set('data', exist)
@@ -427,7 +429,7 @@ class Driver:
 #                            ))
 #            else:
 #                msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-#                print " ", msg
+#                print(" " + msg)
 #                actions.append(Action(
 #                        msg=msg,
 #                        unattended=True,
@@ -461,32 +463,32 @@ class Driver:
 #            log.debug("  Nothing to do")
 #            return True
 #
-#        print "Actions that needs to be done:"
+#        print("Actions that needs to be done:")
 #        askForConfirmation = False
 #        for action in actions:
-#            print "  ", action.msg
-#            print "   SQL:", action.sqlcmd
+#            print("  " + action.msg)
+#            print("   SQL: " + action.sqlcmd)
 #            if not action.unattended:
 #                askForConfirmation = True
 #
 #        if askForConfirmation:
-#            print "WARNING: removal of columns can lead to data loss."
+#            print("WARNING: removal of columns can lead to data loss.")
 #            a = raw_input('Are you sure (yes/No)? ')
 #            if a != 'yes':
-#                print "Aborted!"
+#                print("Aborted!")
 #                return False
 #
 #        # we first remove columns, so we dont get into conflicts
 #        # with the new columns, for example changing primary key (there can only be one primary key)
 #        for action in actions:
 #            if 'DROP' in action.sqlcmd:
-#                print "Fixing", action.msg
-#                print "  Cmd:", action.sqlcmd
+#                print("Fixing " + action.msg)
+#                print("  Cmd: " + action.sqlcmd)
 #                self.cursor.execute(action.sqlcmd)
 #        for action in actions:
 #            if not 'DROP' in action.sqlcmd:
-#                print "Fixing", action.msg
-#                print "  Cmd:", action.sqlcmd
+#                print("Fixing " + action.msg)
+#                print("  Cmd: " + action.sqlcmd)
 #                self.cursor.execute(action.sqlcmd)
 #        self.conn.commit()
         return True

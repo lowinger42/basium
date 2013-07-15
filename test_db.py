@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-# Unit testing of the object persistence code
-# Uses any supported driver to communicate directly with the database
-# -----------------------------------------------------------------------------
-
 #
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
@@ -32,6 +27,54 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+"""
+Unit testing of the object persistence code
+
+Uses any supported driver to communicate directly with the database
+
+to test postgresql driver:
+    create database, user, fix permissions
+        su - postgres
+        psql 
+        create user basium_user with password 'secret';
+        create database basium_db;
+        grant all privileges on database basium_db to basium_user;
+        \q
+    
+    enable md5 (in addition of ident) for localhost
+        fedora 18
+        edit /var/lib/pgsql/data/pg_hba.conf
+        
+        under 
+            host    all             postgres             127.0.0.1/32            ident
+        add
+            host    all             all                  127.0.0.1/32            md5
+
+        then restart mysql
+
+    test created user
+        psql -U basium_user -W 
+
+to test mysql driver
+    create database, user, fix permissions
+    
+        create database basium_db;
+        grant all on basium_db.* to basium_user@localhost identified by 'secret';
+        flush privileges;
+
+    test created user
+        mysql -u basium_user -p basium_db
+
+
+run with python2
+    python2 test_db.py
+    
+run with python3
+    python3 test_db.py
+"""
+
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
@@ -40,41 +83,50 @@ import basium_common
 
 from test_tables import *
 from test_util import *
-    
-    
+
+
 # ----------------------------------------------------------------------------
 #
 #    Run all the tests
 #
 # ----------------------------------------------------------------------------
 
-if __name__ == "__main__":
-
-    driver = 'psql'
-
-    # psql
-    if driver == 'psql':
-        conn={'host':'localhost', 
-              'port':'5432',
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
-        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
-    
-    elif driver == 'mysql':
-        conn={'host':'localhost', 
-              'port':'8051', 
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
-        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
-    else:
-        print "Unknown driver %s" % driver
-        sys.exit(1)
-
+def runtest(basium):
     basium.addClass(BasiumTest)
     db = basium.start()
     if db == None:
         sys.exit(1)
     
     doTests(db, BasiumTest)
+    
+
+if __name__ == "__main__":
+
+    drivers = ["psql", "mysql"]
+
+    for driver in drivers:
+        log.info(">>> Testing database driver %s" % driver)
+        if driver == 'psql':
+            conn={'host': 'localhost', 
+                  'port': '5432',
+                  'user': 'basium_user', 
+                  'pass': 'secret', 
+                  'name': 'basium_db'}
+            basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+        
+        elif driver == 'mysql':
+            conn={'host': 'localhost', 
+                  'port': '3306', 
+                  'user': 'basium_user', 
+                  'pass': 'secret', 
+                  'name': 'basium_db'}
+            basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+            
+        else:
+            print("Unknown driver %s" % driver)
+            sys.exit(1)
+    
+        runtest(basium)
+        print()
+        print()
+        

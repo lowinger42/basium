@@ -33,10 +33,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import print_function
+from __future__ import unicode_literals
 __metaclass__ = type
 
 import json
-import urlparse
 
 import basium_orm
 import basium_common
@@ -54,7 +55,7 @@ class API():
         self.write = response.write # convenience
 
     def getData(self, obj):
-        postdata = urlparse.parse_qs(self.request.body, keep_blank_values=True)
+        postdata = basium_common.urllib_parse_qs(self.request.body)
         for key in postdata.keys():
             if key in obj._columns:
                 column = obj._columns[key]
@@ -120,7 +121,7 @@ class API():
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
+        print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
 
     #
     #
@@ -135,7 +136,7 @@ class API():
         putdata = self.getData(obj)
         putdata['id'] = id_
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        print json.dumps(response.get(), cls=basium_common.JsonOrmEncoder)
+        print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
 
     #
     #
