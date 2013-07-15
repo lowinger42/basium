@@ -1,15 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-#
-# Object persistence for Python
-#
-# This class handles all mapping between objects and dictionaries,
-# before calling database driver, or returning objects
-#
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -36,6 +26,13 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+"""
+Object persistence for Python
+
+This class handles all mapping between objects and dictionaries,
+before calling database driver, or returning objects
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
@@ -60,17 +57,18 @@ NE = '!='
 class BasiumOrm:
 
     def __init__(self, driver = None, drivermodule = None):
+        """
+        mixin, let the various model classes also inherit from the
+        corresponding driver classes. We change the class so all
+        future instances will have correct base classes
+        The driver class is inserted first, so it overrides any generic basium_model class
+        
+        todo: is there a better way to do this?
+              it would be nice to have the model instance decoupled from the driver
+        """
         self.driver = driver
         self.drivermodule = drivermodule
 
-        # mixin, let the various model classes also inherit from the
-        # corresponding driver classes. We change the class so all
-        # future instances will have correct base classes
-        # The driver class is inserted first, so it overrides any generic basium_model class
-        #
-        # todo: is there a better way to do this?
-        #       it would be nice to have the model instance decoupled from the driver
-        #
         drvclasses = {}
         for tmp in inspect.getmembers(self.drivermodule, inspect.isclass):
             drvclasses[tmp[0]] = tmp[1]
@@ -85,13 +83,13 @@ class BasiumOrm:
                 else:
                     log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
 
-    #
-    # Returns
-    #    True if the database exist
-    #    False if the database does not exist
-    #    None  if there was an error
-    #
     def isDatabase(self, dbName):
+        """
+        Returns
+           True if the database exist
+           False if the database does not exist
+           None  if there was an error
+        """
         result = self.driver.isDatabase(dbName)
         if result.isError():
             log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
@@ -103,10 +101,8 @@ class BasiumOrm:
             log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
         return exist
 
-    #
-    # Check if a table exist in the database
-    #
     def isTable(self, obj):
+        """Check if a table exist in the database"""
         result = self.driver.isTable(obj._table)
         if result == None:
             log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
@@ -118,10 +114,8 @@ class BasiumOrm:
             log.debug("SQL Table '%s' does NOT exist" % obj._table)
         return exist
 
-    #
-    # Create a obj
-    #
     def createTable(self, obj):
+        """Create a table that can store objects"""
         result = self.driver.createTable(obj)
         if result.isError():
             log.error("Create SQL Table '%s' failed. %s" % (obj._table, result.getError()))
@@ -129,12 +123,12 @@ class BasiumOrm:
         return True
 
 
-    #
-    # Verify that a table has the correct definition
-    # Returns None if table does not exist
-    # Returns list of Action, zero length if nothing needs to be done
-    #
     def verifyTable(self, obj):
+        """
+        Verify that a table has the correct definition
+        Returns None if table does not exist
+        Returns list of Action, zero length if nothing needs to be done
+        """
         result = self.driver.verifyTable(obj)
         actions = result.get('actions')
         if len(actions) < 1:
@@ -143,21 +137,17 @@ class BasiumOrm:
             log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         return actions
 
-
-    #
-    # Update table to latest definiton of class
-    # actions is the result from verifyTtable
-    #
     def modifyTable(self, obj, actions):
+        """
+        Update table to latest definition of class
+        actions is the result from verifyTable
+        """
         result = self.driver.modifyTable(obj, actions)
         if result.isError():
             log.error('Fatal: Cannot update table structure for %s. %s' % (obj._table, result.getError()))
             return False
         return True
 
-    #
-    #
-    #           
     def count(self, query_):
         if isinstance(query_, basium_model.Model):
             query = Query(self, query_)
@@ -172,19 +162,19 @@ class BasiumOrm:
             return None
         return int(result.get('data'))
 
-    #
-    # Fetch one or multiple rows from table, each stored in a object
-    # If no query is specified, the default is to fetch one object with the query.id
-    # Query can be either
-    #   An instance of Model
-    #   Query()
-    # Returns
-    #   list of objects, one or more if ok
-    #   None if error
-    #
-    # Note: querying for a single object with id returns error if not found
-    #
     def load(self, query_):
+        """
+        Fetch one or multiple rows from table, each stored in a object
+        If no query is specified, the default is to fetch one object with the query.id
+        Query can be either
+          An instance of Model
+          Query()
+        Returns
+          list of objects, one or more if ok
+          None if error
+        
+        Note: querying for a single object with id returns error if not found
+        """
         response = basium_common.Response()
         one = False
         if isinstance(query_, basium_model.Model):
@@ -208,14 +198,13 @@ class BasiumOrm:
         if one and len(rows) < 1:
             response.setError(1, "Unknown UD %s in table %s" % (query_.id, query_._table))
         return response
-
     
-    #
-    # Store the query in the database
-    # If the objects ID is set, we update the current row in the table,
-    # otherwise we create a new row
-    #
     def store(self, obj):
+        """
+        Store the query in the database
+        If the objects ID is set, we update the current row in the table,
+        otherwise we create a new row
+        """
         columns = {}
         for (colname, column) in obj._columns.items():
             columns[colname] = column.toSql(obj._values[colname])
@@ -230,16 +219,16 @@ class BasiumOrm:
                 obj.id = response.get('data')
         return response
     
-    #
-    # Delete objects in the table.
-    #   query_ can be either
-    #     An instance of Model
-    #     Query()
-    #
-    #   If instance of model, that instance will be deleted
-    #   If query, the objects matching the query is deleted 
-    #
     def delete(self, query_):
+        """
+        Delete objects in the table.
+          query_ can be either
+            An instance of Model
+            Query()
+        
+          If instance of model, that instance will be deleted
+          If query, the objects matching the query is deleted
+        """ 
         response = basium_common.Response()
         clearID = False
         if isinstance(query_, basium_model.Model):
@@ -255,31 +244,27 @@ class BasiumOrm:
             query_.id = -1
         return response
 
-    #
-    # Create and return a query object
-    # Convenience method, makes it unnecessary to import the basium_orm module
-    # just for doing queries
-    #
     def query(self, obj = None):
+        """
+        Create and return a query object
+        Convenience method, makes it unnecessary to import the basium_orm module
+        just for doing queries
+        """
         q = Query(self, obj)
         return q
 
 
-# ----------------------------------------------------------------------------
-#
-# Class that build queries
-#
-# ----------------------------------------------------------------------------
 
 class Query():
+    """
+    Class that build queries
+    """
 
-    #
     def __init__(self, db, model = None):
         self._db = db
         self._model = model
         self.reset()
 
-    #
     def reset(self):
         self._where = []
         self._group = []
@@ -298,7 +283,6 @@ class Query():
         log.error('Fatal: No table name')
         sys.exit(1)
 
-    #
     class Where:
         def __init__(self, column = None, operand = None, value = None):
             self.column = column
@@ -317,7 +301,6 @@ class Query():
             column, self.operand, self.value = value.split(',')
             self.column = obj._columns[column]
 
-    #
     class Group:
         def __init__(self):
             pass
@@ -331,7 +314,6 @@ class Query():
         def decode(self, obj, value):
             return None
 
-    #        
     class Order:
         def __init__(self, column=None, desc=False):
             self.column = column
@@ -355,8 +337,6 @@ class Query():
             if len(tmp) == 2:
                 self.desc = tmp[1] == 'True'
 
-
-    #
     class Limit:
         def __init__(self, offset=None, rowcount=None):
             self.offset = offset
@@ -374,10 +354,8 @@ class Query():
         def decode(self, value):
             pass
 
-    #
-    # Add a filter. Returns self so it can be chained
-    #
     def filter(self, column, operand, value):
+        """Add a filter. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
             log.error('Fatal: filter() called with a non-Column %s' % column)
             return None
@@ -388,18 +366,13 @@ class Query():
             sys.exit(1)
         self._where.append( self.Where(column=column, operand=operand, value=value) )
         return self
-
-    #
-    # Add a group. Returns self so it can be chained
-    #
+    
     def group(self):
+        """Add a group. Returns self so it can be chained"""
         return self
 
-
-    #
-    # Add a sort order. Returns self so it can be chained
-    #
     def order(self, column, desc = False):
+        """Add a sort order. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
             log.error('Fatal: order() called with a non-Column %s' % column)
             return None
@@ -411,25 +384,23 @@ class Query():
         self._order.append( self.Order(column=column, desc=desc) )
         return self
 
-    #
-    # Offset and maximum number of rows that should be returned
-    # Offset is optional
-    # Maximum number of rows is mandatory
-    # Can be called once, if multiple calls last one wins
-    #
     def limit(self, offset=None, rowcount=None):
+        """
+        Offset and maximum number of rows that should be returned
+        Offset is optional
+        Maximum number of rows is mandatory
+        Can be called once, if multiple calls last one wins
+        """
         self._limit = self.Limit(offset, rowcount)
         return self
         
-    #
-    # Return the query as SQL
-    # Handles
-    # - WHERE
-    # - GROUP BY
-    # - ORDER BY
-    # - LIMIT
-    #
     def toSql(self):
+        # Return the query as SQL
+        # Handles
+        # - WHERE
+        # - GROUP BY
+        # - ORDER BY
+        # - LIMIT
         value = []
         sql = ''
         if len(self._where) > 0:
@@ -461,10 +432,8 @@ class Query():
 
         return (sql, value)
 
-    #
-    # Return the query as a string that can be appended to an URI
-    #
     def encode(self):
+        # Return the query as a string that can be appended to an URI
         url = []
         
         for where in self._where:
@@ -480,10 +449,8 @@ class Query():
         
         return "&".join(url)
 
-    #
-    # Decode an URL query and update this query object
-    #
     def decode(self, url):
+        """Decode an URL query and update this query object"""
         u = basium_common.urllib_parse_qsl(url)
         self.reset()
         for (key, val) in u:

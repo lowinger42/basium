@@ -1,16 +1,5 @@
 #!/usr/bin/env python
 
-# ----------------------------------------------------------------------------
-#
-# Basium database driver that handles MySQL
-#
-# All database operations are tried twice if any error occurs, clearing the
-# connection if an error occurs. This makes all operations to reconnect if the
-# connection to the database has been lost.
-#
-# ----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -36,6 +25,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+Basium database driver that handles MySQL
+
+All database operations are tried twice if any error occurs, clearing the
+connection if an error occurs. This makes all operations to reconnect if the
+connection to the database has been lost.
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
@@ -50,9 +47,8 @@ import basium_driver
 Response=basium_common.Response
 log = basium_common.log
 
-
-# stores boolean as number: 0 or 1
 class BooleanCol(basium_driver.Column):
+    """Stores boolean as number: 0 or 1"""
 
     def typeToSql(self):
         sql = "tinyint(1)"
@@ -78,8 +74,8 @@ class BooleanCol(basium_driver.Column):
         return 0
     
 
-# stores a date
 class DateCol(basium_driver.Column):
+    """Stores a date"""
 
     def typeToSql(self):
         sql = "date"
@@ -104,10 +100,12 @@ class DateCol(basium_driver.Column):
         return value
 
 
-# stores date+time
-# ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(basium_driver.Column):
+    """
+    Stores date+time
+    ignores microseconds
+    if default is 'NOW' the current date+time is stored
+    """
     
     def getDefault(self):
         if self.default == 'NOW':
@@ -130,9 +128,11 @@ class DateTimeCol(basium_driver.Column):
         return value
 
 
-# stores a fixed precision number
-# we cheat and represent this as a float in python
 class DecimalCol(basium_driver.Column):
+    """
+    stores a fixed precision number
+    we cheat and represent this as a float in python
+    """
 
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
@@ -157,8 +157,8 @@ class DecimalCol(basium_driver.Column):
         return value
 
 
-# stores a floating point number
 class FloatCol(basium_driver.Column):
+    """Stores a floating point number"""
 
     def typeToSql(self):
         sql = "float"
@@ -181,8 +181,8 @@ class FloatCol(basium_driver.Column):
         return str(value)
 
     
-# stores an integer
 class IntegerCol(basium_driver.Column):
+    """Stores an integer"""
 
     def typeToSql(self):
         if self.primary_key:
@@ -208,8 +208,8 @@ class IntegerCol(basium_driver.Column):
         return value
 
 
-# stores a string
 class VarcharCol(basium_driver.Column):
+    """Stores a string"""
 
     def typeToSql(self):
         sql = 'varchar(%d)' % self.length
@@ -226,17 +226,6 @@ class VarcharCol(basium_driver.Column):
         if basium_common.isstring(value):
             value = str(value)
         return value
-    
-    
-# ----------------------------------------------------------------------------
-#
-# Database driver that handles MySQL
-#
-# All database operations are tried twice if any error occurs, clearing the
-# connection if an error occurs. This makes all operations to reconnect if the
-# connection to mysql has been lost.
-#
-# ----------------------------------------------------------------------------
 
 class Action:
     
@@ -245,8 +234,8 @@ class Action:
         self.unattended = unattended
         self.sqlcmd = sqlcmd
 
-# a cursor class that returns rows as dictionary
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
+    """A cursor class that returns rows as dictionary"""
     def _row_to_python(self, rowdata, desc=None):
         row = super(MySQLCursorDict, self)._row_to_python(rowdata, desc)
         if row:
@@ -296,11 +285,11 @@ class Driver:
             
         return response
 
-    #
-    # Execute a query, if error try to reconnect and redo the query
-    # to handle timeouts
-    #    
     def execute(self, sql, values=None, commit=False):
+        """
+        Execute a query, 
+        if error try to reconnect and redo the query to handle timeouts
+        """    
         response = Response()
         for i in range(0, 2):
             if self.conn == None:
@@ -330,10 +319,8 @@ class Driver:
             
         return response
     
-    #
-    # Returns True if the database exist
-    #
     def isDatabase(self, dbName):
+        """Returns True if the database exist"""
         sql = "SELECT IF(EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s'), 'Yes','No')" % dbName
         exist = False
         response = self.execute(sql)
@@ -347,10 +334,8 @@ class Driver:
         response.set('data', exist)
         return response
 
-    #
-    # Check if a table exist in the database
-    #
     def isTable(self, tableName):
+        """Returns True if the table exist"""
         sql = "show tables like %s"
         exist = False
         response = self.execute(sql, (tableName,))
@@ -365,10 +350,8 @@ class Driver:
         response.set('data', exist)
         return response
 
-    #
-    # Create a tableName
-    #
     def createTable(self, obj):
+        """Create a tablet"""
         sql = 'CREATE TABLE %s (\n   ' % obj._table
         columnlist = []
         for (colname, column) in obj._columns.items():
@@ -378,12 +361,12 @@ class Driver:
         response = self.execute(sql, commit=True)
         return response
 
-    #
-    # Verify that a table has the correct definition
-    # Returns None if table does not exist
-    # Returns list of Action, zero length if nothing needs to be done
-    #
     def verifyTable(self, obj):
+        """
+        Verify that a table has the correct definition
+        Returns None if table does not exist
+        Returns list of Action, zero length if nothing needs to be done
+        """
         sql = 'DESCRIBE %s' % obj._table
         response = self.execute(sql)
         if response.isError():
@@ -429,11 +412,11 @@ class Driver:
         response.set('actions', actions)
         return response
 
-    #
-    # Update table to latest definition of class
-    # actions is the result from verifytable
-    #
     def modifyTable(self, obj, actions):
+        """
+        Update table to latest definition of class
+        actions is the result from verifytable
+        """
         log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
             log.debug("  Nothing to do")
@@ -469,9 +452,6 @@ class Driver:
         self.conn.commit()
         return False
 
-    #
-    #
-    #           
     def count(self, query):
         sql = "select count(*) from %s" % (query._model._table)
         sql2, values = query.toSql()
@@ -490,11 +470,11 @@ class Driver:
         response.set('data', rows)
         return response
 
-    #
-    # Fetch one or multiple rows from a database
-    # Return data as list, each with a dictionary
-    #
     def select(self, query):
+        """
+        Fetch one or multiple rows from a database
+        Return data as list, each with a dictionary
+        """
         rows = []
         sql = "SELECT * FROM %s" % query._model._table 
         sql2, values = query.toSql()
@@ -513,11 +493,11 @@ class Driver:
                 self.conn = False
         return response
 
-    #
-    # Insert a row in the table
-    # value is a dictionary with columns, primary key 'id' is ignored
-    #
     def insert(self, table, values):
+        """
+        Insert a row in the table
+        value is a dictionary with columns, primary key 'id' is ignored
+        """
         parms = []
         holder = []
         vals = []
@@ -532,10 +512,8 @@ class Driver:
             response.set('data', self.cursor.lastrowid)
         return response
 
-    #
-    # update a row in the table
-    #
     def update(self, table, values):
+        """Update a row in the table"""
         parms = []
         vals = []
         for key, val in values.items():
@@ -549,11 +527,12 @@ class Driver:
         response = self.execute(sql, vals, commit=True)
         return response
 
-    #
-    # delete a row from a table
-    #  "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
-    #
     def delete(self, query):
+        """
+        delete a row from a table
+        "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
+        refuses to delete all rows in a table (empty query)
+        """
         sql = "DELETE FROM %s" % query._model._table
         sql2, values = query.toSql()
         if sql2 == '':

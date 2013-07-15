@@ -1,12 +1,5 @@
 #! /usr/bin/env python
 
-# ----------------------------------------------------------------------------
-#
-# Basium base class for all driver implementations
-#
-# ----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -32,6 +25,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
+"""
+Basium base class for all driver implementations
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -97,8 +94,8 @@ class BooleanCol(Column):
             return 'TRUE'
         return 'FALSE'
  
-# stores a date
 class DateCol(Column):
+    """Stores a date"""
     
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
@@ -112,10 +109,12 @@ class DateCol(Column):
             return "NULL"
         return value
 
-# stores date+time
-# ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(Column):
+    """
+    stores date+time
+    ignores microseconds
+    if default is 'NOW' the current date+time is stored
+    """
     
     def getDefault(self):
         if self.default == 'NOW':
@@ -127,8 +126,8 @@ class DateTimeCol(Column):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
-# stores a fixed precision number
 class DecimalCol(Column):
+    """Stores a fixed precision number"""
     
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
@@ -152,8 +151,8 @@ class DecimalCol(Column):
             return "NULL"
         return value
 
-# stores a floating point number
 class FloatCol(Column):
+    """Stores a floating point number"""
     
     def toPython(self, value):
         if basium_common.isstring(value):
@@ -165,8 +164,8 @@ class FloatCol(Column):
             return "NULL"
         return str(value)
 
-# stores an integer
 class IntegerCol(Column):
+    """Stores an integer"""
     
     def toPython(self, value):
         if basium_common.isstring(value):
@@ -178,9 +177,8 @@ class IntegerCol(Column):
             return "NULL"
         return value
 
-# todo: python3 is unicode
-# stores a string
 class VarcharCol(Column):
+    """Stores a string"""
     def toPython(self, value):
         try:
             if basium_common.isstring(value):
@@ -190,12 +188,10 @@ class VarcharCol(Column):
         return value
 
 
-# ----------------------------------------------------------------------------
-#
-#  Mostly stubs, needs to be overridden by the implementation specific driver
-#
-# ----------------------------------------------------------------------------
 class Driver:
+    """
+    Driver base class, Mostly stubs, needs to be overridden by the specific driver
+    """
 #    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
 #        self.host = host
 #        self.port = port

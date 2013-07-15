@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-# ----------------------------------------------------------------------------
-#
-# Page for the Basium WSGI handler
-# Implements a basic HTTP REST API for the Basium registered classes
-#
-# ----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -32,6 +24,12 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""
+A basic HTTP REST API for the Basium registered classes
+
+If you want to use this, symlink to your web server documentroot
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -110,9 +108,6 @@ class API():
             self.response.status = '404 ' + msg
         self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
 
-    #
-    #
-    #    
     def handlePost(self, classname, id_, attr):
         if id_ != None:
             self.response.status = "400 Bad Request, cannot specify ID when inserting a row"
@@ -123,9 +118,6 @@ class API():
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
 
-    #
-    #
-    #    
     def handlePut(self, classname, id_, attr):
         if id_ == None:
             self.response.status = "400 Bad Request, need ID to update a row"
@@ -138,9 +130,6 @@ class API():
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
 
-    #
-    #
-    #    
     def handleDelete(self, classname, id_, attr):
         obj = classname()
         if id_ == None:
@@ -160,11 +149,11 @@ class API():
         response = self.db.driver.delete(dbquery)
         self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
 
-    #
-    # Count the number of rows matching a query
-    # Return data in a HTML header
-    #
     def handleHead(self, classname, id_, attr):
+        """
+        Count the number of rows matching a query
+        Return data in a HTML header
+        """
         obj = classname()
         if id_ == None:
             log.debug('Count all rows in table %s' % obj._table)
@@ -185,9 +174,6 @@ class API():
         self.response.addHeader('X-Result-Count', str(response.get('data') ))
 
     
-    #
-    #
-    #    
     def handleAPI(self):
         attr = self.request.attr
         ix = 0

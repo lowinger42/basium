@@ -1,16 +1,5 @@
 #! /usr/bin/env python
 
-# ----------------------------------------------------------------------------
-#
-# Basium database driver that handles PostgreSQL
-#
-# All database operations are tried twice if any error occurs, clearing the
-# connection if an error occurs. This makes all operations to reconnect if the
-# connection to the database has been lost.
-#
-# ----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -35,6 +24,14 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""
+Basium database driver that handles PostgreSQL
+
+All database operations are tried twice if any error occurs, clearing the
+connection if an error occurs. This makes all operations to reconnect if the
+connection to the database has been lost.
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -89,8 +86,8 @@ class Column:
         return tmp
 
 
-# stores boolean as number: 0 or 1
 class BooleanCol(basium_driver.Column):
+    """Stores boolean as number: 0 or 1"""
 
     def typeToSql(self):
         sql = "boolean"
@@ -116,8 +113,8 @@ class BooleanCol(basium_driver.Column):
         return 'FALSE'
     
 
-# stores a date
 class DateCol(basium_driver.Column):
+    """Stores a date"""
     
     def typeToSql(self):
         sql = "date"
@@ -142,10 +139,12 @@ class DateCol(basium_driver.Column):
         return value
 
 
-# stores date+time
-# ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(basium_driver.Column):
+    """
+    Stores date+time
+    ignores microseconds
+    if default is 'NOW' the current date+time is stored
+    """
     
     def getDefault(self):
         if self.default == 'NOW':
@@ -168,9 +167,11 @@ class DateTimeCol(basium_driver.Column):
         return value
 
 
-# stores a fixed precision number
-# we cheat and represent this as a float in python
 class DecimalCol(basium_driver.Column):
+    """
+    stores a fixed precision number
+    we cheat and represent this as a float in python
+    """
     
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
@@ -195,8 +196,8 @@ class DecimalCol(basium_driver.Column):
         return value
 
 
-# stores a floating point number
 class FloatCol(basium_driver.Column):
+    """Stores a floating point number"""
     
     def typeToSql(self):
         sql = "float"
@@ -219,8 +220,8 @@ class FloatCol(basium_driver.Column):
         return str(value)
 
     
-# stores an integer
 class IntegerCol(basium_driver.Column):
+    """Stores an integer"""
     
     def typeToSql(self):
         if self.primary_key:
@@ -246,8 +247,8 @@ class IntegerCol(basium_driver.Column):
         return value
 
 
-# stores a string
 class VarcharCol(basium_driver.Column):
+    """Stores a string"""
 
     def typeToSql(self):
         sql = 'varchar(%d)' % self.length
@@ -264,7 +265,6 @@ class VarcharCol(basium_driver.Column):
         if basium_common.isstring(value):
             value = str(value)
         return value
-
 
 class Action:
     
@@ -296,11 +296,11 @@ class Driver:
             response.setError( 1, str(e) )
         return response
 
-    #
-    # Execute a query, if error try to reconnect and redo the query
-    # to handle timeouts
-    #    
     def execute(self, sql, values = None, commit=False):
+        """
+        Execute a query
+        If error try to reconnect and redo the query to handle timeouts
+        """
         response = Response()
         for i in range(0, 2):
             if self.conn == None:
@@ -332,10 +332,8 @@ class Driver:
              
         return response
     
-    #
-    # Returns True if the database exist
-    #
     def isDatabase(self, dbName):
+        """Returns True if the database exist"""
         response = Response()
         sql = "select * from pg_database where datname=%s" # % dbName
         values = (dbName,)
@@ -352,10 +350,8 @@ class Driver:
         response.set('data', exist)
         return response
 
-    #
-    # Check if a table exist in the database
-    #
     def isTable(self, tableName):
+        """Returns True if the table exist"""
         response = Response()
         sql = "SELECT EXISTS(SELECT relname FROM pg_class WHERE relname=%s and relkind='r')"
         values = (tableName,)
@@ -373,10 +369,8 @@ class Driver:
         response.set('data', exist)
         return response
 
-    #
-    # Create a table
-    #
     def createTable(self, obj):
+        """Create a table"""
         response = Response()
         sql = 'CREATE TABLE %s (' % obj._table
         columnlist = []
@@ -389,13 +383,12 @@ class Driver:
             return res
         return response
 
-
-    #
-    # Verify that a table has the correct definition
-    # Returns None if table does not exist
-    # Returns list of Action, zero length if nothing needs to be done
-    #
     def verifyTable(self, obj):
+        """
+        Verify that a table has the correct definition
+        Returns None if table does not exist
+        Returns list of Action, zero length if nothing needs to be done
+        """
         response = Response()
         actions = []
 #        sql = 'DESCRIBE %s' % obj._table
@@ -450,13 +443,12 @@ class Driver:
         response.set('actions', actions)
         return response
 
-
-    #
-    # Update table to latest definition of class
-    # actions is the result from verifyTable
-    # Returns True if everything is ok
-    #
     def modifyTable(self, obj, actions):
+        """
+        Update table to latest definition of class
+        actions is the result from verifyTable
+        Returns True if everything is ok
+        """
 #        response = Response()
 #        log.debug("Updating table %s" % obj._table)
 #        if len(actions) == 0:
@@ -493,9 +485,6 @@ class Driver:
 #        self.conn.commit()
         return True
 
-    #
-    #
-    #           
     def count(self, query):
         table = query._model._table
         sql = "select count(*) from %s" % (table)
@@ -511,11 +500,11 @@ class Driver:
                 response.setError(1, 'Cannot query for count(*) in %s' % (table))
         return response
 
-    #
-    # Fetch one or multiple rows from a database
-    # Return data as list, each with a dictionary
-    #
     def select(self, query):
+        """
+        Fetch one or multiple rows from a database
+        Return data as list, each with a dictionary
+        """
         rows = []
         sql = "SELECT * FROM %s" % query._model._table 
         sql2, values = query.toSql()
@@ -530,12 +519,11 @@ class Driver:
         response.set('data', rows)
         return response
 
-
-    #
-    # Insert a row in the table
-    # value is a dictionary with columns, excluding primary key
-    #
     def insert(self, table, values):
+        """
+        Insert a row in the table
+        value is a dictionary with columns, excluding primary key
+        """
         parms = []
         holder = []
         vals = []
@@ -548,16 +536,10 @@ class Driver:
         response = self.execute(sql, vals, commit=True)
         if not response.isError():
             response.set('data', self.cursor.fetchone()[0])
-#        if not response.isError():
-#            response = self.execute("select lastval();")
-#            if not response.isError():
-#                response.set('data', self.cursor.fetchone()[0])
         return response
 
-    #
-    # update a row in the table
-    #
     def update(self, table, values):
+        """Update a row in the table"""
         parms = []
         vals = []
         for key, val in values.items():
@@ -572,11 +554,11 @@ class Driver:
         response.set('data', None)
         return response
 
-    #
-    # delete a row from a table
-    # "DELETE FROM EMPLOYEE WHERE AGE > '%s'", (20, )
-    #
     def delete(self, query):
+        """
+        delete a row from a table
+        "DELETE FROM EMPLOYEE WHERE AGE > '%s'", (20, )
+        """
         sql = "DELETE FROM %s" % query.getTable()
         sql2, values = query.toSql()
         if sql2 == '':

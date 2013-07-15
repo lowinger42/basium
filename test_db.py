@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -25,7 +24,6 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 
 """
 Unit testing of the object persistence code
@@ -85,13 +83,8 @@ from test_tables import *
 from test_util import *
 
 
-# ----------------------------------------------------------------------------
-#
-#    Run all the tests
-#
-# ----------------------------------------------------------------------------
-
 def runtest(basium):
+    """Run all the tests"""
     basium.addClass(BasiumTest)
     db = basium.start()
     if db == None:

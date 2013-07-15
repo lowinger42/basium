@@ -1,19 +1,5 @@
 #! /usr/bin/env python
 
-# -----------------------------------------------------------------------------
-#
-# This file does all the heavy lifting, setting up and initializing
-# everything that is needed to use the persistence framework, together
-# with some common code for all modules
-#
-# Usage:
-#  Create a new instance of the class, with the correct driver name
-#  Register the tables that should be persisted
-#  Call start
-#
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -38,7 +24,19 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+
+"""
+Main entrypoint for all basium functionality
+
+This file does all the heavy lifting, setting up and initializing
+everything that is needed to use the persistence framework, together
+with some common code for all modules
+
+Usage:
+ Create a new instance of the class, with the correct driver name
+ Register the tables that should be persisted
+ Call start
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -62,9 +60,7 @@ minor = sys.version_info[1]
 
 if major < 3:
     
-    # ------------------------------------------------------------------------
-    # Python 2 compability
-    # ------------------------------------------------------------------------
+    """Python 2 compability"""
     
     import httplib
     import urllib2
@@ -154,9 +150,7 @@ if major < 3:
         return urlparse.parse_qsl(data, keep_blank_values=True)
 
 else:
-    # ------------------------------------------------------------------------
-    # Python 3 compability
-    # ------------------------------------------------------------------------
+    """Python 3 compability"""
     
     import urllib.request
     import importlib
@@ -193,7 +187,6 @@ else:
         if username != None:
             auth = '%s:%s' % (username, password)
             auth = auth.encode("utf-8")
-#            base64string = base64.standard_b64encode(b)
             req.add_header(b"Authorization", b"Basic " + base64.b64encode(auth))
         try:
             if data:
@@ -244,7 +237,7 @@ else:
 #             return urllib.parse.urlencode(query, doseq)
 #         return urllib.parse.urlencode(query)
     
-    def       urllib_parse_qs(data):
+    def urllib_parse_qs(data):
         return urllib.parse.parse_qs(data, keep_blank_values=True)
     
     def urllib_parse_qsl(data):
@@ -318,20 +311,12 @@ import basium_model
 
 class Basium():
 
-
-    #
-    #
-    #
     def __init__(self, driver=None, checkTables=True, conn=None):
         self.cls = {}
         self.drivername = driver
         self.checkTables = checkTables
         self.conn = conn
 
-
-    #
-    #
-    #    
     def addClass(self, cls):
         if not isinstance(cls, type):
             log.error('Fatal: addClass() called with an instance of an object')
@@ -340,11 +325,7 @@ class Basium():
             log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
             sys.exit(1)
         self.cls[cls._table] = cls
-
     
-    #
-    #
-    #
     def start(self):
         driverfile = "basium_driver_%s" % self.drivername
         try:
@@ -379,11 +360,13 @@ class Basium():
     
         return self.db
 
-#
-# Main result object from functions etc. Makes it possible to return both status
-# and the result data
-#
 class Response():
+    """
+    Main result object from functions etc.
+    
+    Makes it possible to return both status and the result data
+    """
+    
     def __init__(self, errno=0, errmsg=''):
         self.data = {}
         self.data['errno'] = errno
@@ -412,35 +395,21 @@ class Response():
 
     def set(self, key, val):
         self.data[key] = val
-        
 
-
-
-#
-# Take a date formatted as a string and return a datetime object
-#
 def dateFromStr(s):
+    """Take a date formatted as a string and return a datetime object"""
     return datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
 
-
-#
-# Take a date object and return a string
-#
 def strFromDate(d):
+    """Take a date object and return a string"""
     return d.strftime('%Y-%m-%d')
 
-
-#
-# Take a datetime object and return a string
-#
 def strFromDatetime(d):
+    """Take a datetime object and return a string"""
     return d.strftime('%Y-%m-%d %H:%M:%S')
 
-
-#
-# Handle additional types in JSON encoder
-#
 class JsonOrmEncoder(json.JSONEncoder):
+    """Handle additional types in JSON encoder"""
     def default(self, obj):
         # print( "JsonOrmEncoder::default() Type =", type(obj) )
         if isinstance(obj, Response):
@@ -454,4 +423,3 @@ class JsonOrmEncoder(json.JSONEncoder):
         if isinstance(obj, basium_model.Model):
             return obj.getStrValues()
         return json.JSONEncoder.default(self, obj)
-

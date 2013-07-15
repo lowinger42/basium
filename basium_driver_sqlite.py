@@ -61,8 +61,8 @@ class ColumnInfo:
         self.pk = arg["pk"]
         
 
-# stores boolean as number: 0 or 1
 class BooleanCol(basium_driver.Column):
+    """"Stores boolean as number: 0 or 1"""
 
     def typeToSql(self):
         sql = "tinyint(1)"
@@ -88,8 +88,8 @@ class BooleanCol(basium_driver.Column):
         return 0
     
 
-# stores a date
 class DateCol(basium_driver.Column):
+    """Stores a date"""
 
     def typeToSql(self):
         sql = "date"
@@ -114,10 +114,12 @@ class DateCol(basium_driver.Column):
         return value
 
 
-# stores date+time
-# ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(basium_driver.Column):
+    """
+    Stores date+time
+    ignores microseconds
+    if default is 'NOW' the current date+time is stored
+    """
     
     def getDefault(self):
         if self.default == 'NOW':
@@ -140,10 +142,12 @@ class DateTimeCol(basium_driver.Column):
         return value
 
 
-# stores a fixed precision number
-# we cheat and represent this as a float in python
-# sqlite does not handle decimal, so we use varchar instead
 class DecimalCol(basium_driver.Column):
+    """
+    Stores a fixed precision number
+    we cheat and represent this as a float in python
+    sqlite does not handle decimal, so we use varchar instead
+    """
 
     def typeToSql(self):
         sql = 'varchar'
@@ -168,8 +172,8 @@ class DecimalCol(basium_driver.Column):
         return float(value)
 
 
-# stores a floating point number
 class FloatCol(basium_driver.Column):
+    """Stores a floating point number"""
 
     def typeToSql(self):
         sql = "float"
@@ -192,8 +196,8 @@ class FloatCol(basium_driver.Column):
         return str(value)
 
     
-# stores an integer
 class IntegerCol(basium_driver.Column):
+    """Stores an integer"""
 
     def typeToSql(self):
         if self.primary_key:
@@ -219,10 +223,11 @@ class IntegerCol(basium_driver.Column):
         return value
 
 
-# stores a string
-# sqlite ignores the length so it is not specied
 class VarcharCol(basium_driver.Column):
-
+    """
+    Stores a string
+    sqlite ignores the length so it is not used
+    """
     def typeToSql(self):
         sql = 'varchar'
         if self.nullable:
@@ -265,11 +270,11 @@ class Driver:
 
         return response
 
-    #
-    # Execute a query, if error try to reconnect and redo the query
-    # to handle timeouts
-    #    
     def execute(self, sql, values=None, commit=False):
+        """
+        Execute a query, if error try to reconnect and redo the query
+        to handle timeouts
+        """
         response = Response()
         for i in range(0, 2):
             if self.conn == None:
@@ -293,20 +298,17 @@ class Driver:
             
         return response
     
-    #
-    # Returns True if the database exist
-    # We here always return true, the database is automatically created when opened
-    #
     def isDatabase(self, dbName):
-        exist = True
+        """
+        Returns True if the database exist
+        We always return true, sqlite automatically creates the database when opened
+        """
         response = Response()
-        response.set('data', exist)
+        response.set('data', True)
         return response
 
-    #
-    # Check if a table exist in the database
-    #
     def isTable(self, tableName):
+        """Returns True if the table exist"""
         sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
         values = (tableName,)
         exist = False
@@ -321,10 +323,8 @@ class Driver:
         response.set('data', exist)
         return response
 
-    #
-    # Create a table
-    #
     def createTable(self, obj):
+        """Create a table"""
         sql = 'CREATE TABLE %s (' % obj._table
         columnlist = []
         for (colname, column) in obj._columns.items():
@@ -334,15 +334,16 @@ class Driver:
         response = self.execute(sql)
         return response
 
-    #
-    # 0 cid
-    # 1 name
-    # 2 type
-    # 3 not null
-    # 4 default value
-    # 5 pk - primary key
-    #
     def tableTypeToSql(self, tabletype):
+        """
+        Map from sql query to table types
+         0 cid
+         1 name
+         2 type
+         3 not null
+         4 default value
+         5 pk - primary key
+        """
         if  tabletype[5] > 0:
             tmp = 'INTEGER PRIMARY KEY'
         else:
@@ -353,15 +354,12 @@ class Driver:
                 tmp += " null"
         return tmp
 
-
-    #
-    # Verify that a table has the correct definition
-    # Returns None if table does not exist
-    # Returns list of Action, zero length if nothing needs to be done
-    #
     def verifyTable(self, obj):
-        # SELECT * FROM sqlite_master;
-        # sql = "SELECT * FROM %s" % obj._table
+        """
+        Verify that a table has the correct definition
+        Returns None if table does not exist
+        Returns list of Action, zero length if nothing needs to be done
+        """
         
         sql = "PRAGMA table_info([%s])" % obj._table
         response = self.execute(sql)
@@ -412,13 +410,13 @@ class Driver:
         response.set('actions', actions)
         return response
 
-    #
-    # Update table to latest definition of class
-    # actions is the result from verifytable
-    # todo: sqlite only support a subset of functionality in "ALTER TABLE...", so we work around this
-    # by copying the table to a new one
-    #
     def modifyTable(self, obj, actions):
+        """
+        Update table to latest definition of class
+        actions is the result from verifytable
+        todo: sqlite only support a subset of functionality in "ALTER TABLE...", so we work around this
+        by copying the table to a new one
+        """
         response = Response()
         log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
@@ -455,9 +453,6 @@ class Driver:
         self.conn.commit()
         return False
 
-    #
-    #
-    #           
     def count(self, query):
         sql = "select count(*) from %s" % (query._model._table)
         sql2, values = query.toSql()
@@ -477,11 +472,11 @@ class Driver:
         response.set('data', rows)
         return response
 
-    #
-    # Fetch one or multiple rows from a database
-    # Return data as list, each with a dictionary
-    #
     def select(self, query):
+        """
+        Fetch one or multiple rows from a database
+        Return data as list, each with a dictionary
+        """
         rows = []
         sql = "SELECT * FROM %s" % query._model._table 
         sql2, values = query.toSql()
@@ -500,11 +495,11 @@ class Driver:
                 self.conn = False
         return response
 
-    #
-    # Insert a row in the table
-    # value is a dictionary with columns, primary key 'id' is ignored
-    #
     def insert(self, table, values):
+        """
+        Insert a row in the table
+        value is a dictionary with columns, primary key 'id' is ignored
+        """
         parms = []
         holder = []
         vals = []
@@ -519,10 +514,8 @@ class Driver:
             response.set('data', self.cursor.lastrowid)
         return response
 
-    #
-    # update a row in the table
-    #
     def update(self, table, values):
+        """Update a row in the table"""
         parms = []
         vals = []
         for key, val in values.items():
@@ -536,11 +529,11 @@ class Driver:
         response = self.execute(sql, vals)
         return response
 
-    #
-    # delete a row from a table
-    #  "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
-    #
     def delete(self, query):
+        """
+        delete a row from a table
+         "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
+        """
         sql = "DELETE FROM %s" % query._model._table 
         sql2, values = query.toSql()
         if sql2 == '':

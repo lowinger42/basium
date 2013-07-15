@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-#
-# Basium WSGI handler
-# Can handle static files and importing and running python modules depending
-#
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -32,7 +24,11 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+
+"""
+Basium WSGI handler
+Can handle static files and importing and running python modules
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -75,10 +71,8 @@ class Response2():
     def addHeader(self, header, value):
         self.headers.append( ( basium_common.b(header), basium_common.b(value)) )
 
-#
-# Main WSGI handler
-#
 class AppServer:
+    """Main WSGI handler"""
     
     def __init__(self, basium, documentroot=None):
         self.basium = basium
@@ -154,8 +148,8 @@ class AppServer:
             f.close()
         return True
 
-    # file does not exist
     def handleError(self):
+        """File does not exist"""
 
         self.write( "\n REQUEST_METHOD=%s" % self.request.method )
         self.write( "\n PATH_INFO     =%s" % self.request.path )
@@ -171,8 +165,8 @@ class AppServer:
 
         self.status = '404 File or directory not found'
         
-    # main entrypoint for HTTP requests
     def __call__(self, environ, start_response):
+        """Main entrypoint for HTTP requests"""
         
         # we store these in self.request, so we can easily pass them over
         # to dynamic loaded modules (pages)
@@ -212,13 +206,14 @@ class AppServer:
 #        start_response(self.response.status, self.response.headers)
         return [self.response.out.encode("utf-8")]
     
-#
-# Start a WSGI server
-#
-# Will respond to the basic request needed by the API, mainly used 
-# for development and functional tests
-#
 class Server(threading.Thread):
+    """
+    Standalone WSGI server
+    
+    Will respond to the basic request needed by the API, mainly used 
+    for development and functional tests
+    Note: Does not implement authentification, not suitable for production
+    """
 
     def __init__(self, basium = None, documentroot = None, host='0.0.0.0', port=8051):
         super(Server, self).__init__()
@@ -259,12 +254,9 @@ class Server(threading.Thread):
         print("WSGI server stopping")
         
 
-# ----------------------------------------------------------------------------
-#
-#  Main program, used for unit test
-#
-# ----------------------------------------------------------------------------
 if __name__ == "__main__":
+    """Main program, used for unit test"""
+    
     import test_tables
     
     driver = 'psql'

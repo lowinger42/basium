@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-# Common code used during unit testing
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -29,7 +24,10 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+
+"""
+Common code used for testing
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -48,11 +46,11 @@ log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 
 
-#
-# Create a new object and initialize the columns with decent mostly
-# unique values that can be used during testing
-#
 class ObjectFactory:
+    """
+    Create a new object and initialize the columns with decent mostly
+    unique values that can be used during testing
+    """
     
     def __init__(self):
         pass
@@ -93,21 +91,17 @@ class ObjectFactory:
         
         return obj
     
-
-#
-#
-#
 def logHeader(text):
     log.info("---------- %s ----------" % (text))
 
 
-#
-# Run test
-#  Create an object, store in db
-#  Read out an object with the id from above
-#  Compare and see if the two are equal
-#
 class RunTest1:
+    """
+    Run test
+     Create an object, store in db
+     Read out an object with the id from above
+     Compare and see if the two are equal
+    """
     
     def __init__(self):
         pass
@@ -144,10 +138,8 @@ class RunTest1:
     
         log.info("  There is a total of %i rows in the '%s' table" % (db.count(obj1), obj1._table ) )
 
-#
-# Store an object, read it out again and compare if they are equal
-#
 def test1(db, runtest, Cls):
+    """Store an object, read it out again and compare if they are equal"""
 
     logHeader('Test of %s, store/load' % (Cls.__name__))
     objFactory = ObjectFactory()
@@ -162,10 +154,8 @@ def test1(db, runtest, Cls):
     obj4 = Cls()
     runtest.run(db, obj3, obj4)
 
-#
-# Test the query functionality
-#  
 def test2(db, Cls):
+    """Test the query functionality"""
     global errcount
     logHeader('Test of %s, query' % (Cls.__name__))
 
@@ -184,10 +174,8 @@ def test2(db, Cls):
     log.info("Found %i objects" % len(data) )
 
 
-#
-# Test the update functionality
-#  
 def testUpdate(db, Cls):
+    """Test the update functionality"""
     global errcount
 
     logHeader('Test of %s, update' % (Cls.__name__))
@@ -260,10 +248,8 @@ def testDelete(db, Cls):
         log.error( res.getError() )
         return
 
-#
-# Main testrunner
-#
 def doTests(db, Cls):
+    """main testrunner"""
     runtest1 = RunTest1()
 
     test1(db, runtest1, Cls)
@@ -276,8 +262,5 @@ def doTests(db, Cls):
 
     log.info( "All done, a total of %i errors" % errcount )
 
-#
-#
-#
 if __name__ == "__main__":
     print("This is a library, there is nothing to run")

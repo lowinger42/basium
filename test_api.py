@@ -1,14 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-# Unit testing of the basium object persistence code
-# Uses the json driver, to communicate with the server that does the
-# actual database/table operations
-#
-# Runs a wsgi server as a separate thread to do the tests
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -33,7 +24,14 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+
+"""
+Unit testing of the basium object persistence code
+
+Uses the json driver, to communicate with the server that does the
+actual database/table operations
+Runs a WSGI server as a separate thread to do the tests
+"""
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -48,10 +46,8 @@ import basium_wsgihandler
 from test_tables import *
 from test_util import *
 
-#
-# run an embedded server as a separate process
-#
 def runServer():
+    """Start an WSGI server as a separate process"""
     log.info("Starting embedded WSGI server")
     driver = 'psql'
 
@@ -85,14 +81,9 @@ def runServer():
     while not server.ready:
         time.sleep(0.1)
 
-# ----------------------------------------------------------------------------
-#
-#    Main
-#
-# ----------------------------------------------------------------------------
-
 if __name__ == "__main__":
-
+    """Main"""
+    
     embeddedServer = True
     if len(sys.argv) == 2 and sys.argv[1] == 'noserver':
         embeddedServer = False

@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-# -----------------------------------------------------------------------------
-#  Model classes, for each SQL datatype
-#  Metaclass, that initalizes each instance of a Model class
-# -----------------------------------------------------------------------------
-
-#
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
 # All rights reserved.
 #
@@ -31,6 +25,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+Model classes, for each SQL datatype
+
+Metaclass, that initalizes each instance of a Model class
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
@@ -40,10 +40,8 @@ import pprint
 
 import basium_common
 
-#
-# Base class for all different column types
-#
 class Column:
+    """Base class for all different column types"""
 
     def getDefault(self):
         return self.default
@@ -55,26 +53,30 @@ class BooleanCol(Column):
         self.nullable = nullable
         self.default = default
 
-# stores a date
 class DateCol(Column):
+    """Stores a date"""
     def __init__(self, primary_key=False, nullable=False, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
 
-# stores date+time
-# ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(Column):
+    """
+    Stores date+time
+    ignores microseconds
+    if default is 'NOW' the current date+time is stored
+    """
     
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
 
-# stores a fixed precision number
-# we cheat and represent this as a float in python
 class DecimalCol(Column):
+    """
+    Stores a fixed precision number
+    we cheat and represent this as a float in python
+    """
     def __init__(self, primary_key=False, nullable=True, default=None, maxdigits=5, decimal=2):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -82,23 +84,23 @@ class DecimalCol(Column):
         self.maxdigits = maxdigits
         self.decimal = decimal
 
-# stores a floating point number
 class FloatCol(Column):
+    """Stores a floating point number"""
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
     
-# stores an integer
 class IntegerCol(Column):
+    """Stores an integer"""
     def __init__(self, primary_key=False, nullable=True, default=None, length=11):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
         self.length = length
 
-# stores a string
 class VarcharCol(Column):
+    """Stores a string"""
     def __init__(self, primary_key=False, nullable=True, default=None, length=255):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -109,10 +111,8 @@ class VarcharCol(Column):
 class Q:
     pass
     
-#
-# This metaclass helps constructing the classes that should be persisted
-# 
 class ModelMetaClass(type):
+    """Metaclass that helps constructing the classes that should be persisted"""
 
     def __init__(cls, name, bases, dct):
         super(ModelMetaClass, cls).__init__(name, bases, dct)
@@ -127,10 +127,8 @@ class ModelMetaClass(type):
 # handle python 2 & 3
 ModelMetaClass2 = ModelMetaClass(basium_common.b("ModelMetaClass2"), (object, ), {})
                
-#
-# Base class for all classes that should be persistable
-#
 class Model(ModelMetaClass2):
+    """Base class for all classes that should be persistable"""
     __metaclass__ = ModelMetaClass
 
     def __init__(self):
@@ -187,15 +185,15 @@ class Model(ModelMetaClass2):
     def set(self, attr, value):
         self.__setattr__(attr, value)
 
-    # return all columns as a dictionary, data presented in sql format
     def getValues(self):
+        """return all columns as a dictionary, data presented in sql format"""
         res = {}
         for colname, column in self._columns.items():
             res[colname] = column.toSql(self._values[colname])
         return res
     
-    # return all columns as a dictionary, data presented as strings
     def getStrValues(self):
+        """return all columns as a dictionary, data presented as strings"""
         res = {}
         for colname in self._columns.keys():
             res[colname] = str(self._values[colname])
