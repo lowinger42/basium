@@ -41,11 +41,11 @@ import datetime
 import mysql.connector
 import decimal
 
-import basium_common
+import basium
 import basium_driver
 
-Response=basium_common.Response
-log = basium_common.log
+Response=basium.Response
+log = basium.log
 
 class BooleanCol(basium_driver.Column):
     """Stores boolean as number: 0 or 1"""
@@ -90,7 +90,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -123,7 +123,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -171,7 +171,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = float(value)
         return value
         
@@ -198,7 +198,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = int(value)
         return value
         
@@ -223,7 +223,7 @@ class VarcharCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = str(value)
         return value
 
@@ -249,7 +249,7 @@ class Driver:
         self.port = port
         self.username = username
         self.password = password
-        self.name = basium_common.b(name)   # python2 mysql.connector can't handle unicode string
+        self.name = basium.b(name)   # python2 mysql.connector can't handle unicode string
         self.debugSql = debugSql
         
         self.conn = None
@@ -432,7 +432,7 @@ class Driver:
 
         if askForConfirmation:
             print("WARNING: removal of columns can lead to data loss.")
-            a = basium_common.rawinput('Are you sure (yes/No)? ')
+            a = basium.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
                 print("Aborted!")
                 return True

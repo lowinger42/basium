@@ -37,11 +37,11 @@ import sys
 import decimal
 import datetime
 
-import basium_common
+import basium
 from basium_model import *
 
 # ----- Module globals
-log = basium_common.log
+log = basium.log
 log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 

@@ -77,16 +77,16 @@ __metaclass__ = type
 
 import sys
 
-import basium_common
+import basium
 
 from test_tables import *
 from test_util import *
 
 
-def runtest(basium):
+def runtest(bas):
     """Run all the tests"""
-    basium.addClass(BasiumTest)
-    db = basium.start()
+    bas.addClass(BasiumTest)
+    db = bas.start()
     if db == None:
         sys.exit(1)
     
@@ -121,7 +121,7 @@ if __name__ == "__main__":
             print("Unknown driver %s" % driver)
             sys.exit(1)
     
-        basium = basium_common.Basium(driver=driver, checkTables=True, conn=conn)
-        runtest(basium)
+        bas = basium.Basium(driver=driver, checkTables=True, conn=conn)
+        runtest(bas)
         print()
         print()

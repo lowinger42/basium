@@ -40,10 +40,10 @@ __metaclass__ = type
 import sys
 import inspect
 
-import basium_common
+import basium
 import basium_model
 
-log = basium_common.log
+log = basium.log
 
 # to make less errors in queries
 LT = '<'
@@ -175,7 +175,7 @@ class BasiumOrm:
         
         Note: querying for a single object with id returns error if not found
         """
-        response = basium_common.Response()
+        response = basium.Response()
         one = False
         if isinstance(query_, basium_model.Model):
             query = Query(self).filter(query_.q.id, EQ, query_.id)
@@ -229,7 +229,7 @@ class BasiumOrm:
           If instance of model, that instance will be deleted
           If query, the objects matching the query is deleted
         """ 
-        response = basium_common.Response()
+        response = basium.Response()
         clearID = False
         if isinstance(query_, basium_model.Model):
             query = Query(self).filter(query_.q.id, EQ, query_.id)
@@ -295,7 +295,7 @@ class Query():
             return (sql, value)
         
         def encode(self):
-            return "w=" + basium_common.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
+            return "w=" + basium.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
         def decode(self, obj, value):
             column, self.operand, self.value = value.split(',')
@@ -326,7 +326,7 @@ class Query():
             return sql
         
         def encode(self):
-            return "o=" + basium_common.urllib_quote("%s,%s" % (self.column.name, self.desc ))
+            return "o=" + basium.urllib_quote("%s,%s" % (self.column.name, self.desc ))
         
         def decode(self, obj, value):
             tmp = value.split(',')
@@ -451,7 +451,7 @@ class Query():
 
     def decode(self, url):
         """Decode an URL query and update this query object"""
-        u = basium_common.urllib_parse_qsl(url)
+        u = basium.urllib_parse_qsl(url)
         self.reset()
         for (key, val) in u:
             if key == 'w':

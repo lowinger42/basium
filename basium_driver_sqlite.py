@@ -44,11 +44,11 @@ import datetime
 import decimal
 import sqlite3
 
-import basium_common
+import basium
 import basium_driver
 
-Response=basium_common.Response
-log = basium_common.log
+Response=basium.Response
+log = basium.log
 
 class ColumnInfo:
     
@@ -104,7 +104,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif basium_common.isstring(value):
+        elif basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
         return value
         
@@ -137,7 +137,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -186,7 +186,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = float(value)
         return value
         
@@ -213,7 +213,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = int(value)
         return value
         
@@ -433,7 +433,7 @@ class Driver:
 
         if askForConfirmation:
             print("WARNING: removal of columns can lead to data loss.")
-            a = basium_common.rawinput('Are you sure (yes/No)? ')
+            a = basium.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
                 print("Aborted!")
                 return True
@@ -463,7 +463,7 @@ class Driver:
             try:
                 row = self.cursor.fetchone()
                 if row != None:
-                    key = basium_common.b('count(*)')
+                    key = basium.b('count(*)')
                     rows = int(row[key])
                 else:
                     response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))

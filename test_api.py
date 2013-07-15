@@ -40,7 +40,7 @@ __metaclass__ = type
 import sys
 import time
 
-import basium_common
+import basium
 import basium_wsgihandler
 
 from test_tables import *
@@ -57,25 +57,23 @@ def runServer():
               'user':'basium_user', 
               'pass':'secret', 
               'name': 'basium_db'}
-        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
-    
     elif driver == 'mysql':
         conn={'host':'localhost', 
               'port':'3306', 
               'user':'basium_user', 
               'pass':'secret', 
               'name': 'basium_db'}
-        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
     else:
         print("Fatal: Unknown driver %s" % driver)
         sys.exit(1)
 
-    basium.addClass(BasiumTest)
-    db = basium.start()
+    bas = basium.Basium(driver=driver, checkTables=True, conn=conn)
+    bas.addClass(BasiumTest)
+    db = bas.start()
     if db == None:
         sys.exit(1)
     
-    server = basium_wsgihandler.Server(basium=basium)
+    server = basium_wsgihandler.Server(basium=bas)
     server.daemon = True
     server.start()    # run in thread
     while not server.ready:
@@ -97,9 +95,9 @@ if __name__ == "__main__":
           'user':'basium_user', 
           'pass':'secret', 
           'name': 'basium_db'}
-    basium = basium_common.Basium(driver='json', checkTables=False, conn=conn)
-    basium.addClass(BasiumTest)
-    db = basium.start()
+    bas = basium.Basium(driver='json', checkTables=False, conn=conn)
+    bas.addClass(BasiumTest)
+    db = bas.start()
     if db == None:
         sys.exit(1)
 

@@ -38,7 +38,7 @@ __metaclass__ = type
 import inspect
 import pprint
 
-import basium_common
+import basium
 
 class Column:
     """Base class for all different column types"""
@@ -125,7 +125,7 @@ class ModelMetaClass(type):
 
 
 # handle python 2 & 3
-ModelMetaClass2 = ModelMetaClass(basium_common.b("ModelMetaClass2"), (object, ), {})
+ModelMetaClass2 = ModelMetaClass(basium.b("ModelMetaClass2"), (object, ), {})
                
 class Model(ModelMetaClass2):
     """Base class for all classes that should be persistable"""

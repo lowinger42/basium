@@ -37,12 +37,12 @@ __metaclass__ = type
 
 import json
 
+import basium
 import basium_orm
-import basium_common
 import basium_model
 import basium_driver_json
 
-log = basium_common.log
+log = basium.log
 
 class API():
     def __init__(self, request, response, basium):
@@ -53,7 +53,7 @@ class API():
         self.write = response.write # convenience
 
     def getData(self, obj):
-        postdata = basium_common.urllib_parse_qs(self.request.body)
+        postdata = basium.urllib_parse_qs(self.request.body)
         for key in postdata.keys():
             if key in obj._columns:
                 column = obj._columns[key]
@@ -106,7 +106,7 @@ class API():
             log.debug(msg)
             response.setError(1, msg)
             self.response.status = '404 ' + msg
-        self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
+        self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
 
     def handlePost(self, classname, id_, attr):
         if id_ != None:
@@ -116,7 +116,7 @@ class API():
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
         response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
+        print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
     def handlePut(self, classname, id_, attr):
         if id_ == None:
@@ -128,7 +128,7 @@ class API():
         putdata = self.getData(obj)
         putdata['id'] = id_
         response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.get(), cls=basium_common.JsonOrmEncoder))
+        print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
     def handleDelete(self, classname, id_, attr):
         obj = classname()
@@ -147,7 +147,7 @@ class API():
             dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, id_))
         response = self.db.driver.delete(dbquery)
-        self.write( json.dumps(response, cls=basium_common.JsonOrmEncoder) )
+        self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
 
     def handleHead(self, classname, id_, attr):
         """

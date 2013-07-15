@@ -42,10 +42,10 @@ import traceback
 
 import mimetypes
 
-import basium_common
+import basium
 
-Response = basium_common.Response
-log = basium_common.log
+Response = basium.Response
+log = basium.log
 
 
 def show_start_response(status, response_headers):
@@ -69,7 +69,7 @@ class Response2():
         self.out += msg
 
     def addHeader(self, header, value):
-        self.headers.append( ( basium_common.b(header), basium_common.b(value)) )
+        self.headers.append( ( basium.b(header), basium.b(value)) )
 
 class AppServer:
     """Main WSGI handler"""
@@ -128,8 +128,8 @@ class AppServer:
             sys.stdout = self.response  # catch all output as html code
             sys.stderr = self.response  # catch all output as html code
             try:
-                extpage = basium_common.importlib_import(module)
-                extpage = basium_common.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
+                extpage = basium.importlib_import(module)
+                extpage = basium.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
                 extpage.run(self.request, self.response, self.basium)
                 # log.debug(self.response.out)
             except:
@@ -156,7 +156,7 @@ class AppServer:
         self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
         
         # parse query variables
-        queryp = basium_common.urllib_parse_qs(self.request.environ['QUERY_STRING'])
+        queryp = basium.urllib_parse_qs(self.request.environ['QUERY_STRING'])
         for key,val in queryp.items():
             self.write("\nkey: %s, val: %s" % (key, val) )
                                                  
@@ -202,7 +202,7 @@ class AppServer:
         self.response.addHeader( 'Content-type', self.response.contentType )
         self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
-        start_response(basium_common.b(self.response.status), self.response.headers)
+        start_response(basium.b(self.response.status), self.response.headers)
 #        start_response(self.response.status, self.response.headers)
         return [self.response.out.encode("utf-8")]
     
@@ -267,7 +267,7 @@ if __name__ == "__main__":
               'user':'basium_user', 
               'pass':'secret', 
               'name': 'basium_db'}
-        basium = basium_common.Basium(driver='psql', checkTables=True, conn=conn) 
+        bas = basium.Basium(driver='psql', checkTables=True, conn=conn) 
     
     elif driver == 'mysql':
         conn={'host':'localhost', 
@@ -275,17 +275,17 @@ if __name__ == "__main__":
               'user':'basium_user', 
               'pass':'secret', 
               'name': 'basium_db'}
-        basium = basium_common.Basium(driver='mysql', checkTables=True, conn=conn)
+        bas = basium.Basium(driver='mysql', checkTables=True, conn=conn)
     else:
         print("Fatal: Unknown driver %s" % driver)
         sys.exit(1)
 
-    basium.addClass(test_tables.BasiumTest)
-    db = basium.start()
+    bas.addClass(test_tables.BasiumTest)
+    db = bas.start()
     if db == None:
         sys.exit(1)
     
-    server = Server(basium=basium)
+    server = Server(basium=bas)
     server.run()
 
 #

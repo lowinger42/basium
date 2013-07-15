@@ -37,9 +37,9 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium_common
+import basium
 
-log = basium_common.log
+log = basium.log
 
 
 #
@@ -100,7 +100,7 @@ class DateCol(Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif basium_common.isstring(value):
+        elif basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -122,7 +122,7 @@ class DateTimeCol(Column):
         return self.default
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -155,7 +155,7 @@ class FloatCol(Column):
     """Stores a floating point number"""
     
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = float(value)
         return value
         
@@ -168,7 +168,7 @@ class IntegerCol(Column):
     """Stores an integer"""
     
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = int(value)
         return value
         
@@ -181,7 +181,7 @@ class VarcharCol(Column):
     """Stores a string"""
     def toPython(self, value):
         try:
-            if basium_common.isstring(value):
+            if basium.isstring(value):
                 value = str(value)
         except:
             pass
@@ -201,27 +201,27 @@ class Driver:
 #        self.debugSql = debugSql
 
     def connect(self):
-        return basium_common.Response()
+        return basium.Response()
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')
 
     def isDatabase(self, dbName):
-        response = basium_common.Response()
+        response = basium.Response()
         response.set('data', True)
         return response
 
     def isTable(self, tableName):
-        response = basium_common.Response()
+        response = basium.Response()
         response.set('data', True)
         return response
 
     def createTable(self, obj):
-        response = basium_common.Response()
+        response = basium.Response()
         return response
 
     def verifyTable(self, obj):
-        response = basium_common.Response()
+        response = basium.Response()
         response.set('actions', [])
         return response
     
@@ -229,16 +229,16 @@ class Driver:
         return True
 
     def count(self, query):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')
     
     def select(self, query):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')
 
     def insert(self, table, values):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')
 
     def update(self, table, values):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')
 
     def delete(self, query):
-        return basium_common.Response(1, 'Not implemented')
+        return basium.Response(1, 'Not implemented')

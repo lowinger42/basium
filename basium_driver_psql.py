@@ -43,11 +43,11 @@ import psycopg2
 import psycopg2.extras
 import decimal
 
-import basium_common
+import basium
 import basium_driver
 
-Response=basium_common.Response
-log = basium_common.log
+Response=basium.Response
+log = basium.log
 
 #
 # These are shadow classes from the basium_model
@@ -129,7 +129,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -162,7 +162,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -210,7 +210,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = float(value)
         return value
         
@@ -237,7 +237,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = int(value)
         return value
         
@@ -262,7 +262,7 @@ class VarcharCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = str(value)
         return value
 

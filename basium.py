@@ -33,7 +33,7 @@ everything that is needed to use the persistence framework, together
 with some common code for all modules
 
 Usage:
- Create a new instance of the class, with the correct driver name
+ Create a new instance of this class, with the correct driver name
  Register the tables that should be persisted
  Call start
 """

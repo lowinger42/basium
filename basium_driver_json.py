@@ -45,11 +45,11 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium_common
+import basium
 import basium_driver
 from basium_model import *
 
-log = basium_common.log
+log = basium.log
 
 #
 # These are shadow classes from the basium_model
@@ -61,7 +61,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             return value.lower() == "true"
         return value
 
@@ -79,7 +79,7 @@ class DateCol(basium_driver.DateCol):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
         
@@ -100,7 +100,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -135,7 +135,7 @@ class FloatCol(basium_driver.FloatCol):
     
     @classmethod
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = float(value)
         return value
         
@@ -149,7 +149,7 @@ class IntegerCol(basium_driver.IntegerCol):
     
     @classmethod
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = int(value)
         return value
         
@@ -163,7 +163,7 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if basium_common.isstring(value):
+        if basium.isstring(value):
             value = str(value)
         return value
 
@@ -191,7 +191,7 @@ class Driver(basium_driver.Driver):
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.debugSql:
             log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        response = basium_common.urllib_request_urlopen(url, method, username=self.username, 
+        response = basium.urllib_request_urlopen(url, method, username=self.username, 
                                                         password=self.password, data=data, decode=decode)
         return response
 
@@ -200,7 +200,7 @@ class Driver(basium_driver.Driver):
 #         Check if a database exist
 #         todo: add server API for this
 #         """
-#         response = basium_common.Response()
+#         response = basium.Response()
 #         response.set('data', True)
 #         return response
 
@@ -209,13 +209,13 @@ class Driver(basium_driver.Driver):
 #         Check if a table exist
 #         Todo: add server API for this
 #         """
-#         response = basium_common.Response()
+#         response = basium.Response()
 #         response.set('data', True)
 #         return response
 
 #     def createTable(self, obj):
 #         """This is not valid for JSON API due to security issues"""
-#         response = basium_common.Response()
+#         response = basium.Response()
 #         return response
 
 #     def verifyTable(self, obj):
@@ -225,7 +225,7 @@ class Driver(basium_driver.Driver):
 #            One idea is to calulate a checksum on all columns and their
 #            attributes, and then compare client and server checksum
 #         """
-#         response = basium_common.Response()
+#         response = basium.Response()
 #         response.set('actions', [])
 #         return response
     
