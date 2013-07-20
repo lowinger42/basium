@@ -192,13 +192,6 @@ class Driver:
     """
     Driver base class, Mostly stubs, needs to be overridden by the specific driver
     """
-#    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
-#        self.host = host
-#        self.port = port
-#        self.username = username
-#        self.password = password
-#        self.name = name
-#        self.debugSql = debugSql
 
     def connect(self):
         return basium.Response()
