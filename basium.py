@@ -43,7 +43,6 @@ from __future__ import unicode_literals
 __metaclass__ = type
 
 import sys
-import types
 import json
 import datetime
 import decimal
@@ -331,11 +330,6 @@ class Basium(basium_orm.BasiumOrm):
     """Main class for basium usage"""
     
     def __init__(self, logger=None, driver=None, checkTables=True, dbconf=None):
-        self.cls = {}
-        self.drivername = driver
-        self.checkTables = checkTables
-        self.dbconf = dbconf
-        
         global log
         if logger:
             self.log = logger
@@ -344,6 +338,12 @@ class Basium(basium_orm.BasiumOrm):
         else:
             self.log = log # use simple logger
         self.log.info("Basium logging started.")
+        self.drivername = driver
+        self.checkTables = checkTables
+        self.dbconf = dbconf
+        
+        self.cls = {}
+        self.drivermodule = None
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -355,6 +355,9 @@ class Basium(basium_orm.BasiumOrm):
         self.cls[cls._table] = cls
     
     def start(self):
+        if self.drivermodule:
+            fatal("basium::start() already called")
+            
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
