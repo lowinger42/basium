@@ -169,16 +169,10 @@ class VarcharCol(basium_driver.VarcharCol):
 
 
 class Driver(basium_driver.Driver):
-    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.name = name
-        self.debugSql = debugSql
-        self.debugSql = True
+    def __init__(self, dbconf=None,):
+        self.dbconf = dbconf
         
-        self.uri = '%s/api' % (self.host)
+        self.uri = '%s/api' % (self.dbconf.host)
 
     def connect(self):
         """
@@ -189,10 +183,12 @@ class Driver(basium_driver.Driver):
         pass
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        if self.debugSql:
+        if self.dbconf.debugSQL:
             log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        response = basium.urllib_request_urlopen(url, method, username=self.username, 
-                                                        password=self.password, data=data, decode=decode)
+        response = basium.urllib_request_urlopen(url, method, 
+                                                 username=self.dbconf.username,
+                                                 password=self.dbconf.password,
+                                                 data=data, decode=decode)
         return response
 
 #     def isDatabase(self, dbName):

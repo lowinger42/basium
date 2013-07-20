@@ -248,23 +248,18 @@ class Action:
         self.sqlcmd = sqlcmd
 
 class Driver:
-    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.name = name
-        self.debugSql = debugSql
+    def __init__(self, dbconf=None):
+        self.dbconf = dbconf
         
-        self.conn = None
+        self.dbconnection = None
         self.connectionStatus = None
 
     def connect(self):
         response = Response()
         try:
-            self.conn = sqlite3.connect(self.name)
-            self.conn.row_factory = sqlite3.Row
-            self.cursor = self.conn.cursor()
+            self.dbconnection = sqlite3.connect(self.dbconf.database)
+            self.dbconnection.row_factory = sqlite3.Row   # return querys as dictionaries
+            self.cursor = self.dbconnection.cursor()
         except sqlite3.Error as e:
             response.setError( 1, e.args[0] )
 
@@ -277,19 +272,19 @@ class Driver:
         """
         response = Response()
         for i in range(0, 2):
-            if self.conn == None:
+            if self.dbconnection == None:
                 response = self.connect()
                 if response.isError():
                     return response
             try:
-                if self.debugSql:
+                if self.dbconf.debugSQL:
                     log.debug('SQL=%s' % sql)
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
                 if commit:
-                    self.conn.commit()
+                    self.dbconnection.commit()
                 return response
                     
             except sqlite3.Error as e:
@@ -450,7 +445,7 @@ class Driver:
                 print("Fixing %s" % action.msg)
                 print("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
-        self.conn.commit()
+        self.dbconnection.commit()
         return False
 
     def count(self, query):
@@ -492,7 +487,7 @@ class Driver:
                 response.set('data', rows)
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
-                self.conn = False
+                self.dbconnection = False
         return response
 
     def insert(self, table, values):

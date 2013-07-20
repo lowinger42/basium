@@ -194,7 +194,6 @@ else:
             else:
                 resp = urllib.request.urlopen(req)
             response.set('info', resp.info)
-            print(resp.info)
         except urllib.error.HTTPError as e:
             response.setError(1, "HTTPerror %s" % e)
             return response
@@ -302,6 +301,16 @@ class Logger():
             msg = msg.replace('\n', ', ')
         self.log.debug(msg)
 
+class DbConf:
+    """Information to the selected database driver, how to connect to database"""
+    def __init__(self, host=None, port=None, username=None, password=None, database=None, debugSQL=False):
+        self.host = host
+        self.port = None
+        self.username = username
+        self.password = password
+        self.database = database
+        self.debugSQL = debugSQL
+
 log = Logger()
 log.info("Basium logger started.")
 
@@ -311,11 +320,11 @@ import basium_model
 
 class Basium(basium_orm.BasiumOrm):
 
-    def __init__(self, driver=None, checkTables=True, conn=None):
+    def __init__(self, driver=None, checkTables=True, dbconf=None):
         self.cls = {}
         self.drivername = driver
         self.checkTables = checkTables
-        self.conn = conn
+        self.dbconnection = dbconf
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -334,16 +343,12 @@ class Basium(basium_orm.BasiumOrm):
             log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             sys.exit(1) # todo, return error instead of exit
             
-        self.driver = self.drivermodule.Driver(self.conn['host'], 
-                                    self.conn['port'], 
-                                    self.conn['user'],
-                                    self.conn['pass'],
-                                    self.conn['name'])
+        self.driver = self.drivermodule.Driver(self.dbconnection)
         if not self.startOrm(self.driver, self.drivermodule):
             log.error("Fatal: cannot continue")
             return None
-        if not self.isDatabase(self.conn['name']):
-            log.error("Fatal: Database %s does not exist" % self.conn['name'])
+        if not self.isDatabase(self.dbconnection.database):
+            log.error("Fatal: Database %s does not exist" % self.dbconnection.database)
             return None
     
         if self.checkTables:

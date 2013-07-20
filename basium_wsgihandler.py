@@ -259,26 +259,15 @@ if __name__ == "__main__":
     import test_tables
     
     driver = 'psql'
-
-    if driver == 'psql':
-        conn={'host':'localhost', 
-              'port':'5432',
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
-        bas = basium.Basium(driver='psql', checkTables=True, conn=conn) 
     
+    if driver == 'psql':
+        dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
     elif driver == 'mysql':
-        conn={'host':'localhost', 
-              'port':'8051', 
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
-        bas = basium.Basium(driver='mysql', checkTables=True, conn=conn)
-    else:
-        print("Fatal: Unknown driver %s" % driver)
-        sys.exit(1)
+        dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
+    elif driver == 'sqlite':
+        dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
 
+    bas = basium.Basium(driver=driver, checkTables=True, dbconf=dbconf) 
     bas.addClass(test_tables.BasiumTest)
     if not bas.start():
         sys.exit(1)

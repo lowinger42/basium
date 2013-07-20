@@ -244,42 +244,32 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
 
 
 class Driver:
-    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.name = basium.b(name)   # python2 mysql.connector can't handle unicode string
-        self.debugSql = debugSql
+    def __init__(self, dbconf=None):
+        self.dbconf = dbconf
+        self.dbconf.database = basium.b(self.dbconf.database)   # python2 mysql.connector can't handle unicode string
         
-        self.conn = None
+        self.dbconnection = None
         self.connectionStatus = None
 
 
     def connect(self):
         response = Response()
         try:
-            if self.port != None and self.port != '':
-                self.conn = mysql.connector.connect (
-                                        host=self.host,
-                                        port=int(self.port),
-                                        user=self.username,
-                                        passwd=self.password,
-                                        db=self.name)
-            else:
-                self.conn = mysql.connector.connect (
-                                        host=self.host,
-                                        user=self.username,
-                                        passwd=self.password,
-                                        db=self.name)
-                
-            self.cursor = self.conn.cursor(cursor_class=MySQLCursorDict)
+            if not self.dbconf.port:
+                self.dbconf.port = 3306
+            self.dbconnection = mysql.connector.connect (
+                                    host=self.dbconf.host,
+                                    port=int(self.dbconf.port),
+                                    user=self.dbconf.username,
+                                    passwd=self.dbconf.password,
+                                    db=self.dbconf.database)
+            self.cursor = self.dbconnection.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
-            if self.debugSql:
+            if self.dbconf.debugSQL:
                 log.debug('SQL=%s' % sql)
             self.cursor.execute(sql)
-            if self.conn:
-                self.conn.commit()
+            if self.dbconnection:
+                self.dbconnection.commit()
         except mysql.connector.Error as err:
             response.setError( err.errno, str(err) )
             
@@ -292,28 +282,28 @@ class Driver:
         """    
         response = Response()
         for i in range(0, 2):
-            if self.conn == None:
+            if self.dbconnection == None:
                 response = self.connect()
                 if response.isError():
                     return response
             try:
-                if self.debugSql:
+                if self.dbconf.debugSQL:
                     log.debug('SQL=%s, values=%s' % (sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
                 if commit:
-                    self.conn.commit()
+                    self.dbconnection.commit()
                 return response
                     
             except mysql.connector.Error as err:
-                if self.conn != None:
+                if self.dbconnection != None:
                     try:
-                        self.conn.commit()
+                        self.dbconnection.commit()
                     except mysql.connector.Error as err:
                         pass
-                self.conn = None
+                self.dbconnection = None
                 if i == 1:
                     response.setError( err.errno, str(err) )
             
@@ -449,7 +439,7 @@ class Driver:
                 print("Fixing " + action.msg)
                 print("  Cmd: " + action.sqlcmd)
                 self.cursor.execute(action.sqlcmd, commit=True)
-        self.conn.commit()
+        self.dbconnection.commit()
         return False
 
     def count(self, query):
@@ -490,7 +480,7 @@ class Driver:
                 response.set('data', rows)
             except mysql.connector.Error as err:
                 response.set(err.errno, str(err))
-                self.conn = False
+                self.dbconnection = False
         return response
 
     def insert(self, table, values):

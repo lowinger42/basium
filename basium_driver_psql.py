@@ -272,24 +272,19 @@ class Action:
         self.sqlcmd = sqlcmd
 
 class Driver:
-    def __init__(self, host=None, port=None, username=None, password=None, name=None, debugSql=False):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.name = name
-        self.debugSql = debugSql
-        
-        self.conn = None
+    def __init__(self, dbconf=None):
+        self.dbconf = dbconf
+        self.dbconnection = None
         self.connectionStatus = None
 
     def connect(self):
         response = Response()
         try:
-            conn_string = "host='%s' dbname='%s' user='%s' password='%s'" % \
-                (self.host, self.name, self.username, self.password)
-            self.conn = psycopg2.connect(conn_string)
-            self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            if not self.dbconf.port:
+                self.dbconf.port = 5432
+            self.dbconnection = psycopg2.connect(
+                host=self.dbconf.host, port=self.dbconf.port, user=self.dbconf.username, password=self.dbconf.password, dbname=self.dbconf.database)
+            self.cursor = self.dbconnection.cursor(cursor_factory=psycopg2.extras.DictCursor)
         except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
         return response
@@ -301,30 +296,30 @@ class Driver:
         """
         response = Response()
         for i in range(0, 2):
-            if self.conn == None:
+            if self.dbconnection == None:
                 response = self.connect()
                 if response.isError():
                     return response
             try:
-                if self.debugSql:
+                if self.dbconf.debugSQL:
                     log.debug(self.cursor.mogrify(sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
                 if commit:
-                    self.conn.commit()
+                    self.dbconnection.commit()
                 return response
                     
             except psycopg2.DatabaseError as e:
                 if i == 0:
-                    self.conn = None
+                    self.dbconnection = None
                 if i == 1:
                     response.setError( 1, str(e) )
                 else:
                     pass
 #                    try:
-#                        self.conn.rollback()    # make sure to clear any previous hanging transactions
+#                        self.dbconnection.rollback()    # make sure to clear any previous hanging transactions
 #                    except psycopg2.DatabaseError, e:
 #                        pass
              
@@ -480,7 +475,7 @@ class Driver:
 #                print("Fixing " + action.msg)
 #                print("  Cmd: " + action.sqlcmd)
 #                self.cursor.execute(action.sqlcmd)
-#        self.conn.commit()
+#        self.dbconnection.commit()
         return True
 
     def count(self, query):

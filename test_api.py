@@ -52,25 +52,18 @@ def runServer():
     driver = 'psql'
 
     if driver == 'psql':
-        conn={'host':'localhost', 
-              'port':'5432',
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
+        dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
     elif driver == 'mysql':
-        conn={'host':'localhost', 
-              'port':'3306', 
-              'user':'basium_user', 
-              'pass':'secret', 
-              'name': 'basium_db'}
+        dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
+    elif driver == 'sqlite':
+        dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
     else:
         print("Fatal: Unknown driver %s" % driver)
         sys.exit(1)
 
-    bas = basium.Basium(driver=driver, checkTables=True, conn=conn)
+    bas = basium.Basium(driver=driver, checkTables=True, dbconf=dbconf)
     bas.addClass(BasiumTest)
-    bas = bas.start()
-    if bas == None:
+    if not bas.start():
         sys.exit(1)
     
     server = basium_wsgihandler.Server(basium=bas)
@@ -90,12 +83,9 @@ if __name__ == "__main__":
         runServer()
 
     # we need a database connection(json), for the api test
-    conn={'host':'http://localhost:8051', 
-          'port':'', 
-          'user':'basium_user', 
-          'pass':'secret', 
-          'name': 'basium_db'}
-    bas = basium.Basium(driver='json', checkTables=False, conn=conn)
+    dbconf = basium.DbConf(host='http://localhost:8051', username='basium_user', 
+                           password='secret', database='basium_db')
+    bas = basium.Basium(driver='json', checkTables=False, dbconf=dbconf)
     bas.addClass(BasiumTest)
     if not bas.start():
         sys.exit(1)
