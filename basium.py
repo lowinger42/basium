@@ -309,7 +309,7 @@ import basium_orm
 import basium_model
 
 
-class Basium():
+class Basium(basium_orm.BasiumOrm):
 
     def __init__(self, driver=None, checkTables=True, conn=None):
         self.cls = {}
@@ -339,26 +339,25 @@ class Basium():
                                     self.conn['user'],
                                     self.conn['pass'],
                                     self.conn['name'])
-        self.db = basium_orm.BasiumOrm(self.driver, self.drivermodule)
-        if self.db == None:
-            log.error('Fatal: Cannot check if database exist')
+        if not self.startOrm(self.driver, self.drivermodule):
+            log.error("Fatal: cannot continue")
             return None
-        if not self.db.isDatabase(self.conn['name']):
+        if not self.isDatabase(self.conn['name']):
             log.error("Fatal: Database %s does not exist" % self.conn['name'])
             return None
     
         if self.checkTables:
             for cls in self.cls.values():
                 obj = cls()
-                if not self.db.isTable(obj):
-                    if not self.db.createTable(obj):
+                if not self.isTable(obj):
+                    if not self.createTable(obj):
                         return None
                 else:
-                    actions = self.db.verifyTable(obj)
+                    actions = self.verifyTable(obj)
                     if actions != None and len(actions) > 0:
-                        self.db.modifyTable(obj, actions)
+                        self.modifyTable(obj, actions)
     
-        return self.db
+        return True
 
 class Response():
     """

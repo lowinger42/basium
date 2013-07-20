@@ -56,7 +56,7 @@ NE = '!='
 
 class BasiumOrm:
 
-    def __init__(self, driver = None, drivermodule = None):
+    def startOrm(self, driver = None, drivermodule = None):
         """
         mixin, let the various model classes also inherit from the
         corresponding driver classes. We change the class so all
@@ -82,7 +82,9 @@ class BasiumOrm:
 #                    print("  " + modelcls.__bases__)
                 else:
                     log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
-
+                    return False
+        return True
+    
     def isDatabase(self, dbName):
         """
         Returns
@@ -260,8 +262,8 @@ class Query():
     Class that build queries
     """
 
-    def __init__(self, db, model = None):
-        self._db = db
+    def __init__(self, bas, model = None):
+        self._db = bas
         self._model = model
         self.reset()
 

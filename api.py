@@ -38,7 +38,6 @@ __metaclass__ = type
 import json
 
 import basium
-import basium_orm
 import basium_model
 import basium_driver_json
 
@@ -49,7 +48,6 @@ class API():
         self.request = request
         self.response = response
         self.basium = basium
-        self.db = basium.db
         self.write = response.write # convenience
 
     def getData(self, obj):
@@ -74,7 +72,7 @@ class API():
                     data = basium_driver_json.VarcharCol.toPython(data)
                 postdata[key] = column.toSql(data)        # encode to database specific format
             else:
-                log.debug("Warning, handlePost got unknown key/column %s" % key)
+                log.warning("Warning, handlePost got unknown key/column %s" % key)
         return postdata
 
     def handleGet(self, classname, id_, attr):
@@ -82,18 +80,18 @@ class API():
         if id_ == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(self.db, obj)
+            dbquery = self.basium.query(obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(self.db, obj)
+            dbquery = self.basium.query(obj)
             dbquery.decode(self.request.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
+            dbquery = self.basium.query().filter(obj.q.id, '=', id_)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = self.db.driver.select(dbquery)  # we call driver directly for efficiency reason
+        response = self.basium.driver.select(dbquery)  # we call driver directly for efficiency reason
         if response.isError():
             msg = "Could not load objects from table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
@@ -115,7 +113,7 @@ class API():
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        response = self.db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        response = self.basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
     def handlePut(self, classname, id_, attr):
@@ -127,7 +125,7 @@ class API():
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['id'] = id_
-        response = self.db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        response = self.basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
     def handleDelete(self, classname, id_, attr):
@@ -139,14 +137,14 @@ class API():
             return
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(self.db, obj)
+            dbquery = self.basium.query(obj)
             dbquery.decode(self.request.querystr)
             log.debug("Delete all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium_orm.Query(self.db).filter(obj.q.id, '=', id_)
+            dbquery = self.basium.query().filter(obj.q.id, '=', id_)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, id_))
-        response = self.db.driver.delete(dbquery)
+        response = self.basium.driver.delete(dbquery)
         self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
 
     def handleHead(self, classname, id_, attr):
@@ -158,14 +156,14 @@ class API():
         if id_ == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium_orm.Query(self.db, obj)
+            dbquery = self.basium.query(obj)
         elif id_ == 'filter':
             # filter out specific rows
-            dbquery = basium_orm.Query(self.db, obj)
+            dbquery = self.basium.query()
             dbquery.decode(self.request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = self.db.driver.count(dbquery)  # we call driver direct for efficiency reason
+        response = self.basium.driver.count(dbquery)  # we call driver direct for efficiency reason
         if response.isError():
             msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)

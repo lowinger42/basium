@@ -86,11 +86,10 @@ from test_util import *
 def runtest(bas):
     """Run all the tests"""
     bas.addClass(BasiumTest)
-    db = bas.start()
-    if db == None:
+    if not bas.start():
         sys.exit(1)
     
-    doTests(db, BasiumTest)
+    doTests(bas, BasiumTest)
     
 
 if __name__ == "__main__":

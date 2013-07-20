@@ -106,11 +106,11 @@ class RunTest1:
     def __init__(self):
         pass
 
-    def run(self, db, obj1, obj2):
+    def run(self, bas, obj1, obj2):
         global errcount
 
         log.info("Store object in table '%s'" % obj1._table )
-        response1 = db.store(obj1)
+        response1 = bas.store(obj1)
         if response1.isError():
             log.error('Could not store object')
             errcount += 1
@@ -118,7 +118,7 @@ class RunTest1:
         
         log.info("Load same object from table '%s'" % (obj1._table) )
         obj2.id = obj1.id
-        response2 = db.load(obj2)
+        response2 = bas.load(obj2)
         
         if not response2.isError():
             rows = response2.get('data')
@@ -136,9 +136,9 @@ class RunTest1:
             log.error( response2.getError() )
             errcount += 1
     
-        log.info("  There is a total of %i rows in the '%s' table" % (db.count(obj1), obj1._table ) )
+        log.info("  There is a total of %i rows in the '%s' table" % (bas.count(obj1), obj1._table ) )
 
-def test1(db, runtest, Cls):
+def test1(bas, runtest, Cls):
     """Store an object, read it out again and compare if they are equal"""
 
     logHeader('Test of %s, store/load' % (Cls.__name__))
@@ -147,22 +147,22 @@ def test1(db, runtest, Cls):
     #
     obj1 = objFactory.new( Cls, 1 )
     obj2 = Cls()
-    runtest.run(db, obj1, obj2)
+    runtest.run(bas, obj1, obj2)
 
     #    
     obj3 = objFactory.new( Cls, 2 )
     obj4 = Cls()
-    runtest.run(db, obj3, obj4)
+    runtest.run(bas, obj3, obj4)
 
-def test2(db, Cls):
+def test2(bas, Cls):
     """Test the query functionality"""
     global errcount
     logHeader('Test of %s, query' % (Cls.__name__))
 
-    query = db.query()
+    query = bas.query()
     obj = Cls()
     query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 20)
-    response = db.load(query)
+    response = bas.load(query)
     if response.isError():
         log.error( response.getError() )
         errcount += 1
@@ -174,7 +174,7 @@ def test2(db, Cls):
     log.info("Found %i objects" % len(data) )
 
 
-def testUpdate(db, Cls):
+def testUpdate(bas, Cls):
     """Test the update functionality"""
     global errcount
 
@@ -184,14 +184,14 @@ def testUpdate(db, Cls):
     
     #
     test1 = objFactory.new( Cls, 1 )
-    res = db.store(test1)
+    res = bas.store(test1)
     if res.isError():
         errcount += 1
         log.error( res.getError() )
         return
     
     test1.varcharTest += " more text"
-    res = db.store(test1)
+    res = bas.store(test1)
     if res.isError():
         errcount += 1
         log.error( res.getError() )
@@ -199,7 +199,7 @@ def testUpdate(db, Cls):
     
     test2 = Cls()
     test2.id = test1.id
-    res = db.load(test2)
+    res = bas.load(test2)
     if res.isError():
         errcount += 1
         log.error( res.getError() )
@@ -209,7 +209,7 @@ def testUpdate(db, Cls):
         log.error( "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
 
 
-def testDelete(db, Cls):
+def testDelete(bas, Cls):
     global errcount
 
     logHeader('Test of %s, delete' % (Cls.__name__))
@@ -219,7 +219,7 @@ def testDelete(db, Cls):
     #
     test1 = objFactory.new( Cls, 1 )
     log.info("Store object in table '%s'" % test1._table )
-    res = db.store(test1)
+    res = bas.store(test1)
     if res.isError():
         errcount += 1
         log.error( res.getError() )
@@ -227,7 +227,7 @@ def testDelete(db, Cls):
     id_ = test1.id
 
     log.info("Delete object in table '%s'" % test1._table )
-    res = db.delete(test1)
+    res = bas.delete(test1)
     if res.isError():
         errcount += 1
         log.error( res.getError() )
@@ -242,23 +242,23 @@ def testDelete(db, Cls):
     log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table )
     test2 = Cls()
     test2.id = id_
-    res = db.load(test2)
+    res = bas.load(test2)
     if not res.isError():
         errcount += 1
         log.error( res.getError() )
         return
 
-def doTests(db, Cls):
+def doTests(bas, Cls):
     """main testrunner"""
     runtest1 = RunTest1()
 
-    test1(db, runtest1, Cls)
+    test1(bas, runtest1, Cls)
 
-    test2(db, Cls)
+    test2(bas, Cls)
 
-    testUpdate(db, Cls)
+    testUpdate(bas, Cls)
     
-    testDelete(db, Cls)
+    testDelete(bas, Cls)
 
     log.info( "All done, a total of %i errors" % errcount )
 

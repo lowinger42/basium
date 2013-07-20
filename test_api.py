@@ -69,8 +69,8 @@ def runServer():
 
     bas = basium.Basium(driver=driver, checkTables=True, conn=conn)
     bas.addClass(BasiumTest)
-    db = bas.start()
-    if db == None:
+    bas = bas.start()
+    if bas == None:
         sys.exit(1)
     
     server = basium_wsgihandler.Server(basium=bas)
@@ -97,8 +97,7 @@ if __name__ == "__main__":
           'name': 'basium_db'}
     bas = basium.Basium(driver='json', checkTables=False, conn=conn)
     bas.addClass(BasiumTest)
-    db = bas.start()
-    if db == None:
+    if not bas.start():
         sys.exit(1)
 
-    doTests(db, BasiumTest)
+    doTests(bas, BasiumTest)

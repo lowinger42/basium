@@ -72,8 +72,6 @@ class Column:
     #        'Null': 'NO',
     #        'Type': 'timestamp'},
     #
-    # Todo: This should be part of the db driver
-    #
     def tableTypeToSql(self, tabletype):
         if  tabletype['Key'] == 'PRI':
             tmp = 'serial'

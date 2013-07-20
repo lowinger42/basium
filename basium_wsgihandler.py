@@ -76,7 +76,6 @@ class AppServer:
     
     def __init__(self, basium, documentroot=None):
         self.basium = basium
-        self.db = basium.db
         self.documentroot = documentroot
 
     def getSession(self):
@@ -281,8 +280,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     bas.addClass(test_tables.BasiumTest)
-    db = bas.start()
-    if db == None:
+    if not bas.start():
         sys.exit(1)
     
     server = Server(basium=bas)
