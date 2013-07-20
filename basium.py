@@ -333,6 +333,9 @@ class Basium(basium_orm.BasiumOrm):
         if not issubclass(cls, basium_model.Model):
             log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
             sys.exit(1)
+        if cls._table in self.cls:
+            log.error("Fatal: addClass() already called for %s" % cls._table)
+            sys.exit(1)
         self.cls[cls._table] = cls
     
     def start(self):
