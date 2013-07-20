@@ -98,13 +98,13 @@ class API():
             self.write(msg)
             self.response.status = '404 ' + msg
             return
-        lst = response.get('data')
+        lst = response.data
         if _id != None and _id != 'filter' and len(lst) == 0:
             msg = "Unknown ID %s in table '%s'" % (_id, obj._table)
             log.debug(msg)
             response.setError(1, msg)
             self.response.status = '404 ' + msg
-        self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
+        self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
 
     def handlePost(self, classname, _id, attr):
         if _id != None:
@@ -114,7 +114,7 @@ class API():
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
         response = self.basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
+        print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
 
     def handlePut(self, classname, _id, attr):
         if _id == None:
@@ -126,7 +126,7 @@ class API():
         putdata = self.getData(obj)
         putdata['_id'] = _id
         response = self.basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
+        print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
 
     def handleDelete(self, classname, _id, attr):
         obj = classname()
@@ -145,7 +145,7 @@ class API():
             dbquery = self.basium.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
         response = self.basium.driver.delete(dbquery)
-        self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
+        self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
 
     def handleHead(self, classname, _id, attr):
         """
@@ -169,7 +169,7 @@ class API():
             log.debug(msg)
             self.status = '404 ' + msg
             return
-        self.response.addHeader('X-Result-Count', str(response.get('data') ))
+        self.response.addHeader('X-Result-Count', str(response.data))
 
     
     def handleAPI(self):

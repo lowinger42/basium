@@ -99,7 +99,7 @@ if major < 3:
                 o = urllib2.urlopen(req, urllib.urlencode(data))
             else:
                 o = urllib2.urlopen(req)
-            response.set('info', o.info)
+            response.info = o.info
         except urllib2.HTTPError as e:
             response.setError(1, "HTTPerror %s" % e)
             return response
@@ -124,7 +124,7 @@ if major < 3:
 
             try:
                 if res['errno'] == 0:
-                    response.set('data', res['data'])
+                    response.data = res["data"]
                 else:
                     response.setError(res['errno'], res['errmsg'])
             except KeyError:
@@ -193,7 +193,7 @@ else:
                 resp = urllib.request.urlopen(req, urllib.parse.urlencode(data).encode("utf-8"))
             else:
                 resp = urllib.request.urlopen(req)
-            response.set('info', resp.info)
+            response.info = resp.info
         except urllib.error.HTTPError as e:
             response.setError(1, "HTTPerror %s" % e)
             return response
@@ -218,7 +218,7 @@ else:
 
             try:
                 if res['errno'] == 0:
-                    response.set('data', res['data'])
+                    response.data = res["data"]
                 else:
                     response.setError(res['errno'], res['errmsg'])
             except KeyError:
@@ -372,34 +372,27 @@ class Response():
     """
     
     def __init__(self, errno=0, errmsg=''):
-        self.data = {}
-        self.data['errno'] = errno
-        self.data['errmsg'] = errmsg
+        self.errno = errno
+        self.errmsg = errmsg
+        self.data = None
 
     def __str__(self):
-        res = []
-        for key, val in self.data.items():
-            res.append('%s=%s' % (key, val))
-        return ", ".join(res)
+        return "errno=%s, errmsg=%s, data=%s" % (self.errno, self.errmsg, self.data)
 
     def isError(self):
-        return self.data['errno'] != 0
+        return self.errno != 0
 
     def getError(self):
-        return "Errno: %d Errmsg: '%s'" % (self.data['errno'], self.data['errmsg'])
+        return "Errno: %d Errmsg: '%s'" % (self.errno, self.errmsg)
 
     def setError(self, errno=1, errmsg=''):
-        self.data['errno'] = errno
-        self.data['errmsg'] = errmsg
+        self.errno = errno
+        self.errmsg = errmsg
+        
+    def dict(self):
+        return { "errno": self.errno, "errmsg": self.errmsg, "data": self.data}
 
-    def get(self, key=None):
-        if key == None:
-            return self.data
-        return self.data[key]
-
-    def set(self, key, val):
-        self.data[key] = val
-
+        
 def dateFromStr(s):
     """Take a date formatted as a string and return a datetime object"""
     return datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')

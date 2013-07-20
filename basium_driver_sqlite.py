@@ -299,7 +299,7 @@ class Driver:
         We always return true, sqlite automatically creates the database when opened
         """
         response = Response()
-        response.set('data', True)
+        response.data = True
         return response
 
     def isTable(self, tableName):
@@ -315,7 +315,7 @@ class Driver:
                     exist = row[0] == tableName
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
-        response.set('data', exist)
+        response.data = exist
         return response
 
     def createTable(self, obj):
@@ -402,7 +402,7 @@ class Driver:
             log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
             log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
-        response.set('actions', actions)
+        response.data = actions
         return response
 
     def modifyTable(self, obj, actions):
@@ -464,7 +464,7 @@ class Driver:
                     response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
-        response.set('data', rows)
+        response.data = rows
         return response
 
     def select(self, query):
@@ -484,7 +484,7 @@ class Driver:
                     for colname in row.keys():
                         resp[colname] = row[colname]
                     rows.append(resp)
-                response.set('data', rows)
+                response.data = rows
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
                 self.dbconnection = False
@@ -506,7 +506,7 @@ class Driver:
         sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ",".join(parms), ",".join(holder))
         response = self.execute(sql, vals, commit=True)
         if not response.isError():
-            response.set('data', self.cursor.lastrowid)
+            response.data = self.cursor.lastrowid
         return response
 
     def update(self, table, values):
@@ -537,7 +537,7 @@ class Driver:
         response = self.execute(sql, values)
         if not response.isError():
             try:
-                response.set('data', self.cursor.rowcount)
+                response.data = self.cursor.rowcount
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
         return response

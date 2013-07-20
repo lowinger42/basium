@@ -340,7 +340,7 @@ class Driver:
         except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
 
-        response.set('data', exist)
+        response.data = exist
         return response
 
     def isTable(self, tableName):
@@ -359,7 +359,7 @@ class Driver:
         except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
 
-        response.set('data', exist)
+        response.data = exist
         return response
 
     def createTable(self, obj):
@@ -433,7 +433,7 @@ class Driver:
 #            log.debug("SQL Table '%s' matches the object" % obj._table)
 #        else:
 #            log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
-        response.set('actions', actions)
+        response.data = actions
         return response
 
     def modifyTable(self, obj, actions):
@@ -488,7 +488,7 @@ class Driver:
         if not response.isError():
             row = self.cursor.fetchone()
             if row != None:
-                response.set('data', int(row[0]) )
+                response.data = int(row[0])
             else:
                 response.setError(1, 'Cannot query for count(*) in %s' % (table))
         return response
@@ -509,7 +509,7 @@ class Driver:
                 for colname in row.keys():
                     resp[colname] = row[colname]
                 rows.append(resp)
-        response.set('data', rows)
+        response.data = rows
         return response
 
     def insert(self, table, values):
@@ -528,7 +528,7 @@ class Driver:
         sql = "INSERT INTO %s ( %s ) VALUES ( %s ) RETURNING _id" % (table, ",".join(parms), ",".join(holder))
         response = self.execute(sql, vals, commit=True)
         if not response.isError():
-            response.set('data', self.cursor.fetchone()[0])
+            response.data = self.cursor.fetchone()[0]
         return response
 
     def update(self, table, values):
@@ -544,7 +544,7 @@ class Driver:
         sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), '_id')
         vals.append(primary_key_val)
         response = self.execute(sql, vals, commit=True)
-        response.set('data', None)
+        response.data = None
         return response
 
     def delete(self, query):
@@ -559,5 +559,5 @@ class Driver:
         sql += sql2
         response = self.execute(sql, values, commit=True)
         if not response.isError():
-            response.set('data', self.cursor.rowcount)
+            response.data = self.cursor.rowcount
         return response

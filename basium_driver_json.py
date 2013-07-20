@@ -196,7 +196,7 @@ class Driver(basium_driver.Driver):
 #         todo: add server API for this
 #         """
 #         response = basium.Response()
-#         response.set('data', True)
+#         response.data = True
 #         return response
 
 #     def isTable(self, tableName):
@@ -205,7 +205,7 @@ class Driver(basium_driver.Driver):
 #         Todo: add server API for this
 #         """
 #         response = basium.Response()
-#         response.set('data', True)
+#         response.data = True
 #         return response
 
 #     def createTable(self, obj):
@@ -221,7 +221,7 @@ class Driver(basium_driver.Driver):
 #            attributes, and then compare client and server checksum
 #         """
 #         response = basium.Response()
-#         response.set('actions', [])
+#         response.data = []
 #         return response
     
 #     def modifyTable(self, obj, actions):
@@ -240,9 +240,8 @@ class Driver(basium_driver.Driver):
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         response = self.execute(method='HEAD', url=url)
         if not response.isError():
-            info = response.get('info')
-            rows = info().get('X-Result-Count')
-            response.set('data', rows)
+            rows = response.info().get('X-Result-Count')
+            response.data = rows
         return response
     
     def select(self, query):

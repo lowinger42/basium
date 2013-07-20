@@ -320,8 +320,8 @@ class Driver:
                 key = list(row.keys())[0]
                 exist = row[key] == 'Yes'
             except mysql.connector.Error as err:
-                response.set(err.errno, str(err))
-        response.set('data', exist)
+                response.setError(err.errno, str(err))
+        response.data = exist
         return response
 
     def isTable(self, tableName):
@@ -336,8 +336,8 @@ class Driver:
                     key = list(row.keys())[0]
                     exist = row[key] == tableName
             except mysql.connector.Error as err:
-                response.set(err.errno, str(err))
-        response.set('data', exist)
+                response.setError(err.errno, str(err))
+        response.data = exist
         return response
 
     def createTable(self, obj):
@@ -399,7 +399,7 @@ class Driver:
             log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
             log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
-        response.set('actions', actions)
+        response.data = actions
         return response
 
     def modifyTable(self, obj, actions):
@@ -456,8 +456,8 @@ class Driver:
                 else:
                     response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))
             except mysql.connector.Error as err:
-                response.set(err.errno, str(err))
-        response.set('data', rows)
+                response.setError(err.errno, str(err))
+        response.data = rows
         return response
 
     def select(self, query):
@@ -477,9 +477,9 @@ class Driver:
                     for colname in row.keys():
                         resp[colname] = row[colname]
                     rows.append(resp)
-                response.set('data', rows)
+                response.data = rows
             except mysql.connector.Error as err:
-                response.set(err.errno, str(err))
+                response.setError(err.errno, str(err))
                 self.dbconnection = False
         return response
 
@@ -499,7 +499,7 @@ class Driver:
         sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ",".join(parms), ",".join(holder))
         response = self.execute(sql, vals, commit=True)
         if not response.isError():
-            response.set('data', self.cursor.lastrowid)
+            response.data = self.cursor.lastrowid
         return response
 
     def update(self, table, values):
@@ -530,5 +530,5 @@ class Driver:
         sql += sql2
         response = self.execute(sql, values, commit=True)
         if not response.isError():
-            response.set('data', self.cursor.rowcount)
+            response.data = self.cursor.rowcount
         return response

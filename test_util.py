@@ -143,7 +143,7 @@ class RunTest1:
         response2 = bas.load(obj2)
         
         if not response2.isError():
-            rows = response2.get('data')
+            rows = response2.data
             if len(rows) == 1:
                 obj2 = rows[0]
                 if obj1 == obj2:
@@ -190,7 +190,7 @@ def test2(bas, Cls):
         errcount += 1
         return
     
-    data = response.get('data')
+    data = response.data
     for obj in data:
         log.info("%s %s" % ( obj._id, obj.varcharTest ) )
     log.info("Found %i objects" % len(data) )
@@ -226,7 +226,7 @@ def testUpdate(bas, Cls):
         errcount += 1
         log.error( res.getError() )
         return
-    test2 = res.get('data')[0]
+    test2 = res.data[0]
     if test1.varcharTest != test2.varcharTest:
         log.error( "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
 
@@ -254,7 +254,7 @@ def testDelete(bas, Cls):
         errcount += 1
         log.error( res.getError() )
         return
-    rowsaffected = res.get('data')
+    rowsaffected = res.data
     if rowsaffected != 1:
         errcount += 1
         log.error("Expected delete to affect one row, %s got affected" % rowsaffected)

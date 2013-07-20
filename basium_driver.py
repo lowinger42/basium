@@ -201,12 +201,12 @@ class Driver:
 
     def isDatabase(self, dbName):
         response = basium.Response()
-        response.set('data', True)
+        response.data = True
         return response
 
     def isTable(self, tableName):
         response = basium.Response()
-        response.set('data', True)
+        response.data = True
         return response
 
     def createTable(self, obj):
@@ -215,7 +215,7 @@ class Driver:
 
     def verifyTable(self, obj):
         response = basium.Response()
-        response.set('actions', [])
+        response.data = []
         return response
     
     def modifyTable(self, obj, actions):

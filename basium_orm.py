@@ -96,12 +96,11 @@ class BasiumOrm:
         if result.isError():
             log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
             return None
-        exist = result.get('data')
-        if exist:
+        if result.data:
             log.debug("SQL Database '%s' exist" % dbName)
         else:
             log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
-        return exist
+        return result.data
 
     def isTable(self, obj):
         """Check if a table exist in the database"""
@@ -109,12 +108,11 @@ class BasiumOrm:
         if result == None:
             log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
             return False
-        exist = result.get('data')
-        if exist:
+        if result.data:
             log.debug("SQL Table '%s' does exist" % obj._table)
         else:
             log.debug("SQL Table '%s' does NOT exist" % obj._table)
-        return exist
+        return result.data
 
     def createTable(self, obj):
         """Create a table that can store objects"""
@@ -132,7 +130,7 @@ class BasiumOrm:
         Returns list of Action, zero length if nothing needs to be done
         """
         result = self.driver.verifyTable(obj)
-        actions = result.get('actions')
+        actions = result.data
         if len(actions) < 1:
             log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
@@ -162,7 +160,7 @@ class BasiumOrm:
         if result.isError():
             log.error('Cannot do count(*) on %s' % (query._model._table))
             return None
-        return int(result.get('data'))
+        return int(result.data)
 
     def load(self, query_):
         """
@@ -191,12 +189,12 @@ class BasiumOrm:
         if response.isError():
             return response
         rows = []
-        for row in response.get('data'):
+        for row in response.data:
             newobj = query._model.__class__()
             for (colname, column) in newobj._columns.items():
                 newobj._values[colname] = column.toPython( row[colname] )
             rows.append(newobj)
-        response.set('data', rows)
+        response.data = rows
         if one and len(rows) < 1:
             response.setError(1, "Unknown UD %s in table %s" % (query_._id, query_._table))
         return response
@@ -218,7 +216,7 @@ class BasiumOrm:
             # insert
             response = self.driver.insert(obj._table, columns)
             if not response.isError():
-                obj._id = response.get('data')
+                obj._id = response.data
         return response
     
     def delete(self, query_):
