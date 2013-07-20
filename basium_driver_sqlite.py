@@ -252,6 +252,7 @@ class Driver:
         self.dbconf = dbconf
         
         self.dbconnection = None
+        self.tables = None
         self.connectionStatus = None
 
     def connect(self):
@@ -264,6 +265,11 @@ class Driver:
             response.setError( 1, e.args[0] )
 
         return response
+    
+    def disconnect(self):
+        self.dbconnection = None
+        self.tables = None
+        
 
     def execute(self, sql, values=None, commit=True):
         """
@@ -304,18 +310,19 @@ class Driver:
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
-        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
-        values = (tableName,)
-        exist = False
-        response = self.execute(sql, values)
-        if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                if row != None:
-                    exist = row[0] == tableName
-            except sqlite3.Error as e:
-                response.setError( 1, e.args[0] )
-        response.data = exist
+        if not self.tables:
+            self.tables = {}
+            sql = "SELECT name FROM sqlite_master WHERE type='table'"
+            response = self.execute(sql)
+            if not response.isError():
+                try:
+                    for row in self.cursor.fetchall():
+                        self.tables[row[0]] = 1
+                except sqlite3.Error as e:
+                    response.setError( 1, e.args[0] )
+                    return response
+        response = basium.Response()
+        response.data = tableName in self.tables
         return response
 
     def createTable(self, obj):

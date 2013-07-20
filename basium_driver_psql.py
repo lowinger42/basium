@@ -276,6 +276,7 @@ class Driver:
         self.dbconf = dbconf
         self.dbconnection = None
         self.connectionStatus = None
+        self.tables = None
 
     def connect(self):
         response = Response()
@@ -288,6 +289,10 @@ class Driver:
         except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
         return response
+    
+    def disconnect(self):
+        self.dbconnection = None
+        self.tables = None
 
     def execute(self, sql, values = None, commit=False):
         """
@@ -312,12 +317,9 @@ class Driver:
                 return response
                     
             except psycopg2.DatabaseError as e:
-                if i == 0:
-                    self.dbconnection = None
                 if i == 1:
                     response.setError( 1, str(e) )
-                else:
-                    pass
+                self.disconnect()
 #                    try:
 #                        self.dbconnection.rollback()    # make sure to clear any previous hanging transactions
 #                    except psycopg2.DatabaseError, e:
@@ -345,21 +347,22 @@ class Driver:
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
-        response = Response()
-        sql = "SELECT EXISTS(SELECT relname FROM pg_class WHERE relname=%s and relkind='r')"
-        values = (tableName,)
-        exist = False
-        try:
-            resp = self.execute(sql, values)
-            if resp.isError():
-                return resp
-            row = self.cursor.fetchone()
-            if row != None:
-                exist = row[0]
-        except psycopg2.DatabaseError as e:
-            response.setError( 1, str(e) )
+        if not self.tables:
+            self.tables = {}
+            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
+            values = (tableName,)
+            try:
+                response = self.execute(sql, values)
+                if response.isError():
+                    return response
+                for row in self.cursor.fetchall():
+                    self.tables[row[0]] = 1
+            except psycopg2.DatabaseError as e:
+                response.setError( 1, str(e) )
+                return response
 
-        response.data = exist
+        response = basium.Response()
+        response.data = tableName in self.tables
         return response
 
     def createTable(self, obj):

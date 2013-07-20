@@ -250,7 +250,7 @@ class Driver:
         
         self.dbconnection = None
         self.connectionStatus = None
-
+        self.tables = None
 
     def connect(self):
         response = Response()
@@ -274,6 +274,10 @@ class Driver:
             response.setError( err.errno, str(err) )
             
         return response
+
+    def disconnect(self):
+        self.dbconnection = None
+        self.tables = None
 
     def execute(self, sql, values=None, commit=False):
         """
@@ -303,9 +307,9 @@ class Driver:
                         self.dbconnection.commit()
                     except mysql.connector.Error as err:
                         pass
-                self.dbconnection = None
                 if i == 1:
                     response.setError( err.errno, str(err) )
+                self.disconnect()
             
         return response
     
@@ -326,19 +330,24 @@ class Driver:
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
-        sql = "show tables like %s"
-        exist = False
-        response = self.execute(sql, (tableName,))
-        if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                if row != None:
-                    key = list(row.keys())[0]
-                    exist = row[key] == tableName
-            except mysql.connector.Error as err:
-                response.setError(err.errno, str(err))
-        response.data = exist
+        if not self.tables:
+            # Read all tables and cache locally
+            self.tables = {}
+            sql = "show tables like %s"
+            response = self.execute(sql, (tableName,))
+            if not response.isError():
+                try:
+                    for row in self.cursor.fetchall():
+                        value= list(row.values())[0]
+                        self.tables[value] = 1
+                except mysql.connector.Error as err:
+                    response.setError(err.errno, str(err))
+                    return response
+            
+        response = basium.Response()
+        response.data = tableName in self.tables
         return response
+    
 
     def createTable(self, obj):
         """Create a tablet"""
