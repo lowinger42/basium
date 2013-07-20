@@ -43,14 +43,16 @@ import time
 import basium
 import basium_wsgihandler
 
-from test_tables import *
-from test_util import *
+import test_tables
+import test_util
+
+log = basium.log
 
 def runServer():
     """Start an WSGI server as a separate process"""
     log.info("Starting embedded WSGI server")
     driver = 'psql'
-    dbconf, bas = getDbConf(driver, checkTables=True)
+    dbconf, bas = test_util.getDbConf(driver, checkTables=True)
     server = basium_wsgihandler.Server(basium=bas)
     server.daemon = True
     server.start()    # run in thread
@@ -69,6 +71,6 @@ if __name__ == "__main__":
 
     # we need a database connection(json), for the api test
     driver = "json"
-    dbconf, bas = getDbConf(driver, checkTables=False)
+    dbconf, bas = test_util.getDbConf(driver, checkTables=False)
 
-    doTests(bas, BasiumTest)
+    test_util.doTests(bas, test_tables.BasiumTest)

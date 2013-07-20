@@ -38,8 +38,8 @@ import decimal
 import datetime
 
 import basium
+import basium_model
 import test_tables
-from basium_model import *
 
 # ----- Module globals
 log = basium.log
@@ -83,14 +83,14 @@ class ObjectFactory:
             if column.primary_key:
                 continue
             val = None
-            if isinstance(column, BooleanCol):
+            if isinstance(column, basium_model.BooleanCol):
                 val = (p & 1) == 0
-            elif isinstance(column, DateCol):
+            elif isinstance(column, basium_model.DateCol):
                 year = 2012
                 month = (p % 12) + 1
                 day = (p % 28) + 1 
                 val = datetime.date(year,month,day)
-            elif isinstance(column, DateTimeCol):
+            elif isinstance(column, basium_model.DateTimeCol):
                 year = 2012
                 month = (p % 12) + 1
                 day = (p % 28) + 1 
@@ -98,13 +98,13 @@ class ObjectFactory:
                 minute = (p % 60)
                 second = (p % 60)
                 val = datetime.datetime(year,month,day,hour,minute,second)
-            elif isinstance(column, DecimalCol):
+            elif isinstance(column, basium_model.DecimalCol):
                 val = decimal.Decimal( "%d.%02d" % ( p, p % 100 ) )
-            elif isinstance(column, FloatCol):
+            elif isinstance(column, basium_model.FloatCol):
                 val = float(str(p) + '.' + str(p))
-            elif isinstance(column, IntegerCol):
+            elif isinstance(column, basium_model.IntegerCol):
                 val = p
-            elif isinstance(column, VarcharCol):
+            elif isinstance(column, basium_model.VarcharCol):
                 val = 'text ' + str(p)
             else:
                 log.error('Unknown column type: %s' % column)

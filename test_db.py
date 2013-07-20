@@ -75,13 +75,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
 
-import sys
-
 import basium
+import test_tables
+import test_util
 
-from test_tables import *
-from test_util import *
-
+log = basium.log
 
 if __name__ == "__main__":
 
@@ -89,7 +87,7 @@ if __name__ == "__main__":
 
     for driver in drivers:
         log.info(">>> Testing database driver %s" % driver)
-        dbconf, bas = getDbConf(driver, checkTables=True)
-        doTests(bas, BasiumTest)
+        dbconf, bas = test_util.getDbConf(driver, checkTables=True)
+        test_util.doTests(bas, test_tables.BasiumTest)
         print()
         print()

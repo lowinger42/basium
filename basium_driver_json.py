@@ -47,7 +47,6 @@ import decimal
 
 import basium
 import basium_driver
-from basium_model import *
 
 log = basium.log
 
