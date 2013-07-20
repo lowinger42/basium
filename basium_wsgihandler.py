@@ -221,13 +221,13 @@ class Server(threading.Thread):
             self.documentroot = documentroot
         else:
             self.documentroot = os.path.dirname( os.path.abspath(sys.argv[0]))
-        print("wsgiserver using %s as documentroot" % self.documentroot)
 
     def run(self):
         import wsgiref.simple_server
         
-        print("-" * 79)
-        print("Starting WSGI server, press Ctrl-c to quit")
+        log.info("-" * 79)
+        log.info("Starting WSGI server, press Ctrl-c to quit")
+        log.info("Using %s as documentroot" % self.documentroot)
     
         appServer = AppServer(self.basium, documentroot=self.documentroot)
         

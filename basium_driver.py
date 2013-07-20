@@ -39,8 +39,6 @@ import decimal
 
 import basium
 
-log = basium.log
-
 
 #
 # These are shadow classes from the basium_model

@@ -53,6 +53,63 @@ import traceback
 
 import urllib
 
+class Logger():
+
+    def __init__(self, loglevel=None):
+        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s ')
+        self.log = logging.getLogger('basium')
+        if loglevel != None:
+            self.setLevel(loglevel)
+        else:
+            self.log.setLevel(logging.DEBUG)  # log everything as default
+
+    def activateSyslog(self, mod=None):
+        syslogger = logging.handlers.SysLogHandler(address='/dev/log')
+        if mod == None:
+            formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
+        else:
+            formatter = logging.Formatter(mod + '[%(process)d]: %(levelname)s %(message)s')
+        syslogger.setFormatter(formatter)
+        
+        # remove all other handlers
+        for hdlr in self.log.handlers:
+            self.log.removeHandler(hdlr)
+            
+        self.log.addHandler(syslogger)
+
+    def setLevel(self, loglevel):
+        if loglevel == 'info':
+            self.log.setLevel(logging.INFO)
+        elif loglevel == 'warning':
+            self.log.setLevel(logging.WARNING)
+        elif loglevel == 'error':
+            self.log.setLevel(logging.ERROR)
+        elif loglevel == 'debug':
+            self.log.setLevel(logging.DEBUG)
+        else:
+            fatal("Unknown log level %s" % loglevel)
+
+    def info(self, msg):
+        if isstring(msg):
+            msg = msg.replace('\n', ', ')
+        self.log.info(msg)
+
+    def warning(self, msg):
+        if isstring(msg):
+            msg = msg.replace('\n', ', ')
+        self.log.warning(msg)
+
+    def error(self, msg):
+        if isstring(msg):
+            msg = msg.replace('\n', ', ')
+        self.log.error(msg)
+
+    def debug(self, msg):
+        if isstring(msg):
+            msg = msg.replace('\n', ', ')
+        self.log.debug(msg)
+
+
 #
 # for python2/3 compability
 #
@@ -242,78 +299,7 @@ else:
     
     def urllib_parse_qsl(data):
         return urllib.parse.parse_qsl(data, keep_blank_values=True)
-    
-class Logger():
 
-    def __init__(self, loglevel=None):
-        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s ')
-        self.log = logging.getLogger('candor')
-        if loglevel != None:
-            self.setLevel(loglevel)
-        else:
-            self.log.setLevel(logging.DEBUG)  # log everything as default
-
-    def activateSyslog(self, mod=None):
-        syslogger = logging.handlers.SysLogHandler(address='/dev/log')
-        if mod == None:
-            formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
-        else:
-            formatter = logging.Formatter(mod + '[%(process)d]: %(levelname)s %(message)s')
-        syslogger.setFormatter(formatter)
-        
-        # remove all other handlers
-        for hdlr in self.log.handlers:
-            self.log.removeHandler(hdlr)
-            
-        self.log.addHandler(syslogger)
-
-    def setLevel(self, loglevel):
-        if loglevel == 'info':
-            self.log.setLevel(logging.INFO)
-        elif loglevel == 'warning':
-            self.log.setLevel(logging.WARNING)
-        elif loglevel == 'error':
-            self.log.setLevel(logging.ERROR)
-        elif loglevel == 'debug':
-            self.log.setLevel(logging.DEBUG)
-        else:
-            fatal("Unknown log level %s" % loglevel)
-
-    def info(self, msg):
-        if isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.log.info(msg)
-
-    def warning(self, msg):
-        if isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.log.warning(msg)
-
-    def error(self, msg):
-        if isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.log.error(msg)
-
-    def debug(self, msg):
-        if isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.log.debug(msg)
-
-class DbConf:
-    """Information to the selected database driver, how to connect to database"""
-    def __init__(self, host=None, port=None, username=None, password=None, database=None, debugSQL=False):
-        self.host = host
-        self.port = None
-        self.username = username
-        self.password = password
-        self.database = database
-        self.debugSQL = debugSQL
-
-log = Logger()
-log.info("Basium logger started.")
-
-import basium_orm
-import basium_model
 
 def fatal(msg=None):
     if msg:
@@ -322,13 +308,42 @@ def fatal(msg=None):
     sys.exit(1)
 
 
-class Basium(basium_orm.BasiumOrm):
+log = Logger()
+log.info("Basium default logger started")
 
-    def __init__(self, driver=None, checkTables=True, dbconf=None):
+# These must be after definition of the log instance
+import basium_orm
+import basium_model
+
+
+class DbConf:
+    """Information to the selected database driver, how to connect to database"""
+    def __init__(self, host=None, port=None, username=None, password=None, database=None, debugSQL=False, log=None):
+        self.host = host
+        self.port = None
+        self.username = username
+        self.password = password
+        self.database = database
+        self.debugSQL = debugSQL
+
+
+class Basium(basium_orm.BasiumOrm):
+    """Main class for basium usage"""
+    
+    def __init__(self, logger=None, driver=None, checkTables=True, dbconf=None):
         self.cls = {}
         self.drivername = driver
         self.checkTables = checkTables
-        self.dbconnection = dbconf
+        self.dbconf = dbconf
+        
+        global log
+        if logger:
+            self.log = logger
+            log = logger
+            log.debug("Switching to external logger")
+        else:
+            self.log = log # use simple logger
+        self.log.info("Basium logging started.")
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -346,12 +361,12 @@ class Basium(basium_orm.BasiumOrm):
         except ImportError:
             fatal('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             
-        self.driver = self.drivermodule.Driver(self.dbconnection)
+        self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
         if not self.startOrm(self.driver, self.drivermodule):
-            log.error("Fatal: cannot continue")
+            log.error("Cannot initialize ORM")
             return None
-        if not self.isDatabase(self.dbconnection.database):
-            log.error("Fatal: Database %s does not exist" % self.dbconnection.database)
+        if not self.isDatabase(self.dbconf.database):
+            log.error("Database %s does not exist" % self.dbconf.database)
             return None
     
         if self.checkTables:

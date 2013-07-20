@@ -43,8 +43,6 @@ import inspect
 import basium
 import basium_model
 
-log = basium.log
-
 # to make less errors in queries
 LT = '<'
 LE = '<='
@@ -81,7 +79,7 @@ class BasiumOrm:
                     modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
 #                    print("  " + modelcls.__bases__)
                 else:
-                    log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
+                    self.log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
                     return False
         return True
     
@@ -94,31 +92,31 @@ class BasiumOrm:
         """
         result = self.driver.isDatabase(dbName)
         if result.isError():
-            log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
+            self.log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
             return None
         if result.data:
-            log.debug("SQL Database '%s' exist" % dbName)
+            self.log.debug("SQL Database '%s' exist" % dbName)
         else:
-            log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
+            self.log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
         return result.data
 
     def isTable(self, obj):
         """Check if a table exist in the database"""
         result = self.driver.isTable(obj._table)
         if result == None:
-            log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
+            self.log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
             return False
         if result.data:
-            log.debug("SQL Table '%s' does exist" % obj._table)
+            self.log.debug("SQL Table '%s' does exist" % obj._table)
         else:
-            log.debug("SQL Table '%s' does NOT exist" % obj._table)
+            self.log.debug("SQL Table '%s' does NOT exist" % obj._table)
         return result.data
 
     def createTable(self, obj):
         """Create a table that can store objects"""
         result = self.driver.createTable(obj)
         if result.isError():
-            log.error("Create SQL Table '%s' failed. %s" % (obj._table, result.getError()))
+            self.log.error("Create SQL Table '%s' failed. %s" % (obj._table, result.getError()))
             return False
         return True
 
@@ -132,9 +130,9 @@ class BasiumOrm:
         result = self.driver.verifyTable(obj)
         actions = result.data
         if len(actions) < 1:
-            log.debug("SQL Table '%s' matches the object" % obj._table)
+            self.log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
-            log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
+            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         return actions
 
     def modifyTable(self, obj, actions):
@@ -144,7 +142,7 @@ class BasiumOrm:
         """
         result = self.driver.modifyTable(obj, actions)
         if result.isError():
-            log.error('Fatal: Cannot update table structure for %s. %s' % (obj._table, result.getError()))
+            self.log.error('Fatal: Cannot update table structure for %s. %s' % (obj._table, result.getError()))
             return False
         return True
 
@@ -154,11 +152,11 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            log.error("Fatal: incorrect object type in count")
+            self.log.error("Fatal: incorrect object type in count")
             return None
         result = self.driver.count(query)
         if result.isError():
-            log.error('Cannot do count(*) on %s' % (query._model._table))
+            self.log.error('Cannot do count(*) on %s' % (query._model._table))
             return None
         return int(result.data)
 
@@ -356,7 +354,7 @@ class Query():
     def filter(self, column, operand, value):
         """Add a filter. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
-            log.error('Fatal: filter() called with a non-Column %s' % column)
+            self.log.error('Fatal: filter() called with a non-Column %s' % column)
             return None
         if self._model == None:
             self._model = column._model
@@ -372,12 +370,12 @@ class Query():
     def order(self, column, desc = False):
         """Add a sort order. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
-            log.error('Fatal: order() called with a non-Column %s' % column)
+            self.log.error('Fatal: order() called with a non-Column %s' % column)
             return None
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
-            log.error('Fatal: filter from multiple tables not implemented')
+            self.log.error('Fatal: filter from multiple tables not implemented')
             return None
         self._order.append( self.Order(column=column, desc=desc) )
         return self
@@ -469,4 +467,4 @@ class Query():
                 l.decode(val)
                 self._limit = l
             else:
-                log.error("Incorrect key=%s, url='%s' in URL" % (key, url))
+                self.log.error("Incorrect key=%s, url='%s' in URL" % (key, url))

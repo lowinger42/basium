@@ -47,7 +47,7 @@ log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 
 
-def getDbConf(driver, checkTables=False):
+def getDbConf(driver, logger=None, checkTables=False):
     """Based on driver, return a dbconf object, used in function test"""
     if driver == 'psql':
         dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
@@ -61,7 +61,7 @@ def getDbConf(driver, checkTables=False):
     else:
         basium.fatal("Unknown driver %s" % driver)
 
-    bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables)
+    bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables, logger=logger)
     bas.addClass(test_tables.BasiumTest)
     if not bas.start():
         basium.fatal()

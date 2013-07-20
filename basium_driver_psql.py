@@ -47,7 +47,6 @@ import basium
 import basium_driver
 
 Response=basium.Response
-log = basium.log
 
 #
 # These are shadow classes from the basium_model
@@ -272,7 +271,8 @@ class Action:
         self.sqlcmd = sqlcmd
 
 class Driver:
-    def __init__(self, dbconf=None):
+    def __init__(self, log=None, dbconf=None):
+        self.log = log
         self.dbconf = dbconf
         self.dbconnection = None
         self.connectionStatus = None
@@ -307,7 +307,7 @@ class Driver:
                     return response
             try:
                 if self.dbconf.debugSQL:
-                    log.debug(self.cursor.mogrify(sql, values))
+                    self.log.debug(self.cursor.mogrify(sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
@@ -408,9 +408,9 @@ class Driver:
 #                tabletype = tabletypes[colname]
 #                if column.typeToSql() != column.tableTypeToSql(tabletype):
 #                    msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-#                    log.debug(msg)
-#                    log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
-#                    log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
+#                    self.log.debug(msg)
+#                    self.log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
+#                    self.log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
 #                    actions.append(Action(
 #                            msg=msg,
 #                            unattended=True,
@@ -433,9 +433,9 @@ class Driver:
 #                        sqlcmd='ALTER TABLE %s DROP %s' % (obj._table, colname)
 #                        ))
 #        if len(actions) < 1:
-#            log.debug("SQL Table '%s' matches the object" % obj._table)
+#            self.log.debug("SQL Table '%s' matches the object" % obj._table)
 #        else:
-#            log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
+#            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         response.data = actions
         return response
 
@@ -446,9 +446,9 @@ class Driver:
         Returns True if everything is ok
         """
 #        response = Response()
-#        log.debug("Updating table %s" % obj._table)
+#        self.log.debug("Updating table %s" % obj._table)
 #        if len(actions) == 0:
-#            log.debug("  Nothing to do")
+#            self.log.debug("  Nothing to do")
 #            return True
 #
 #        print("Actions that needs to be done:")

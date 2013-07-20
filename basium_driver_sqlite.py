@@ -48,7 +48,6 @@ import basium
 import basium_driver
 
 Response=basium.Response
-log = basium.log
 
 class ColumnInfo:
     
@@ -248,7 +247,8 @@ class Action:
         self.sqlcmd = sqlcmd
 
 class Driver:
-    def __init__(self, dbconf=None):
+    def __init__(self, log=None, dbconf=None):
+        self.log = log
         self.dbconf = dbconf
         
         self.dbconnection = None
@@ -284,7 +284,7 @@ class Driver:
                     return response
             try:
                 if self.dbconf.debugSQL:
-                    log.debug('SQL=%s' % sql)
+                    self.log.debug('SQL=%s' % sql)
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
@@ -381,9 +381,9 @@ class Driver:
                 tabletype_str = self.tableTypeToSql(tabletype)
                 if columntype_str != tabletype_str:
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    log.debug(msg)
-                    log.debug("  type in Object   : '%s'" % (columntype_str) )
-                    log.debug("  type in SQL table: '%s'" % (tabletype_str))
+                    self.log.debug(msg)
+                    self.log.debug("  type in Object   : '%s'" % (columntype_str) )
+                    self.log.debug("  type in SQL table: '%s'" % (tabletype_str))
                     actions.append(Action(
                             msg=msg,
                             unattended=True,
@@ -406,9 +406,9 @@ class Driver:
                         sqlcmd='ALTER TABLE %s DROP %s' % (obj._table, colname)
                         ))
         if len(actions) < 1:
-            log.debug("SQL Table '%s' matches the object" % obj._table)
+            self.log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
-            log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
+            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         response.data = actions
         return response
 
@@ -420,9 +420,9 @@ class Driver:
         by copying the table to a new one
         """
         response = Response()
-        log.debug("Updating table %s" % obj._table)
+        self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
-            log.debug("  Nothing to do")
+            self.log.debug("  Nothing to do")
             return False
 
         print("Actions that needs to be done:")

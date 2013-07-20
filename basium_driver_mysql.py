@@ -45,7 +45,6 @@ import basium
 import basium_driver
 
 Response=basium.Response
-log = basium.log
 
 class BooleanCol(basium_driver.Column):
     """Stores boolean as number: 0 or 1"""
@@ -244,7 +243,8 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
 
 
 class Driver:
-    def __init__(self, dbconf=None):
+    def __init__(self, log=None, dbconf=None):
+        self.log = log
         self.dbconf = dbconf
         self.dbconf.database = basium.b(self.dbconf.database)   # python2 mysql.connector can't handle unicode string
         
@@ -266,7 +266,7 @@ class Driver:
             self.cursor = self.dbconnection.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
             if self.dbconf.debugSQL:
-                log.debug('SQL=%s' % sql)
+                self.log.debug('SQL=%s' % sql)
             self.cursor.execute(sql)
             if self.dbconnection:
                 self.dbconnection.commit()
@@ -292,7 +292,7 @@ class Driver:
                     return response
             try:
                 if self.dbconf.debugSQL:
-                    log.debug('SQL=%s, values=%s' % (sql, values))
+                    self.log.debug('SQL=%s, values=%s' % (sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
@@ -380,9 +380,9 @@ class Driver:
                 tabletype = tabletypes[colname]
                 if column.typeToSql() != column.tableTypeToSql(tabletype):
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    log.debug(msg)
-                    log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
-                    log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
+                    self.log.debug(msg)
+                    self.log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
+                    self.log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
                     actions.append(Action(
                             msg=msg,
                             unattended=True,
@@ -405,9 +405,9 @@ class Driver:
                         sqlcmd='ALTER TABLE %s DROP %s' % (obj._table, colname)
                         ))
         if len(actions) < 1:
-            log.debug("SQL Table '%s' matches the object" % obj._table)
+            self.log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
-            log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
+            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         response.data = actions
         return response
 
@@ -416,9 +416,9 @@ class Driver:
         Update table to latest definition of class
         actions is the result from verifytable
         """
-        log.debug("Updating table %s" % obj._table)
+        self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
-            log.debug("  Nothing to do")
+            self.log.debug("  Nothing to do")
             return False
 
         print("Actions that needs to be done:")

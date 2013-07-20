@@ -48,8 +48,6 @@ import decimal
 import basium
 import basium_driver
 
-log = basium.log
-
 #
 # These are shadow classes from the basium_model
 # handles the database specific functions such
@@ -168,7 +166,8 @@ class VarcharCol(basium_driver.VarcharCol):
 
 
 class Driver(basium_driver.Driver):
-    def __init__(self, dbconf=None,):
+    def __init__(self, log=None, dbconf=None):
+        self.log = log
         self.dbconf = dbconf
         
         self.uri = '%s/api' % (self.dbconf.host)
@@ -183,7 +182,7 @@ class Driver(basium_driver.Driver):
 
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.dbconf.debugSQL:
-            log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
+            self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
         response = basium.urllib_request_urlopen(url, method, 
                                                  username=self.dbconf.username,
                                                  password=self.dbconf.password,
@@ -233,7 +232,7 @@ class Driver(basium_driver.Driver):
     
     def count(self, query):
         """Count the number of objects, filtered by query"""
-        log.debug("Count query from database, using HTTP API")
+        self.log.debug("Count query from database, using HTTP API")
         if len(query._where) == 0:
             url = '%s/%s' %(self.uri, query._model._table )
         else:
@@ -252,7 +251,7 @@ class Driver(basium_driver.Driver):
           simple: <url>/<table>/<id>
           query : <url>/<table>/filter?column=oper,value[&column=oper,value]
         """
-        log.debug("Load query from database, using HTTP API")
+        self.log.debug("Load query from database, using HTTP API")
 
         if query.isId():
             # simple
@@ -264,19 +263,19 @@ class Driver(basium_driver.Driver):
         return response
 
     def insert(self, table, values):
-        log.debug("Store obj in database, using HTTP API")
+        self.log.debug("Store obj in database, using HTTP API")
         url = '%s/%s' % (self.uri, table)
         response = self.execute(method='POST', url=url, data=values, decode=True)
         return response
 
     def update(self, table, values):
-        log.debug("Update obj in database, using HTTP API")
+        self.log.debug("Update obj in database, using HTTP API")
         url = '%s/%s/%i' % (self.uri, table, values['_id'])
         response = self.execute(method='PUT', url=url, data=values, decode=True)
         return response
 
     def delete(self, query):
-        log.debug("Delete obj from database, using HTTP API")
+        self.log.debug("Delete obj from database, using HTTP API")
         if query.isId():
             # simple
             url = '%s/%s/%i' % (self.uri, query._model._table, query._where[0].value)
