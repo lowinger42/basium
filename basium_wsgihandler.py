@@ -39,14 +39,11 @@ import sys
 import pprint
 import threading
 import traceback
-
 import mimetypes
 
 import basium
 
-Response = basium.Response
 log = basium.log
-
 
 def show_start_response(status, response_headers):
     print("status=")
@@ -202,7 +199,6 @@ class AppServer:
         self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
         start_response(basium.b(self.response.status), self.response.headers)
-#        start_response(self.response.status, self.response.headers)
         return [self.response.out.encode("utf-8")]
     
 class Server(threading.Thread):
@@ -256,22 +252,10 @@ class Server(threading.Thread):
 if __name__ == "__main__":
     """Main program, used for unit test"""
     
-    import test_tables
+    import test_util
     
     driver = 'psql'
-    
-    if driver == 'psql':
-        dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
-    elif driver == 'mysql':
-        dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
-    elif driver == 'sqlite':
-        dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
-
-    bas = basium.Basium(driver=driver, checkTables=True, dbconf=dbconf) 
-    bas.addClass(test_tables.BasiumTest)
-    if not bas.start():
-        sys.exit(1)
-    
+    dbconf, bas = test_util.getDbConf(driver, checkTables=True)
     server = Server(basium=bas)
     server.run()
 

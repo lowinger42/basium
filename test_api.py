@@ -50,22 +50,7 @@ def runServer():
     """Start an WSGI server as a separate process"""
     log.info("Starting embedded WSGI server")
     driver = 'psql'
-
-    if driver == 'psql':
-        dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
-    elif driver == 'mysql':
-        dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
-    elif driver == 'sqlite':
-        dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
-    else:
-        print("Fatal: Unknown driver %s" % driver)
-        sys.exit(1)
-
-    bas = basium.Basium(driver=driver, checkTables=True, dbconf=dbconf)
-    bas.addClass(BasiumTest)
-    if not bas.start():
-        sys.exit(1)
-    
+    dbconf, bas = getDbConf(driver, checkTables=True)
     server = basium_wsgihandler.Server(basium=bas)
     server.daemon = True
     server.start()    # run in thread
@@ -83,11 +68,7 @@ if __name__ == "__main__":
         runServer()
 
     # we need a database connection(json), for the api test
-    dbconf = basium.DbConf(host='http://localhost:8051', username='basium_user', 
-                           password='secret', database='basium_db')
-    bas = basium.Basium(driver='json', checkTables=False, dbconf=dbconf)
-    bas.addClass(BasiumTest)
-    if not bas.start():
-        sys.exit(1)
+    driver = "json"
+    dbconf, bas = getDbConf(driver, checkTables=False)
 
     doTests(bas, BasiumTest)

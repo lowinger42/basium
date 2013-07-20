@@ -83,32 +83,13 @@ from test_tables import *
 from test_util import *
 
 
-def runtest(bas):
-    """Run all the tests"""
-    bas.addClass(BasiumTest)
-    if not bas.start():
-        sys.exit(1)
-    
-    doTests(bas, BasiumTest)
-    
-
 if __name__ == "__main__":
 
     drivers = ["psql", "mysql", "sqlite"]
 
     for driver in drivers:
         log.info(">>> Testing database driver %s" % driver)
-        if driver == 'psql':
-            dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
-        elif driver == 'mysql':
-            dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
-        elif driver == 'sqlite':
-            dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
-        else:
-            print("Unknown driver %s" % driver)
-            sys.exit(1)
-    
-        bas = basium.Basium(driver=driver, checkTables=True, dbconf=dbconf)
-        runtest(bas)
+        dbconf, bas = getDbConf(driver, checkTables=True)
+        doTests(bas, BasiumTest)
         print()
         print()

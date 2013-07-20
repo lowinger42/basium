@@ -38,6 +38,7 @@ import decimal
 import datetime
 
 import basium
+import test_tables
 from basium_model import *
 
 # ----- Module globals
@@ -46,6 +47,27 @@ log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 
 
+def getDbConf(driver, checkTables=False):
+    """Based on driver, return a dbconf object, used in function test"""
+    if driver == 'psql':
+        dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
+    elif driver == 'mysql':
+        dbconf = basium.DbConf(host='localhost', port=3306, username='basium_user', password='secret', database='basium_db')
+    elif driver == 'sqlite':
+        dbconf = basium.DbConf(database='/tmp/basium_db.sqlite')
+    elif driver == 'json':
+        dbconf = basium.DbConf(host='http://localhost:8051', username='basium_user', 
+                           password='secret', database='basium_db')
+    else:
+        print("Unknown driver %s" % driver)
+        sys.exit(1)
+
+    bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables)
+    bas.addClass(test_tables.BasiumTest)
+    if not bas.start():
+        sys.exit(1)
+    return dbconf, bas
+    
 class ObjectFactory:
     """
     Create a new object and initialize the columns with decent mostly
