@@ -121,7 +121,7 @@ class RunTest1:
     """
     Run test
      Create an object, store in db
-     Read out an object with the id from above
+     Read out an object with the _id from above
      Compare and see if the two are equal
     """
     
@@ -139,7 +139,7 @@ class RunTest1:
             return
         
         log.info("Load same object from table '%s'" % (obj1._table) )
-        obj2.id = obj1.id
+        obj2._id = obj1._id
         response2 = bas.load(obj2)
         
         if not response2.isError():
@@ -183,7 +183,7 @@ def test2(bas, Cls):
 
     query = bas.query()
     obj = Cls()
-    query.filter(obj.q.id, '>', 10).filter(obj.q.id, '<', 20)
+    query.filter(obj.q._id, '>', 10).filter(obj.q._id, '<', 20)
     response = bas.load(query)
     if response.isError():
         log.error( response.getError() )
@@ -192,7 +192,7 @@ def test2(bas, Cls):
     
     data = response.get('data')
     for obj in data:
-        log.info("%s %s" % ( obj.id, obj.varcharTest ) )
+        log.info("%s %s" % ( obj._id, obj.varcharTest ) )
     log.info("Found %i objects" % len(data) )
 
 
@@ -220,7 +220,7 @@ def testUpdate(bas, Cls):
         return
     
     test2 = Cls()
-    test2.id = test1.id
+    test2._id = test1._id
     res = bas.load(test2)
     if res.isError():
         errcount += 1
@@ -246,7 +246,7 @@ def testDelete(bas, Cls):
         errcount += 1
         log.error( res.getError() )
         return
-    id_ = test1.id
+    _id = test1._id
 
     log.info("Delete object in table '%s'" % test1._table )
     res = bas.delete(test1)
@@ -263,7 +263,7 @@ def testDelete(bas, Cls):
     # Try to get the object we just deleted        
     log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table )
     test2 = Cls()
-    test2.id = id_
+    test2._id = _id
     res = bas.load(test2)
     if not res.isError():
         errcount += 1

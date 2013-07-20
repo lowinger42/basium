@@ -433,12 +433,12 @@ class Driver:
             if 'DROP' in action.sqlcmd:
                 print("Fixing " + action.msg)
                 print("  Cmd: " + action.sqlcmd)
-                self.cursor.execute(action.sqlcmd, commit=True)
+                self.execute(action.sqlcmd, commit=True)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
                 print("Fixing " + action.msg)
                 print("  Cmd: " + action.sqlcmd)
-                self.cursor.execute(action.sqlcmd, commit=True)
+                self.execute(action.sqlcmd, commit=True)
         self.dbconnection.commit()
         return False
 
@@ -486,13 +486,13 @@ class Driver:
     def insert(self, table, values):
         """
         Insert a row in the table
-        value is a dictionary with columns, primary key 'id' is ignored
+        value is a dictionary with columns, primary key '_id' is ignored
         """
         parms = []
         holder = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append(key)
                 holder.append("%s")
                 vals.append(val)
@@ -507,12 +507,12 @@ class Driver:
         parms = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append("%s=%%s" % key)
                 vals.append(val)
             else:
                 primary_key_val = val
-        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), 'id')
+        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), '_id')
         vals.append(primary_key_val)
         response = self.execute(sql, vals, commit=True)
         return response

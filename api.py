@@ -75,20 +75,20 @@ class API():
                 log.warning("Warning, handlePost got unknown key/column %s" % key)
         return postdata
 
-    def handleGet(self, classname, id_, attr):
+    def handleGet(self, classname, _id, attr):
         obj = classname()
-        if id_ == None:
+        if _id == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
             dbquery = self.basium.query(obj)
-        elif id_ == 'filter':
+        elif _id == 'filter':
             # filter out specific rows
             dbquery = self.basium.query(obj)
             dbquery.decode(self.request.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = self.basium.query().filter(obj.q.id, '=', id_)
+            dbquery = self.basium.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
         response = self.basium.driver.select(dbquery)  # we call driver directly for efficiency reason
@@ -99,15 +99,15 @@ class API():
             self.response.status = '404 ' + msg
             return
         lst = response.get('data')
-        if id_ != None and id_ != 'filter' and len(lst) == 0:
-            msg = "Unknown ID %s in table '%s'" % (id_, obj._table)
+        if _id != None and _id != 'filter' and len(lst) == 0:
+            msg = "Unknown ID %s in table '%s'" % (_id, obj._table)
             log.debug(msg)
             response.setError(1, msg)
             self.response.status = '404 ' + msg
         self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
 
-    def handlePost(self, classname, id_, attr):
-        if id_ != None:
+    def handlePost(self, classname, _id, attr):
+        if _id != None:
             self.response.status = "400 Bad Request, cannot specify ID when inserting a row"
             return
         obj = classname()
@@ -116,48 +116,48 @@ class API():
         response = self.basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
-    def handlePut(self, classname, id_, attr):
-        if id_ == None:
+    def handlePut(self, classname, _id, attr):
+        if _id == None:
             self.response.status = "400 Bad Request, need ID to update a row"
             return
         # update row
         obj = classname()
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
-        putdata['id'] = id_
+        putdata['_id'] = _id
         response = self.basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         print(json.dumps(response.get(), cls=basium.JsonOrmEncoder))
 
-    def handleDelete(self, classname, id_, attr):
+    def handleDelete(self, classname, _id, attr):
         obj = classname()
-        if id_ == None:
+        if _id == None:
             msg = "Refusing to delete all rows in table '%s" % obj._table
             log.debug(msg)
             self.response.status = "400 %s" % msg
             return
-        elif id_ == 'filter':
+        elif _id == 'filter':
             # filter out specific rows
             dbquery = self.basium.query(obj)
             dbquery.decode(self.request.querystr)
             log.debug("Delete all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = self.basium.query().filter(obj.q.id, '=', id_)
-            log.debug("Delete one row in table '%s' matching id %s" % (obj._table, id_))
+            dbquery = self.basium.query().filter(obj.q._id, '=', _id)
+            log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
         response = self.basium.driver.delete(dbquery)
         self.write( json.dumps(response, cls=basium.JsonOrmEncoder) )
 
-    def handleHead(self, classname, id_, attr):
+    def handleHead(self, classname, _id, attr):
         """
         Count the number of rows matching a query
         Return data in a HTML header
         """
         obj = classname()
-        if id_ == None:
+        if _id == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
             dbquery = self.basium.query(obj)
-        elif id_ == 'filter':
+        elif _id == 'filter':
             # filter out specific rows
             dbquery = self.basium.query()
             dbquery.decode(self.request.querystr)
@@ -181,20 +181,20 @@ class API():
         classname = self.basium.cls[attr[ix]]
         ix += 1
         if len(attr) > ix:
-            id_ = attr[ix]
+            _id = attr[ix]
             ix += 1
         else:
-            id_ = None
+            _id = None
         if self.request.method == 'GET':
-            self.handleGet(classname, id_, attr[ix:])
+            self.handleGet(classname, _id, attr[ix:])
         elif self.request.method == "POST":
-            self.handlePost(classname, id_, attr[ix:])
+            self.handlePost(classname, _id, attr[ix:])
         elif self.request.method == "PUT":
-            self.handlePut(classname, id_, attr[ix:])
+            self.handlePut(classname, _id, attr[ix:])
         elif self.request.method == "DELETE":
-            self.handleDelete(classname, id_, attr[ix:])
+            self.handleDelete(classname, _id, attr[ix:])
         elif self.request.method == "HEAD":
-            self.handleHead(classname, id_, attr[ix:])
+            self.handleHead(classname, _id, attr[ix:])
         else:
             # not a request we understand
             self.response.status = "400 Unknown request %s" % self.request.method

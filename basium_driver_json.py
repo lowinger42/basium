@@ -273,7 +273,7 @@ class Driver(basium_driver.Driver):
 
     def update(self, table, values):
         log.debug("Update obj in database, using HTTP API")
-        url = '%s/%s/%i' % (self.uri, table, values['id'])
+        url = '%s/%s/%i' % (self.uri, table, values['_id'])
         response = self.execute(method='PUT', url=url, data=values, decode=True)
         return response
 

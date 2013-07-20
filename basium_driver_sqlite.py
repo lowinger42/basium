@@ -265,7 +265,7 @@ class Driver:
 
         return response
 
-    def execute(self, sql, values=None, commit=False):
+    def execute(self, sql, values=None, commit=True):
         """
         Execute a query, if error try to reconnect and redo the query
         to handle timeouts
@@ -493,13 +493,13 @@ class Driver:
     def insert(self, table, values):
         """
         Insert a row in the table
-        value is a dictionary with columns, primary key 'id' is ignored
+        value is a dictionary with columns, primary key '_id' is ignored
         """
         parms = []
         holder = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append(key)
                 holder.append("?")
                 vals.append(val)
@@ -514,12 +514,12 @@ class Driver:
         parms = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append("%s=?" % key)
                 vals.append(val)
             else:
                 primary_key_val = val
-        sql = "UPDATE %s SET %s WHERE id=?" % (table, ",".join(parms))
+        sql = "UPDATE %s SET %s WHERE _id=?" % (table, ",".join(parms))
         vals.append(primary_key_val)
         response = self.execute(sql, vals)
         return response

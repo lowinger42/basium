@@ -116,9 +116,9 @@ class ModelMetaClass(type):
 
     def __init__(cls, name, bases, dct):
         super(ModelMetaClass, cls).__init__(name, bases, dct)
-        columns = { 'id': IntegerCol(primary_key=True, default=-1) }
-        values  = { 'id': -1 }
-        cls._primary_key = ['id']
+        columns = { '_id': IntegerCol(primary_key=True, default=-1) }
+        values  = { '_id': -1 }
+        cls._primary_key = ['_id']
         cls._table = name.lower()
         cls._columns = columns
         cls._values = values
@@ -133,12 +133,12 @@ class Model(ModelMetaClass2):
 
     def __init__(self):
         # print("name = %s" % self.__class__.__name__)
-        object.__setattr__(self, '_primary_key', [ 'id' ])
-        id_ = IntegerCol(primary_key=True, default=-1)
-        id_._model = self
-        id_.name = 'id'
-        columns = { 'id': id_ }
-        values = { 'id': -1 }
+        object.__setattr__(self, '_primary_key', [ '_id' ])
+        _id = IntegerCol(primary_key=True, default=-1)
+        _id._model = self
+        _id.name = '_id'
+        columns = { '_id': _id }
+        values = { '_id': -1 }
         # create instance variables of the class columns
         for (colname, column) in inspect.getmembers(self):
             if colname[0] != '_' and isinstance(column, Column):
@@ -148,7 +148,7 @@ class Model(ModelMetaClass2):
                 columns[colname] = column
                 values[colname] = column.getDefault()
         q = Q()
-        q.id = columns['id']
+        q._id = columns['_id']
         for colname, column in columns.items():
             setattr(q, colname, column)
         object.__setattr__(self, '_columns', columns)

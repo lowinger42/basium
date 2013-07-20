@@ -521,11 +521,11 @@ class Driver:
         holder = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append('"' + key + '"')
                 holder.append("%s")
                 vals.append(val)
-        sql = "INSERT INTO %s ( %s ) VALUES ( %s ) RETURNING id" % (table, ",".join(parms), ",".join(holder))
+        sql = "INSERT INTO %s ( %s ) VALUES ( %s ) RETURNING _id" % (table, ",".join(parms), ",".join(holder))
         response = self.execute(sql, vals, commit=True)
         if not response.isError():
             response.set('data', self.cursor.fetchone()[0])
@@ -536,12 +536,12 @@ class Driver:
         parms = []
         vals = []
         for key, val in values.items():
-            if key != 'id':
+            if key != '_id':
                 parms.append('"%s"=%%s' % key)
                 vals.append(val)
             else:
                 primary_key_val = val
-        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), 'id')
+        sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), '_id')
         vals.append(primary_key_val)
         response = self.execute(sql, vals, commit=True)
         response.set('data', None)

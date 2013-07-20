@@ -167,7 +167,7 @@ class BasiumOrm:
     def load(self, query_):
         """
         Fetch one or multiple rows from table, each stored in a object
-        If no query is specified, the default is to fetch one object with the query.id
+        If no query is specified, the default is to fetch one object identified with the object._id
         Query can be either
           An instance of Model
           Query()
@@ -175,12 +175,12 @@ class BasiumOrm:
           list of objects, one or more if ok
           None if error
         
-        Note: querying for a single object with id returns error if not found
+        Note: querying for a single object with _id returns error if not found
         """
         response = basium.Response()
         one = False
         if isinstance(query_, basium_model.Model):
-            query = Query(self).filter(query_.q.id, EQ, query_.id)
+            query = Query(self).filter(query_.q._id, EQ, query_._id)
             one = True
         elif isinstance(query_, Query):
             query = query_
@@ -198,27 +198,27 @@ class BasiumOrm:
             rows.append(newobj)
         response.set('data', rows)
         if one and len(rows) < 1:
-            response.setError(1, "Unknown UD %s in table %s" % (query_.id, query_._table))
+            response.setError(1, "Unknown UD %s in table %s" % (query_._id, query_._table))
         return response
     
     def store(self, obj):
         """
         Store the query in the database
-        If the objects ID is set, we update the current row in the table,
+        If the objects _ID is set, we update the current row in the table,
         otherwise we create a new row
         """
         columns = {}
         for (colname, column) in obj._columns.items():
             columns[colname] = column.toSql(obj._values[colname])
 
-        if obj.id >= 0:
+        if obj._id >= 0:
             # update
             response = self.driver.update(obj._table, columns)
         else:
             # insert
             response = self.driver.insert(obj._table, columns)
             if not response.isError():
-                obj.id = response.get('data')
+                obj._id = response.get('data')
         return response
     
     def delete(self, query_):
@@ -234,7 +234,7 @@ class BasiumOrm:
         response = basium.Response()
         clearID = False
         if isinstance(query_, basium_model.Model):
-            query = Query(self).filter(query_.q.id, EQ, query_.id)
+            query = Query(self).filter(query_.q._id, EQ, query_._id)
             clearID = True
         elif isinstance(query_, Query):
             query = query_
@@ -243,7 +243,7 @@ class BasiumOrm:
             return response
         response = self.driver.delete(query)
         if not response.isError() and clearID:
-            query_.id = -1
+            query_._id = -1
         return response
 
     def query(self, obj = None):
@@ -277,7 +277,7 @@ class Query():
         if len(self._where) != 1:
             return False
         w = self._where[0]
-        return w.column.name == 'id' and w.operand == '='
+        return w.column.name == '_id' and w.operand == '='
 
     def getTable(self):
         if self._model != None:
