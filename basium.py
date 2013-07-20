@@ -49,6 +49,7 @@ import datetime
 import decimal
 import logging.handlers
 import base64
+import traceback
 
 import urllib
 
@@ -242,8 +243,6 @@ else:
     def urllib_parse_qsl(data):
         return urllib.parse.parse_qsl(data, keep_blank_values=True)
     
-
-
 class Logger():
 
     def __init__(self, loglevel=None):
@@ -278,8 +277,7 @@ class Logger():
         elif loglevel == 'debug':
             self.log.setLevel(logging.DEBUG)
         else:
-            self.log.error("Unknown log level %s" % loglevel)
-            sys.exit(1)
+            fatal("Unknown log level %s" % loglevel)
 
     def info(self, msg):
         if isstring(msg):
@@ -317,6 +315,12 @@ log.info("Basium logger started.")
 import basium_orm
 import basium_model
 
+def fatal(msg=None):
+    if msg:
+        log.error("Fatal %s" % msg)
+    traceback.print_exc()
+    sys.exit(1)
+
 
 class Basium(basium_orm.BasiumOrm):
 
@@ -328,14 +332,11 @@ class Basium(basium_orm.BasiumOrm):
 
     def addClass(self, cls):
         if not isinstance(cls, type):
-            log.error('Fatal: addClass() called with an instance of an object')
-            sys.exit(1)
+            fatal('addClass() called with an instance of an object')
         if not issubclass(cls, basium_model.Model):
-            log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
-            sys.exit(1)
+            fatal("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
         if cls._table in self.cls:
-            log.error("Fatal: addClass() already called for %s" % cls._table)
-            sys.exit(1)
+            fatal("addClass() already called for %s" % cls._table)
         self.cls[cls._table] = cls
     
     def start(self):
@@ -343,8 +344,7 @@ class Basium(basium_orm.BasiumOrm):
         try:
             self.drivermodule = __import__(driverfile)
         except ImportError:
-            log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
-            sys.exit(1) # todo, return error instead of exit
+            fatal('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             
         self.driver = self.drivermodule.Driver(self.dbconnection)
         if not self.startOrm(self.driver, self.drivermodule):

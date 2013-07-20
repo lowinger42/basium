@@ -59,13 +59,12 @@ def getDbConf(driver, checkTables=False):
         dbconf = basium.DbConf(host='http://localhost:8051', username='basium_user', 
                            password='secret', database='basium_db')
     else:
-        print("Unknown driver %s" % driver)
-        sys.exit(1)
+        basium.fatal("Unknown driver %s" % driver)
 
     bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables)
     bas.addClass(test_tables.BasiumTest)
     if not bas.start():
-        sys.exit(1)
+        basium.fatal()
     return dbconf, bas
     
 class ObjectFactory:
@@ -107,8 +106,7 @@ class ObjectFactory:
             elif isinstance(column, basium_model.VarcharCol):
                 val = 'text ' + str(p)
             else:
-                log.error('Unknown column type: %s' % column)
-                sys.exit(1)
+                basium.fatal('Unknown column type: %s' % column)
             obj._values[colname] = val
         
         return obj
