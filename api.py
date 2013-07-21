@@ -39,6 +39,7 @@ import json
 
 import basium
 import basium_model
+import basium_driver
 import basium_driver_json
 
 log = basium.log
@@ -90,20 +91,28 @@ class API():
             # one row, identified by rowID
             dbquery = self.basium.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
-
-        response = self.basium.driver.select(dbquery)  # we call driver directly for efficiency reason
-        if response.isError():
-            msg = "Could not load objects from table '%s'. %s" % (obj._table, response.getError())
+        
+        try:
+            response = basium.Response()
+            response.data = []
+            for row in self.basium.driver.select(dbquery):  # we call driver directly for efficiency reason
+                tmp = {}
+                for colname in obj._iterName():
+                    tmp[colname] = row[colname]
+                response.data.append(tmp)
+        except basium_driver.DriverError as err:
+            msg = "Could not load objects from table '%s'. %s %s" % (obj._table, err.errno, err.errmsg)
             log.debug(msg)
             self.write(msg)
             self.response.status = '404 ' + msg
             return
-        lst = response.data
-        if _id != None and _id != 'filter' and len(lst) == 0:
+            
+        if _id != None and _id != 'filter' and len(response.data) == 0:
             msg = "Unknown ID %s in table '%s'" % (_id, obj._table)
             log.debug(msg)
             response.setError(1, msg)
             self.response.status = '404 ' + msg
+            return
         self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
 
     def handlePost(self, classname, _id, attr):

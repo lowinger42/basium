@@ -78,7 +78,7 @@ class ObjectFactory:
     
     def new(self, cls, p):
         obj = cls()
-        for colname, column in obj._columns.items():
+        for colname, column in obj._iterNameColumn():
             if column.primary_key:
                 continue
             val = None

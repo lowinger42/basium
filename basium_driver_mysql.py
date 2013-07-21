@@ -353,7 +353,7 @@ class Driver:
         """Create a tablet"""
         sql = 'CREATE TABLE %s (\n   ' % obj._table
         columnlist = []
-        for (colname, column) in obj._columns.items():
+        for colname, column in obj._iterNameColumn():
             columnlist.append('%s %s' % (colname, column.typeToSql()))
         sql += "\n  ,".join(columnlist)
         sql += '\n)'
@@ -375,7 +375,7 @@ class Driver:
         for row in rows:
             tabletypes[row["Field"]] = row
         actions = []
-        for (colname, column) in obj._columns.items():
+        for colname, column in obj._iterNameColumn():
             if colname in tabletypes:
                 tabletype = tabletypes[colname]
                 if column.typeToSql() != column.tableTypeToSql(tabletype):
@@ -397,7 +397,7 @@ class Driver:
                         sqlcmd='ALTER TABLE %s ADD %s %s' % (obj._table, colname, column.typeToSql())
                         ))
 
-        for (colname, tabletype) in tabletypes.items():
+        for colname, tabletype in tabletypes.items():
             if not colname in obj._columns:
                 actions.append(Action(
                         msg="Error: Column '%s' in SQL Table NOT used, should be removed" % colname,
@@ -472,25 +472,16 @@ class Driver:
     def select(self, query):
         """
         Fetch one or multiple rows from a database
-        Return data as list, each with a dictionary
+        Returns an object that can be iterated over, returning rows
+        If there is any errors, an DriverError exception is raised
         """
-        rows = []
         sql = "SELECT * FROM %s" % query._model._table 
         sql2, values = query.toSql()
         sql += sql2
         response = self.execute(sql, values)
-        if not response.isError():
-            try:
-                for row in self.cursor:
-                    resp = {}
-                    for colname in row.keys():
-                        resp[colname] = row[colname]
-                    rows.append(resp)
-                response.data = rows
-            except mysql.connector.Error as err:
-                response.setError(err.errno, str(err))
-                self.dbconnection = False
-        return response
+        if response.isError():
+            raise basium_driver.DriverError(response.errno, response.errmsg)
+        return self.cursor
 
     def insert(self, table, values):
         """

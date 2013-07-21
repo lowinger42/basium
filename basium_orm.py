@@ -37,7 +37,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
 
-import sys
 import inspect
 
 import basium
@@ -120,7 +119,6 @@ class BasiumOrm:
             return False
         return True
 
-
     def verifyTable(self, obj):
         """
         Verify that a table has the correct definition
@@ -167,11 +165,11 @@ class BasiumOrm:
         Query can be either
           An instance of Model
           Query()
-        Returns
-          list of objects, one or more if ok
-          None if error
+        Driver returns an object that can be iterated one row at a time, 
+        or throws DriverError
         
-        Note: querying for a single object with _id returns error if not found
+        Note: getting a single object returns an error if not found. 
+        Workaround is to use a query instead
         """
         response = basium.Response()
         one = False
@@ -183,18 +181,20 @@ class BasiumOrm:
         else:
             response.setError(1, "Fatal: incorrect object type in load()")
             return response
-        response = self.driver.select(query)
-        if response.isError():
-            return response
-        rows = []
-        for row in response.data:
-            newobj = query._model.__class__()
-            for (colname, column) in newobj._columns.items():
-                newobj._values[colname] = column.toPython( row[colname] )
-            rows.append(newobj)
-        response.data = rows
-        if one and len(rows) < 1:
-            response.setError(1, "Unknown UD %s in table %s" % (query_._id, query_._table))
+        import basium_driver
+        try:
+            response.data = []
+            for row in self.driver.select(query):
+                newobj = query._model.__class__()
+                for colname,column in newobj._iterNameColumn():
+                    newobj._values[colname] = column.toPython( row[colname] )
+                response.data.append(newobj)
+            if one and len(response.data) < 1:
+                response.setError(1, "Unknown UD %s in table %s" % (query_._id, query_._table))
+                
+        except basium_driver.DriverError as err:
+            response.setError(err.errno, err.errmsg)
+
         return response
     
     def store(self, obj):
@@ -204,7 +204,7 @@ class BasiumOrm:
         otherwise we create a new row
         """
         columns = {}
-        for (colname, column) in obj._columns.items():
+        for colname, column in obj._iterNameColumn():
             columns[colname] = column.toSql(obj._values[colname])
 
         if obj._id >= 0:
@@ -250,7 +250,6 @@ class BasiumOrm:
         """
         q = Query(self, obj)
         return q
-
 
 
 class Query():

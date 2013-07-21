@@ -116,12 +116,10 @@ class ModelMetaClass(type):
 
     def __init__(cls, name, bases, dct):
         super(ModelMetaClass, cls).__init__(name, bases, dct)
-        columns = { '_id': IntegerCol(primary_key=True, default=-1) }
-        values  = { '_id': -1 }
         cls._primary_key = ['_id']
         cls._table = name.lower()
-        cls._columns = columns
-        cls._values = values
+        cls._columns = {}
+        cls._values = {}
 
 
 # handle python 2 & 3
@@ -132,25 +130,22 @@ class Model(ModelMetaClass2):
     __metaclass__ = ModelMetaClass
 
     def __init__(self):
-        # print("name = %s" % self.__class__.__name__)
-        object.__setattr__(self, '_primary_key', [ '_id' ])
-        _id = IntegerCol(primary_key=True, default=-1)
+        _id = IntegerCol(primary_key=True)
         _id._model = self
-        _id.name = '_id'
-        columns = { '_id': _id }
-        values = { '_id': -1 }
+        _id.name = basium.b('_id')
+        columns = { basium.b('_id'): _id }
+        values = { basium.b('_id'): -1 }
+        
         # create instance variables of the class columns
-        for (colname, column) in inspect.getmembers(self):
-            if colname[0] != '_' and isinstance(column, Column):
+        q = Q()
+        q._id = _id
+        for colname, column in inspect.getmembers(self):
+            if colname[0] != "_" and isinstance(column, Column):
                 column.name = colname
                 column._model = self  # backpointer from column to model class
-                column._model = self  # backpointer to model class
                 columns[colname] = column
                 values[colname] = column.getDefault()
-        q = Q()
-        q._id = columns['_id']
-        for colname, column in columns.items():
-            setattr(q, colname, column)
+                setattr(q, colname, column)
         object.__setattr__(self, '_columns', columns)
         object.__setattr__(self, '_values', values)
         object.__setattr__(self, 'q', q)
@@ -173,8 +168,8 @@ class Model(ModelMetaClass2):
     def __eq__(self, other):
         if other == None:
             return False
-        for colname in self._columns.keys():
-            if colname != '_':
+        for colname in self._iterName():
+            if colname != '_id':
                 if getattr(self, colname) != getattr(other, colname):
                     return False
         return True
@@ -188,14 +183,14 @@ class Model(ModelMetaClass2):
     def getValues(self):
         """return all columns as a dictionary, data presented in sql format"""
         res = {}
-        for colname, column in self._columns.items():
+        for colname, column in self._iterNameColumn():
             res[colname] = column.toSql(self._values[colname])
         return res
     
     def getStrValues(self):
         """return all columns as a dictionary, data presented as strings"""
         res = {}
-        for colname in self._columns.keys():
+        for colname in self._iterName():
             res[colname] = str(self._values[colname])
         return res
 
@@ -204,3 +199,11 @@ class Model(ModelMetaClass2):
             if self._primary_key != None:
                 return pkey in self._primary_key
         return False
+    
+    def _iterName(self):
+        for colname in self._columns.keys():
+            yield colname
+            
+    def _iterNameColumn(self):
+        for colname,column in self._columns.items():
+            yield colname, column

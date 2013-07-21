@@ -185,6 +185,10 @@ class VarcharCol(Column):
             pass
         return value
 
+class DriverError(Exception):
+    def __init__(self, errno=1, errmsg=""):
+        self.errno = errno
+        self.errmsg = errmsg
 
 class Driver:
     """
@@ -223,7 +227,7 @@ class Driver:
         return basium.Response(1, 'Not implemented')
     
     def select(self, query):
-        return basium.Response(1, 'Not implemented')
+        raise DriverError(1, "Not implemented")
 
     def insert(self, table, values):
         return basium.Response(1, 'Not implemented')

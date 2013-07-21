@@ -245,7 +245,9 @@ class Driver(basium_driver.Driver):
     
     def select(self, query):
         """
-        Get data from a table
+        Fetch one or multiple rows from a database
+        Returns an object that can be iterated over, returning rows
+        If there is any errors, an DriverError exception is raised
         
         two different formats:
           simple: <url>/<table>/<id>
@@ -260,7 +262,9 @@ class Driver(basium_driver.Driver):
             # real query 
             url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
         response = self.execute(method='GET', url=url, decode=True)
-        return response
+        if response.isError():
+            raise basium_driver.DriverError(response.errno, response.errmsg)
+        return response.data
 
     def insert(self, table, values):
         self.log.debug("Store obj in database, using HTTP API")
