@@ -47,6 +47,7 @@ import decimal
 
 import basium
 import basium_driver
+import basium_compatibilty as c
 
 #
 # These are shadow classes from the basium_model
@@ -58,7 +59,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        if basium.isstring(value):
+        if c.isstring(value):
             return value.lower() == "true"
         return value
 
@@ -76,7 +77,7 @@ class DateCol(basium_driver.DateCol):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if basium.isstring(value):
+        if c.isstring(value):
             value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
         
@@ -97,7 +98,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
 
     @classmethod
     def toPython(self, value):
-        if basium.isstring(value):
+        if c.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -132,7 +133,7 @@ class FloatCol(basium_driver.FloatCol):
     
     @classmethod
     def toPython(self, value):
-        if basium.isstring(value):
+        if c.isstring(value):
             value = float(value)
         return value
         
@@ -146,7 +147,7 @@ class IntegerCol(basium_driver.IntegerCol):
     
     @classmethod
     def toPython(self, value):
-        if basium.isstring(value):
+        if c.isstring(value):
             value = int(value)
         return value
         
@@ -160,7 +161,7 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if basium.isstring(value):
+        if c.isstring(value):
             value = str(value)
         return value
 
@@ -183,10 +184,10 @@ class Driver(basium_driver.Driver):
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.dbconf.debugSQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        response = basium.urllib_request_urlopen(url, method, 
-                                                 username=self.dbconf.username,
-                                                 password=self.dbconf.password,
-                                                 data=data, decode=decode)
+        response = c.urllib_request_urlopen(url, method, 
+                                            username=self.dbconf.username,
+                                            password=self.dbconf.password,
+                                            data=data, decode=decode)
         return response
 
 #     def isDatabase(self, dbName):

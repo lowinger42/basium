@@ -39,6 +39,7 @@ import inspect
 import pprint
 
 import basium
+import basium_compatibilty as c
 
 class Column:
     """Base class for all different column types"""
@@ -123,7 +124,7 @@ class ModelMetaClass(type):
 
 
 # handle python 2 & 3
-ModelMetaClass2 = ModelMetaClass(basium.b("ModelMetaClass2"), (object, ), {})
+ModelMetaClass2 = ModelMetaClass(c.b("ModelMetaClass2"), (object, ), {})
                
 class Model(ModelMetaClass2):
     """Base class for all classes that should be persistable"""
@@ -132,9 +133,9 @@ class Model(ModelMetaClass2):
     def __init__(self):
         _id = IntegerCol(primary_key=True)
         _id._model = self
-        _id.name = basium.b('_id')
-        columns = { basium.b('_id'): _id }
-        values = { basium.b('_id'): -1 }
+        _id.name = c.b('_id')
+        columns = { c.b('_id'): _id }
+        values = { c.b('_id'): -1 }
         
         # create instance variables of the class columns
         q = Q()

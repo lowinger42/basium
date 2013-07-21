@@ -38,6 +38,7 @@ __metaclass__ = type
 import json
 
 import basium
+import basium_compatibilty as c
 import basium_model
 import basium_driver
 import basium_driver_json
@@ -52,7 +53,7 @@ class API():
         self.write = response.write # convenience
 
     def getData(self, obj):
-        postdata = basium.urllib_parse_qs(self.request.body)
+        postdata = c.urllib_parse_qs(self.request.body)
         for key in postdata.keys():
             if key in obj._columns:
                 column = obj._columns[key]

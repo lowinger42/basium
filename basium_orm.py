@@ -41,6 +41,7 @@ import inspect
 
 import basium
 import basium_model
+import basium_compatibilty as c
 
 # to make less errors in queries
 LT = '<'
@@ -291,7 +292,7 @@ class Query():
             return (sql, value)
         
         def encode(self):
-            return "w=" + basium.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
+            return "w=" + c.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
         def decode(self, obj, value):
             column, self.operand, self.value = value.split(',')
@@ -322,7 +323,7 @@ class Query():
             return sql
         
         def encode(self):
-            return "o=" + basium.urllib_quote("%s,%s" % (self.column.name, self.desc ))
+            return "o=" + c.urllib_quote("%s,%s" % (self.column.name, self.desc ))
         
         def decode(self, obj, value):
             tmp = value.split(',')
@@ -446,7 +447,7 @@ class Query():
 
     def decode(self, url):
         """Decode an URL query and update this query object"""
-        u = basium.urllib_parse_qsl(url)
+        u = c.urllib_parse_qsl(url)
         self.reset()
         for (key, val) in u:
             if key == 'w':

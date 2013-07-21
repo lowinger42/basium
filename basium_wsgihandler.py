@@ -43,6 +43,7 @@ import mimetypes
 import wsgiref.simple_server
 
 import basium
+import basium_compatibilty as c
 
 log = basium.log
 
@@ -67,7 +68,7 @@ class Response2():
         self.out += msg
 
     def addHeader(self, header, value):
-        self.headers.append( ( basium.b(header), basium.b(value)) )
+        self.headers.append( ( c.b(header), c.b(value)) )
 
 class AppServer:
     """Main WSGI handler"""
@@ -125,8 +126,8 @@ class AppServer:
             sys.stdout = self.response  # catch all output as html code
             sys.stderr = self.response  # catch all output as html code
             try:
-                extpage = basium.importlib_import(module)
-                extpage = basium.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
+                extpage = c.importlib_import(module)
+                extpage = c.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
                 extpage.run(self.request, self.response, self.basium)
                 # log.debug(self.response.out)
             except:
@@ -153,7 +154,7 @@ class AppServer:
         self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
         
         # parse query variables
-        queryp = basium.urllib_parse_qs(self.request.environ['QUERY_STRING'])
+        queryp = c.urllib_parse_qs(self.request.environ['QUERY_STRING'])
         for key,val in queryp.items():
             self.write("\nkey: %s, val: %s" % (key, val) )
                                                  
@@ -199,7 +200,7 @@ class AppServer:
         self.response.addHeader( 'Content-type', self.response.contentType )
         self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
-        start_response(basium.b(self.response.status), self.response.headers)
+        start_response(c.b(self.response.status), self.response.headers)
         return [self.response.out.encode("utf-8")]
 
     

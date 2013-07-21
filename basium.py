@@ -47,10 +47,9 @@ import json
 import datetime
 import decimal
 import logging.handlers
-import base64
 import traceback
 
-import urllib
+import basium_compatibilty as c
 
 class Logger():
 
@@ -89,226 +88,34 @@ class Logger():
             fatal("Unknown log level %s" % loglevel)
 
     def info(self, msg):
-        if isstring(msg):
+        if c.isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.info(msg)
 
     def warning(self, msg):
-        if isstring(msg):
+        if c.isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.warning(msg)
 
     def error(self, msg):
-        if isstring(msg):
+        if c.isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.error(msg)
 
     def debug(self, msg):
-        if isstring(msg):
+        if c.isstring(msg):
             msg = msg.replace('\n', ', ')
         self.log.debug(msg)
 
 
-#
-# for python2/3 compability
-#
-major = sys.version_info[0]
-minor = sys.version_info[1]
-
-if major < 3:
-    
-    """Python 2 compability"""
-    
-    import httplib
-    import urllib2
-    import urlparse     # p3 uses urllib.parse instead
-    import codecs
-    
-    def b(x):
-        return codecs.latin_1_encode(x)[0]
-
-    importlib_import = __import__
-    
-    importlib_reload = reload
-
-    def isstring(obj):
-        return isinstance(obj, basestring)
-
-    rawinput = raw_input
-    
-    class RequestWithMethod(urllib2.Request):
-        """Helper class, to implement HTTP GET, POST, PUT, DELETE"""
-        def __init__(self, *args, **kwargs):
-            self._method = kwargs.pop('method', None)
-            urllib2.Request.__init__(self, *args, **kwargs)
-    
-        def get_method(self):
-            return self._method if self._method else super(RequestWithMethod, self).get_method()
-
-    def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = Response()
-        req = RequestWithMethod(url, method=method)
-        if username != None:
-            base64string = base64.standard_b64encode('%s:%s' % (username, password))
-            req.add_header("Authorization", "Basic %s" % base64string)
-        try:
-            if data:
-                o = urllib2.urlopen(req, urllib.urlencode(data))
-            else:
-                o = urllib2.urlopen(req)
-            response.info = o.info
-        except urllib2.HTTPError as e:
-            response.setError(1, "HTTPerror %s" % e)
-            return response
-        except urllib2.URLError as e:
-            response.setError(1, "URLerror %s" % e)
-            return response
-        except httplib.HTTPException as e:
-            response.setError(1, 'HTTPException %s' % e)
-            return response
-
-        if decode:
-            try:
-                tmp = o.read()
-                res = json.loads(tmp)
-                o.close()
-            except ValueError:
-                response.setError(1, "JSON ValueError for " + tmp)
-                return response
-            except TypeError:
-                response.setError(1, "JSON TypeError for " + tmp)
-                return response
-
-            try:
-                if res['errno'] == 0:
-                    response.data = res["data"]
-                else:
-                    response.setError(res['errno'], res['errmsg'])
-            except KeyError:
-                response.setError(1, "Result keyerror, missing errno/errmsg")
-
-        return response
-
-       
-    def urllib_quote(s, safe=None):
-        if safe:
-            return urllib.quote(s, safe)
-        return urllib.quote(s)
-    
-#     def urllib_encode(query, doseq=None):
-#         if doseq:
-#             return urllib.urlencode(query, doseq)
-#         return urllib.urlencode(query)
-    
-    def urllib_parse_qs(data):
-        return urlparse.parse_qs(data, keep_blank_values=True)
-
-    def urllib_parse_qsl(data):
-        return urlparse.parse_qsl(data, keep_blank_values=True)
-
-else:
-    """Python 3 compability"""
-    
-    import urllib.request
-    import importlib
-
-    def b(x):
-        return x
-
-    importlib_import = importlib.__import__
-
-    if minor < 4:
-        import imp
-        importlib_reload = imp.reload
-    else:
-        importlib_reload = importlib.reload    
-    
-    def isstring(obj):
-        return isinstance(obj, str)
-    
-    rawinput = input
-
-    class RequestWithMethod(urllib.request.Request):
-        """Helper class, to implement HTTP GET, POST, PUT, DELETE"""
-        
-        def __init__(self, *args, **kwargs):
-            self._method = kwargs.pop('method', None)
-            urllib.request.Request.__init__(self, *args, **kwargs)
-    
-        def get_method(self):
-            return self._method if self._method else super(RequestWithMethod, self).get_method()
-    
-    def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = Response()
-        req = RequestWithMethod(url, method=method)
-        if username != None:
-            auth = '%s:%s' % (username, password)
-            auth = auth.encode("utf-8")
-            req.add_header(b"Authorization", b"Basic " + base64.b64encode(auth))
-        try:
-            if data:
-                resp = urllib.request.urlopen(req, urllib.parse.urlencode(data).encode("utf-8"))
-            else:
-                resp = urllib.request.urlopen(req)
-            response.info = resp.info
-        except urllib.error.HTTPError as e:
-            response.setError(1, "HTTPerror %s" % e)
-            return response
-        except urllib.error.URLError as e:
-            response.setError(1, "URLerror %s" % e)
-            return response
-        
-        if decode:
-            encoding = resp.headers.get_content_charset()
-            if encoding == None:
-                encoding = "utf-8"
-            try:
-                tmp = resp.read().decode(encoding)
-                res = json.loads(tmp)
-                resp.close()
-            except ValueError:
-                response.setError(1, "JSON ValueError for " + tmp)
-                return response
-            except TypeError:
-                response.setError(1, "JSON TypeError for " + tmp)
-                return response
-
-            try:
-                if res['errno'] == 0:
-                    response.data = res["data"]
-                else:
-                    response.setError(res['errno'], res['errmsg'])
-            except KeyError:
-                response.setError(1, "Result keyerror, missing errno/errmsg")
-
-        return response
-    
-    def urllib_quote(s, safe=None):
-        if safe:
-            return urllib.parse.quote(s, safe)
-        return urllib.parse.quote(s)
-    
-#     def urllib_encode(query, doseq=None):
-#         if doseq:
-#             return urllib.parse.urlencode(query, doseq)
-#         return urllib.parse.urlencode(query)
-    
-    def urllib_parse_qs(data):
-        return urllib.parse.parse_qs(data, keep_blank_values=True)
-    
-    def urllib_parse_qsl(data):
-        return urllib.parse.parse_qsl(data, keep_blank_values=True)
-
+log = Logger()
+log.info("Basium default logger started")
 
 def fatal(msg=None):
     if msg:
         log.error("Fatal %s" % msg)
     traceback.print_exc()
     sys.exit(1)
-
-
-log = Logger()
-log.info("Basium default logger started")
 
 # These must be after definition of the log instance
 import basium_orm
