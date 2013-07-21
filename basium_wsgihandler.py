@@ -40,6 +40,7 @@ import pprint
 import threading
 import traceback
 import mimetypes
+import wsgiref.simple_server
 
 import basium
 
@@ -200,7 +201,14 @@ class AppServer:
         
         start_response(basium.b(self.response.status), self.response.headers)
         return [self.response.out.encode("utf-8")]
+
     
+class WSGIloghandler(wsgiref.simple_server.WSGIRequestHandler):
+    """log to basium handler"""
+    def log_message(self, *args):
+        log.info("%s %s %s" % (args[1], args[2], args[3]))
+
+
 class Server(threading.Thread):
     """
     Standalone WSGI server
@@ -223,7 +231,6 @@ class Server(threading.Thread):
             self.documentroot = os.path.dirname( os.path.abspath(sys.argv[0]))
 
     def run(self):
-        import wsgiref.simple_server
         
         log.info("-" * 79)
         log.info("Starting WSGI server, press Ctrl-c to quit")
@@ -235,7 +242,7 @@ class Server(threading.Thread):
         # It will receive the request, pass it to the application
         # and send the application's response to the client
         
-        httpd = wsgiref.simple_server.make_server( self.host, self.port, appServer)
+        httpd = wsgiref.simple_server.make_server( self.host, self.port, appServer, handler_class=WSGIloghandler)
         self.ready = True
         while self.running:
             try:
