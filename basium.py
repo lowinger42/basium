@@ -42,12 +42,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
 
-import sys
 import json
 import datetime
 import decimal
 import logging.handlers
-import traceback
 
 import basium_compatibilty as c
 
@@ -85,7 +83,7 @@ class Logger():
         elif loglevel == 'debug':
             self.log.setLevel(logging.DEBUG)
         else:
-            fatal("Unknown log level %s" % loglevel)
+            self.log.error("Unknown log level %s, keeping old level" % loglevel)
 
     def info(self, msg):
         if c.isstring(msg):
@@ -110,12 +108,6 @@ class Logger():
 
 log = Logger()
 log.info("Basium default logger started")
-
-def fatal(msg=None):
-    if msg:
-        log.error("Fatal %s" % msg)
-    traceback.print_exc()
-    sys.exit(1)
 
 # These must be after definition of the log instance
 import basium_orm
@@ -155,12 +147,16 @@ class Basium(basium_orm.BasiumOrm):
 
     def addClass(self, cls):
         if not isinstance(cls, type):
-            fatal('addClass() called with an instance of an object')
+            self.log.error('addClass() called with an instance of an object')
+            return False
         if not issubclass(cls, basium_model.Model):
-            fatal("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
+            self.log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
+            return False
         if cls._table in self.cls:
-            fatal("addClass() already called for %s" % cls._table)
+            self.log.error("addClass() already called for %s" % cls._table)
+            return False
         self.cls[cls._table] = cls
+        return True
     
     class JsonOrmEncoder(json.JSONEncoder):
         """Handle additional types in JSON encoder"""
@@ -180,13 +176,15 @@ class Basium(basium_orm.BasiumOrm):
 
     def start(self):
         if self.drivermodule:
-            fatal("basium::start() already called")
+            self.log.error("basium::start() already called")
+            return None
             
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
         except ImportError:
-            fatal('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
+            self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
+            return None
             
         self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
         if not self.startOrm(self.driver, self.drivermodule):

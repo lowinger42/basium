@@ -278,7 +278,7 @@ class Query():
     def table(self):
         if self._model != None:
             return self._model._table
-        basium.fatal('No table name in query')
+        return None
 
     class Where:
         def __init__(self, column = None, operand = None, value = None):
@@ -359,7 +359,8 @@ class Query():
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
-            basium.fatal('Filter from multiple tables not implemented')
+            self.log.error('Filter from multiple tables not implemented')
+            return None
         self._where.append( self.Where(column=column, operand=operand, value=value) )
         return self
     

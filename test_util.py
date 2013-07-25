@@ -36,16 +36,28 @@ __metaclass__ = type
 import sys
 import decimal
 import datetime
+import traceback
 
 import basium
 import basium_model
 import test_tables
 
-# ----- Module globals
+# ----- Start of module globals
+
 log = basium.log
 log.info("Python version %s" % str(sys.version_info))
 errcount = 0
 drivers = ["psql", "mysql", "sqlite"]
+
+# ----- End of module globals
+
+
+def fatal(msg=None):
+    if msg:
+        log.error("Fatal %s" % msg)
+    traceback.print_exc()
+    sys.exit(1)
+
 
 
 def getDbConf(driver, logger=None, checkTables=False):
@@ -60,7 +72,7 @@ def getDbConf(driver, logger=None, checkTables=False):
         dbconf = basium.DbConf(host='http://localhost:8051', username='basium_user', 
                            password='secret', database='basium_db')
     else:
-        basium.fatal("Unknown driver %s" % driver)
+        fatal("Unknown driver %s" % driver)
 
     bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables, logger=logger)
     bas.addClass(test_tables.BasiumTest)
@@ -107,7 +119,7 @@ class ObjectFactory:
             elif isinstance(column, basium_model.VarcharCol):
                 val = 'text ' + str(p)
             else:
-                basium.fatal('Unknown column type: %s' % column)
+                fatal('Unknown column type: %s' % column)
             obj._values[colname] = val
         
         return obj
