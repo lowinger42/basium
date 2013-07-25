@@ -190,23 +190,23 @@ class Driver(basium_driver.Driver):
                                             data=data, decode=decode)
         return response
 
-#     def isDatabase(self, dbName):
-#         """
-#         Check if a database exist
-#         todo: add server API for this
-#         """
-#         response = basium.Response()
-#         response.data = True
-#         return response
+    def isDatabase(self, dbName):
+        """
+        Check if a database exist
+        """
+        self.log.debug("Check if database '%s' exist, using HTTP API" % dbName)
+        url = '%s/_database/%s' %(self.uri, dbName )
+        response = self.execute(method='GET', url=url, decode=True)
+        return response
 
-#     def isTable(self, tableName):
-#         """
-#         Check if a table exist
-#         Todo: add server API for this
-#         """
-#         response = basium.Response()
-#         response.data = True
-#         return response
+    def isTable(self, tableName):
+        """
+        Check if a table exist
+        """
+        self.log.debug("Check if table '%s' exist, using HTTP API" % tableName)
+        url = '%s/_table/%s' %(self.uri, tableName )
+        response = self.execute(method='GET', url=url, decode=True)
+        return response
 
 #     def createTable(self, obj):
 #         """This is not valid for JSON API due to security issues"""

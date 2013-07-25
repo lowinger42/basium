@@ -203,6 +203,36 @@ class API():
             # not a request we understand
             response.status = "400 Unknown request %s" % request.method
 
+def _database():
+    if len(path) != 1:
+        request.status = "404 not found"
+        print(request.status)
+        return
+    dbname = path[0]
+    resp = basium.driver.isDatabase(dbname)
+    if resp.isError():
+        request.status = "404 Not found"
+        print(request.status)
+        return
+    
+    print( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+    
+
+def _table():
+    if len(path) != 1:
+        request.status = "400 Bad request"
+        print(request.status)
+        return
+    
+    table = path[0]
+    resp = basium.driver.isTable(table)
+    if resp.isError():
+        request.status = "404 Not found"
+        print(request.status)
+        return
+    
+    print( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+
 def _default():
     api = API()
     api.run()

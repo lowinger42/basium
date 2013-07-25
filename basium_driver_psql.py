@@ -339,7 +339,8 @@ class Driver:
             if resp.isError():
                 return resp
             row = self.cursor.fetchone()
-            exist = row[0] == dbName
+            if row and len(row) > 0:
+                exist = row[0] == dbName
         except psycopg2.DatabaseError as e:
             response.setError( 1, str(e) )
 

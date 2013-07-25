@@ -196,13 +196,14 @@ class Basium(basium_orm.BasiumOrm):
             log.error("Database %s does not exist" % self.dbconf.database)
             return None
     
-        if self.checkTables:
-            for cls in self.cls.values():
-                obj = cls()
-                if not self.isTable(obj):
+        for cls in self.cls.values():
+            obj = cls()
+            if not self.isTable(obj):
+                if self.checkTables:
                     if not self.createTable(obj):
                         return None
-                else:
+            else:
+                if self.checkTables:
                     actions = self.verifyTable(obj)
                     if actions != None and len(actions) > 0:
                         self.modifyTable(obj, actions)
