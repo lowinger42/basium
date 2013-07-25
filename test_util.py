@@ -45,6 +45,7 @@ import test_tables
 log = basium.log
 log.info("Python version %s" % str(sys.version_info))
 errcount = 0
+drivers = ["psql", "mysql", "sqlite"]
 
 
 def getDbConf(driver, logger=None, checkTables=False):

@@ -83,9 +83,7 @@ log = basium.log
 
 if __name__ == "__main__":
 
-    drivers = ["psql", "mysql", "sqlite"]
-
-    for driver in drivers:
+    for driver in test_util.drivers:
         log.info(">>> Testing database driver %s" % driver)
         dbconf, bas = test_util.getDbConf(driver, checkTables=True)
         if bas != None:
