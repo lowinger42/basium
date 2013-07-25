@@ -235,9 +235,9 @@ class Driver(basium_driver.Driver):
         """Count the number of objects, filtered by query"""
         self.log.debug("Count query from database, using HTTP API")
         if len(query._where) == 0:
-            url = '%s/%s' %(self.uri, query._model._table )
+            url = '%s/%s' %(self.uri, query.table() )
         else:
-            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
+            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
         response = self.execute(method='HEAD', url=url)
         if not response.isError():
             rows = response.info().get('X-Result-Count')
@@ -258,10 +258,10 @@ class Driver(basium_driver.Driver):
 
         if query.isId():
             # simple
-            url = '%s/%s/%i' % (self.uri, query._model._table, query._where[0].value)
+            url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
         else:
             # real query 
-            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
+            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
         response = self.execute(method='GET', url=url, decode=True)
         if response.isError():
             raise basium_driver.DriverError(response.errno, response.errmsg)
@@ -283,9 +283,9 @@ class Driver(basium_driver.Driver):
         self.log.debug("Delete obj from database, using HTTP API")
         if query.isId():
             # simple
-            url = '%s/%s/%i' % (self.uri, query._model._table, query._where[0].value)
+            url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
         else:
             # real query 
-            url = '%s/%s/filter?%s' %(self.uri, query._model._table, query.encode() )
+            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
         response = self.execute('DELETE', url, decode = True)
         return response

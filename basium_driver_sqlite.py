@@ -457,7 +457,7 @@ class Driver:
         return False
 
     def count(self, query):
-        sql = "select count(*) from %s" % (query._model._table)
+        sql = "select count(*) from %s" % (query.table())
         sql2, values = query.toSql()
         sql += sql2
         rows = 0
@@ -469,7 +469,7 @@ class Driver:
                     key = c.b('count(*)')
                     rows = int(row[key])
                 else:
-                    response.setError(1, 'Cannot query for count(*) in %s' % (query._model._table))
+                    response.setError(1, 'Cannot query for count(*) in %s' % (query.table()))
             except sqlite3.Error as e:
                 response.setError( 1, e.args[0] )
         response.data = rows
@@ -481,7 +481,7 @@ class Driver:
         Returns an object that can be iterated over, returning rows
         If there is any errors, an DriverError exception is raised
         """
-        sql = "SELECT * FROM %s" % query._model._table 
+        sql = "SELECT * FROM %s" % query.table() 
         sql2, values = query.toSql()
         sql += sql2.replace("%s", "?")
         response = self.execute(sql, values)
@@ -528,7 +528,7 @@ class Driver:
         delete a row from a table
          "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
         """
-        sql = "DELETE FROM %s" % query._model._table 
+        sql = "DELETE FROM %s" % query.table() 
         sql2, values = query.toSql()
         if sql2 == '':
             return Response(1, 'Missing query on delete(), empty query is not accepted')

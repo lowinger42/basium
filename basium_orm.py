@@ -155,7 +155,7 @@ class BasiumOrm:
             return None
         result = self.driver.count(query)
         if result.isError():
-            self.log.error('Cannot do count(*) on %s' % (query._model._table))
+            self.log.error('Cannot do count(*) on %s' % (query.table()))
             return None
         return int(result.data)
 
@@ -275,7 +275,7 @@ class Query():
         w = self._where[0]
         return w.column.name == '_id' and w.operand == '='
 
-    def getTable(self):
+    def table(self):
         if self._model != None:
             return self._model._table
         basium.fatal('No table name in query')
