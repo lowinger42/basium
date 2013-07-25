@@ -51,65 +51,54 @@ import basium_compatibilty as c
 
 class Logger():
 
-    def __init__(self, loglevel=None):
-        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s ')
-        self.log = logging.getLogger('basium')
-        if loglevel != None:
-            self.setLevel(loglevel)
-        else:
-            self.log.setLevel(logging.DEBUG)  # log everything as default
+    def __init__(self, loglevel=logging.DEBUG, formatstr='%(asctime)s %(levelname)s %(message)s ', syslog=False):
+        self.logger = logging.getLogger('basium')
+        self.logger.setLevel(loglevel)
 
-    def activateSyslog(self, mod=None):
-        syslogger = logging.handlers.SysLogHandler(address='/dev/log')
-        if mod == None:
-            formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
-        else:
-            formatter = logging.Formatter(mod + '[%(process)d]: %(levelname)s %(message)s')
-        syslogger.setFormatter(formatter)
-        
-        # remove all other handlers
-        for hdlr in self.log.handlers:
-            self.log.removeHandler(hdlr)
+        # remove all handlers
+        for hdlr in self.logger.handlers:
+            self.logger.removeHandler(hdlr)
+
+        if syslog:
+            self.syslogger = logging.handlers.SysLogHandler(address='/dev/logger')
+            self.syslogger.setLevel(loglevel)
             
-        self.log.addHandler(syslogger)
-
-    def setLevel(self, loglevel):
-        if loglevel == 'info':
-            self.log.setLevel(logging.INFO)
-        elif loglevel == 'warning':
-            self.log.setLevel(logging.WARNING)
-        elif loglevel == 'error':
-            self.log.setLevel(logging.ERROR)
-        elif loglevel == 'debug':
-            self.log.setLevel(logging.DEBUG)
+            self.formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
+            self.syslogger.setFormatter(self.formatter)
+            self.logger.addHandler(self.syslogger)
         else:
-            self.log.error("Unknown log level %s, keeping old level" % loglevel)
+            self.consolehandler = logging.StreamHandler()
+            self.consolehandler.setLevel(loglevel)
+            
+            self.formatter = logging.Formatter(formatstr)
+            self.consolehandler.setFormatter(self.formatter)
+            self.logger.addHandler(self.consolehandler)
 
     def info(self, msg):
         if c.isstring(msg):
             msg = msg.replace('\n', ', ')
-        self.log.info(msg)
+        self.logger.info(msg)
 
     def warning(self, msg):
         if c.isstring(msg):
             msg = msg.replace('\n', ', ')
-        self.log.warning(msg)
+        self.logger.warning(msg)
 
     def error(self, msg):
         if c.isstring(msg):
             msg = msg.replace('\n', ', ')
-        self.log.error(msg)
+        self.logger.error(msg)
 
     def debug(self, msg):
         if c.isstring(msg):
             msg = msg.replace('\n', ', ')
-        self.log.debug(msg)
+        self.logger.debug(msg)
 
 
 log = Logger()
 log.info("Basium default logger started")
 
-# These must be after definition of the log instance
+# These must be after definition of the logger instance
 import basium_orm
 import basium_model
 
@@ -131,12 +120,12 @@ class Basium(basium_orm.BasiumOrm):
     def __init__(self, logger=None, driver=None, checkTables=True, dbconf=None):
         global log
         if logger:
-            self.log = logger
+            self.logger = logger
             log = logger
             log.debug("Switching to external logger")
         else:
-            self.log = log # use simple logger
-        self.log.info("Basium logging started.")
+            self.logger = log # use simple logger
+        self.logger.info("Basium logging started.")
         self.drivername = driver
         self.checkTables = checkTables
         self.dbconf = dbconf
@@ -147,13 +136,13 @@ class Basium(basium_orm.BasiumOrm):
 
     def addClass(self, cls):
         if not isinstance(cls, type):
-            self.log.error('addClass() called with an instance of an object')
+            self.logger.error('addClass() called with an instance of an object')
             return False
         if not issubclass(cls, basium_model.Model):
-            self.log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
+            self.logger.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
             return False
         if cls._table in self.cls:
-            self.log.error("addClass() already called for %s" % cls._table)
+            self.logger.error("addClass() already called for %s" % cls._table)
             return False
         self.cls[cls._table] = cls
         return True
@@ -176,17 +165,17 @@ class Basium(basium_orm.BasiumOrm):
 
     def start(self):
         if self.drivermodule:
-            self.log.error("basium::start() already called")
+            self.logger.error("basium::start() already called")
             return None
             
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
         except ImportError:
-            self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
+            self.logger.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             return None
             
-        self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
+        self.driver = self.drivermodule.Driver(log=self.logger, dbconf=self.dbconf)
         if not self.startOrm(self.driver, self.drivermodule):
             log.error("Cannot initialize ORM")
             return None
