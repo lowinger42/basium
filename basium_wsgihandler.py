@@ -225,20 +225,8 @@ class AppServer:
 
     def handleError(self):
         """File does not exist"""
-
-        self.write( "\n REQUEST_METHOD=%s" % self.request.method )
-        self.write( "\n PATH_INFO     =%s" % self.request.path )
-        self.write( "\n QUERY_STRING  =%s" % self.request.querystr )
-        
-        # parse query variables
-        queryp = c.urllib_parse_qs(self.request.environ['QUERY_STRING'])
-        for key,val in queryp.items():
-            self.write("\nkey: %s, val: %s" % (key, val) )
-                                                 
-        for key,val in self.request.environ.items():
-            self.write("\n%s=%s" % (key, val) )
-
-        self.status = '404 File or directory not found'
+        self.response.out = "404 Page not found"
+        self.response.status = "404 Page not found"
         
     def __call__(self, environ, start_response):
         """Main entrypoint for HTTP requests"""
