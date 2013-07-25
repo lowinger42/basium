@@ -1,0 +1,40 @@
+#
+# Example apache virtualhost, with mod_wsgi for basium
+# Target system: ubuntu/debian
+#
+<VirtualHost *:80>
+    ServerAdmin anders@abundo.se
+    ServerName www.basium.org
+
+    DocumentRoot /var/www/basium
+
+    WSGIScriptAlias / /opt/basium/basium_wsgihandler.py
+    WSGIDaemonProcess basium user=www-data group=www-data home=/var/www/basium processes=5 threads=1 maximum-requests=10000
+
+    # static files do not need WSGI
+    <LocationMatch "^(/[\w_]*/static/.*)">
+        Order Allow,Deny
+        Allow from all
+    </LocationMatch>
+   
+    # everything else goes to wsgihandler via wsgi
+    <Location "/">
+          Options Indexes FollowSymLinks MultiViews
+          Order allow,deny
+          allow from all
+          
+          WSGIProcessGroup basium
+          AuthUserFile /etc/basium-users.conf
+          AuthName "To access this resource, you need to authenticate"
+          AuthGroupFile /dev/null 
+          AuthType Basic 
+          Require valid-user
+    </Location> 
+    
+    # Possible values include: debug, info, notice, warn, error, crit, alert, emerg.
+    LogLevel warn
+
+    CustomLog /var/log/apache2/basium-access.log combined
+    ErrorLog /var/log/apache2/basium-error.log
+
+</VirtualHost>
