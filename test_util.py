@@ -64,7 +64,7 @@ def getDbConf(driver, logger=None, checkTables=False):
     bas = basium.Basium(driver=driver, dbconf=dbconf, checkTables=checkTables, logger=logger)
     bas.addClass(test_tables.BasiumTest)
     if not bas.start():
-        basium.fatal()
+        return None, None
     return dbconf, bas
     
 class ObjectFactory:

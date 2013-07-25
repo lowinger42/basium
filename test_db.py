@@ -88,6 +88,9 @@ if __name__ == "__main__":
     for driver in drivers:
         log.info(">>> Testing database driver %s" % driver)
         dbconf, bas = test_util.getDbConf(driver, checkTables=True)
-        test_util.doTests(bas, test_tables.BasiumTest)
+        if bas != None:
+            test_util.doTests(bas, test_tables.BasiumTest)
+        else:
+            test_util.errcount += 1
         print()
         print()
