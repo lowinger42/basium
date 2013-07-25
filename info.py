@@ -34,7 +34,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 __metaclass__ = type
 
-def run(request, response, basium):
+
+def index(direct=True):
+    if direct:
+        log.debug("index() was called")
+    
     response.contentType = 'text/html'
     print('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">')
     print('<html>')
@@ -43,9 +47,10 @@ def run(request, response, basium):
     print('<title>Basium Info</title>')
     print('</head>')
     print("<body>")
-    print("<h1>Hello from web page</h1>")
-    print("<p>Request</p>")
-    print("<table border='1' cellspacing='0' cellpadding='2' width='1024'>")
+    print("<h1>Request information</h1>")
+    print("<h3>Path</h3> %s <br>" % path)
+    print("<h3>Request</h3>")
+    print("<table border='1' cellspacing='0' cellpadding='2'>")
     print("<tr><th>Key</th><th>Value</th></tr>")
     for key, val in request.__dict__.items():
         if key != 'environ':
@@ -55,8 +60,8 @@ def run(request, response, basium):
     print("</table>")
     print()
     
-    print("<p>Request.environ</p>")
-    print("<table border='1' cellspacing='0' cellspacing='2' width='1024'>")
+    print("<h3>Request.environ</h3>")
+    print("<table border='1' cellspacing='0' cellspacing='2'>")
     print("<tr><th>Key</th><th>Value</th></tr>")
     for key, val in request.environ.items():
         print("<tr>")
@@ -66,3 +71,11 @@ def run(request, response, basium):
     
     print("</body>")
     print("</html>")
+
+def _default():
+    log.debug("_default() was called")
+    index(direct=False)
+
+def lists():
+    log.debug("lists() was called")
+    index(direct=False)

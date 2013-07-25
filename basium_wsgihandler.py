@@ -57,7 +57,7 @@ def show_start_response(status, response_headers):
 class Request():
     pass
 
-class Response2():
+class Response():
     def __init__(self):
         self.status = "200 OK"
         self.contentType = 'text/plain'
@@ -70,67 +70,141 @@ class Response2():
     def addHeader(self, header, value):
         self.headers.append( ( c.b(header), c.b(value)) )
 
+class URLRouterResponse:
+    pass
+
+class URLRouter:
+    """
+    Parses an URL, and returns module & function to execute
+      abspath   absolute path in filesystem to module
+      absdir    absolute path in filesystem to module directory
+      module    name of module to import, including any .py extension
+      funcname  function to call in function
+      attr      any extra text after funcname
+    """
+    
+    def __init__(self, documentroot):
+        self.documentroot = documentroot
+
+    def route(self, url):
+        r = URLRouterResponse()
+        r.abspath = self.documentroot
+        r.module = None
+        r.funcname = "index"
+        r.path = []
+        u = url.split("/")
+        if u[0] == "":
+            u.pop(0)
+        if u[-1] == "":
+            u.pop()
+        
+        # check each path of url and walk down directories
+        ix = 0
+        while ix < len(u):
+            if os.path.isdir(r.abspath + os.sep + u[ix]):
+                r.abspath += os.sep + u[ix]
+                ix += 1
+                continue
+            break
+        r.absdir = r.abspath
+
+        # check for module name
+        if ix < len(u):
+            tmp = r.abspath + os.sep + u[ix]
+            if os.path.exists(tmp):
+                r.module = u[ix]
+                r.abspath = tmp
+                ix += 1
+            elif os.path.exists(tmp + ".py"):
+                r.module = u[ix]
+                r.abspath = tmp + ".py"
+                ix += 1
+            else:
+                return r    # error, a path is specified but there is no file
+        else:
+            if os.path.exists(r.abspath + os.sep + "index.py"):
+                r.module = "index.py" # no module specified, use default
+                r.abspath += os.sep + r.module
+            elif os.path.exists(r.abspath + os.sep + "index.html"):
+                r.module = "index.html" # no module specified, use default
+                r.abspath += os.sep + r.module
+            else:
+                return r
+
+        # check for function name
+        if ix < len(u):
+            r.funcname = u[ix]
+            ix += 1
+        
+        # Rest of URL is sent to the dynamic page
+        if ix < len(u):
+            r.path = u[ix:]
+
+        if r.module[-3:] == ".py":
+            r.module = r.module[:-3]
+        return r
+
+
 class AppServer:
     """Main WSGI handler"""
     
     def __init__(self, basium, documentroot=None):
         self.basium = basium
         self.documentroot = documentroot
+        self.urlrouter = URLRouter(self.documentroot)
 
     def getSession(self):
         pass
 
     def handleFile(self):
-        # ok, must be a file in the file system
-        path = self.request.path
-        self.request.attr = []
-        if path == "":
-            path = "/index.html"
-        abspath = self.documentroot + path
-        attr = []
-        if not os.path.isfile(abspath):
+        ur = self.urlrouter.route(self.request.path)
+        if ur.module == None:
+            return False
 
-            # no direct match, search for filematch, part of uri
-            attr = self.request.path.split("/")
-            
-            if len(attr) > 0 and attr[0] == '':
-                attr.pop(0)
-            uri = []
-            while True:
-                abspath = self.documentroot + "/" + "/".join(uri)
-                if os.path.isfile(abspath):
-                    break
-                abspath += ".py"
-                if os.path.isfile(abspath):
-                    break
-                if len(attr) == 0:
-                    return False
-                uri.append( attr.pop(0))
-                
-        self.request.attr = attr
-        
-        mimetype = mimetypes.guess_type(abspath)
+        mimetype = mimetypes.guess_type(ur.abspath)
         if mimetype[0] != None:
             self.response.contentType = mimetype[0]
         if mimetype[0] == 'text/x-python':
             # we import and execute code in the module
             self.response.contentType = 'text/html'
-            module = abspath[len(self.documentroot):]
-            if module[0] == '/': 
-                module = module[1:]
-            if module[-3:] == '.py':
-                module = module[:-3]
-            # print("Importing module=%s  attr=%s" % (module, attr))
+
+            old_path = sys.path
             old_stdout = sys.stdout
             old_stderr = sys.stderr
             sys.stdout = self.response  # catch all output as html code
             sys.stderr = self.response  # catch all output as html code
             try:
-                extpage = c.importlib_import(module)
-                extpage = c.importlib_reload(extpage)   # only do if file changed? compare timestamp on .py and .pyc
-                extpage.run(self.request, self.response, self.basium)
-                # log.debug(self.response.out)
-            except:
+                # to make sure we find the module, we add the directory as first entry in python path
+                sys.path.insert(0, ur.absdir)
+                log.debug("Importing module=%s  path=%s" % (ur.abspath, ur.path))
+                extpage = c.importlib_import(ur.module)
+                extpage = c.importlib_reload(extpage)
+            except ImportError as err:
+                log.debug("Can't import module %s, error %s" % (ur.abspath, err))
+                return False
+            
+            func = None
+            if hasattr(extpage, ur.funcname):
+                # the specified function exist, call it
+                log.debug("Call '%s()' in module '%s'" % (ur.funcname, ur.module))
+                func = getattr(extpage, ur.funcname)
+            elif hasattr(extpage, "_default"):
+                log.debug("Call '_default()' in module '%s'" % (ur.module))
+                ur.path.insert(0, ur.funcname)
+                func = getattr(extpage, "_default")
+            else:
+                log.debug("Cant find func %s or _default() in module %s" % (ur.funcname, ur.module))
+                return False # no function to call found, return error
+
+            # send data over to dynamic page as module global variables, for easy access
+            extpage.log = log
+            extpage.basium = self.basium
+            extpage.request = self.request
+            extpage.path = ur.path
+            extpage.response = self.response
+            try:
+                func()
+            except:     # yes, we catch all errors
                 # todo: make this a custom error page
                 # if debug, show additional info, stacktrace
                 self.response.contentType = 'text/plain'
@@ -138,10 +212,13 @@ class AppServer:
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
                 traceback.print_exc()
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
+            finally:
+                sys.path = old_path
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+            # log.debug(self.response.out)
         else:
-            f = open(abspath, 'rb')
+            f = open(ur.abspath, 'rb')
             self.write( f.read() )
             f.close()
         return True
@@ -174,7 +251,7 @@ class AppServer:
         self.request.method = environ['REQUEST_METHOD']
         self.request.querystr = environ['QUERY_STRING']
         
-        self.response = Response2()
+        self.response = Response()
         self.write = self.response.write    # make sure stdout works
         
         if self.request.method in ['POST', 'PUT']:
@@ -258,7 +335,7 @@ class Server(threading.Thread):
         
 
 if __name__ == "__main__":
-    """Main program, used for unit test"""
+    """Main program, used for unit test. Start a WSGI server"""
     
     import test_util
     

@@ -151,6 +151,7 @@ class Basium(basium_orm.BasiumOrm):
         
         self.cls = {}
         self.drivermodule = None
+        self.Response = Response    # for convenience in dynamic pages
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -161,6 +162,22 @@ class Basium(basium_orm.BasiumOrm):
             fatal("addClass() already called for %s" % cls._table)
         self.cls[cls._table] = cls
     
+    class JsonOrmEncoder(json.JSONEncoder):
+        """Handle additional types in JSON encoder"""
+        def default(self, obj):
+            # print( "JsonOrmEncoder::default() Type =", type(obj) )
+            if isinstance(obj, Response):
+                return obj.data
+            if isinstance(obj, datetime.date):
+                return strFromDatetime(obj)
+            if isinstance(obj, datetime.datetime):
+                return strFromDatetime(obj)
+            if isinstance(obj, decimal.Decimal):
+                return str(obj)
+            if isinstance(obj, basium_model.Model):
+                return obj.getStrValues()
+            return json.JSONEncoder.default(self, obj)
+
     def start(self):
         if self.drivermodule:
             fatal("basium::start() already called")
@@ -233,18 +250,3 @@ def strFromDatetime(d):
     """Take a datetime object and return a string"""
     return d.strftime('%Y-%m-%d %H:%M:%S')
 
-class JsonOrmEncoder(json.JSONEncoder):
-    """Handle additional types in JSON encoder"""
-    def default(self, obj):
-        # print( "JsonOrmEncoder::default() Type =", type(obj) )
-        if isinstance(obj, Response):
-            return obj.data
-        if isinstance(obj, datetime.date):
-            return strFromDatetime(obj)
-        if isinstance(obj, datetime.datetime):
-            return strFromDatetime(obj)
-        if isinstance(obj, decimal.Decimal):
-            return str(obj)
-        if isinstance(obj, basium_model.Model):
-            return obj.getStrValues()
-        return json.JSONEncoder.default(self, obj)

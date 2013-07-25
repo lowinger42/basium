@@ -43,17 +43,12 @@ import basium_model
 import basium_driver
 import basium_driver_json
 
-log = basium.log
-
 class API():
-    def __init__(self, request, response, basium):
-        self.request = request
-        self.response = response
-        self.basium = basium
+    def __init__(self):
         self.write = response.write # convenience
 
     def getData(self, obj):
-        postdata = c.urllib_parse_qs(self.request.body)
+        postdata = c.urllib_parse_qs(request.body)
         for key in postdata.keys():
             if key in obj._columns:
                 column = obj._columns[key]
@@ -77,26 +72,26 @@ class API():
                 log.warning("Warning, handlePost got unknown key/column %s" % key)
         return postdata
 
-    def handleGet(self, classname, _id, attr):
+    def handleGet(self, classname, _id, path):
         obj = classname()
         if _id == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = self.basium.query(obj)
+            dbquery = basium.query(obj)
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = self.basium.query(obj)
-            dbquery.decode(self.request.querystr)
+            dbquery = basium.query(obj)
+            dbquery.decode(request.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = self.basium.query().filter(obj.q._id, '=', _id)
+            dbquery = basium.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
         try:
             response = basium.Response()
             response.data = []
-            for row in self.basium.driver.select(dbquery):  # we call driver directly for efficiency reason
+            for row in basium.driver.select(dbquery):  # we call driver directly for efficiency reason
                 tmp = {}
                 for colname in obj._iterName():
                     tmp[colname] = row[colname]
@@ -105,59 +100,59 @@ class API():
             msg = "Could not load objects from table '%s'. %s %s" % (obj._table, err.errno, err.errmsg)
             log.debug(msg)
             self.write(msg)
-            self.response.status = '404 ' + msg
+            response.status = '404 ' + msg
             return
             
         if _id != None and _id != 'filter' and len(response.data) == 0:
             msg = "Unknown ID %s in table '%s'" % (_id, obj._table)
             log.debug(msg)
             response.setError(1, msg)
-            self.response.status = '404 ' + msg
+            response.status = '404 ' + msg
             return
         self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
 
-    def handlePost(self, classname, _id, attr):
+    def handlePost(self, classname, _id, path):
         if _id != None:
-            self.response.status = "400 Bad Request, cannot specify ID when inserting a row"
+            response.status = "400 Bad Request, cannot specify ID when inserting a row"
             return
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        response = self.basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        response = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
 
-    def handlePut(self, classname, _id, attr):
+    def handlePut(self, classname, _id, path):
         if _id == None:
-            self.response.status = "400 Bad Request, need ID to update a row"
+            response.status = "400 Bad Request, need ID to update a row"
             return
         # update row
         obj = classname()
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['_id'] = _id
-        response = self.basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        response = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
 
-    def handleDelete(self, classname, _id, attr):
+    def handleDelete(self, classname, _id, path):
         obj = classname()
         if _id == None:
             msg = "Refusing to delete all rows in table '%s" % obj._table
             log.debug(msg)
-            self.response.status = "400 %s" % msg
+            response.status = "400 %s" % msg
             return
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = self.basium.query(obj)
-            dbquery.decode(self.request.querystr)
+            dbquery = basium.query(obj)
+            dbquery.decode(request.querystr)
             log.debug("Delete all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = self.basium.query().filter(obj.q._id, '=', _id)
+            dbquery = basium.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
-        response = self.basium.driver.delete(dbquery)
+        response = basium.driver.delete(dbquery)
         self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
 
-    def handleHead(self, classname, _id, attr):
+    def handleHead(self, classname, _id, path):
         """
         Count the number of rows matching a query
         Return data in a HTML header
@@ -166,49 +161,48 @@ class API():
         if _id == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = self.basium.query(obj)
+            dbquery = basium.query(obj)
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = self.basium.query()
-            dbquery.decode(self.request.querystr)
+            dbquery = basium.query()
+            dbquery.decode(request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        response = self.basium.driver.count(dbquery)  # we call driver direct for efficiency reason
-        if response.isError():
+        resp = basium.driver.count(dbquery)  # we call driver direct for efficiency reason
+        if resp.isError():
             msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
             self.status = '404 ' + msg
             return
-        self.response.addHeader('X-Result-Count', str(response.data))
+        response.addHeader('X-Result-Count', str(resp.data))
 
     
-    def handleAPI(self):
-        attr = self.request.attr
+    def run(self):
         ix = 0
-        if not attr[ix] in self.basium.cls:
-            self.response.status = "404 table '%s' not found" % (attr[ix])
+        if not path[ix] in basium.cls:
+            response.status = "404 table '%s' not found" % (path[ix])
             return
-        classname = self.basium.cls[attr[ix]]
+        classname = basium.cls[path[ix]]
         ix += 1
-        if len(attr) > ix:
-            _id = attr[ix]
+        if len(path) > ix:
+            _id = path[ix]
             ix += 1
         else:
             _id = None
-        if self.request.method == 'GET':
-            self.handleGet(classname, _id, attr[ix:])
-        elif self.request.method == "POST":
-            self.handlePost(classname, _id, attr[ix:])
-        elif self.request.method == "PUT":
-            self.handlePut(classname, _id, attr[ix:])
-        elif self.request.method == "DELETE":
-            self.handleDelete(classname, _id, attr[ix:])
-        elif self.request.method == "HEAD":
-            self.handleHead(classname, _id, attr[ix:])
+        if request.method == 'GET':
+            self.handleGet(classname, _id, path[ix:])
+        elif request.method == "POST":
+            self.handlePost(classname, _id, path[ix:])
+        elif request.method == "PUT":
+            self.handlePut(classname, _id, path[ix:])
+        elif request.method == "DELETE":
+            self.handleDelete(classname, _id, path[ix:])
+        elif request.method == "HEAD":
+            self.handleHead(classname, _id, path[ix:])
         else:
             # not a request we understand
-            self.response.status = "400 Unknown request %s" % self.request.method
+            response.status = "400 Unknown request %s" % request.method
 
-def run(request, response, basium):
-    api = API(request, response, basium)
-    api.handleAPI()
+def _default():
+    api = API()
+    api.run()
