@@ -120,12 +120,12 @@ class Basium(basium_orm.BasiumOrm):
     def __init__(self, logger=None, driver=None, checkTables=True, dbconf=None):
         global log
         if logger:
-            self.logger = logger
+            self.log = logger
             log = logger
             log.debug("Switching to external logger")
         else:
-            self.logger = log # use simple logger
-        self.logger.info("Basium logging started.")
+            self.log = log # use simple logger
+        self.log.info("Basium logging started.")
         self.drivername = driver
         self.checkTables = checkTables
         self.dbconf = dbconf
@@ -136,13 +136,13 @@ class Basium(basium_orm.BasiumOrm):
 
     def addClass(self, cls):
         if not isinstance(cls, type):
-            self.logger.error('addClass() called with an instance of an object')
+            self.log.error('addClass() called with an instance of an object')
             return False
         if not issubclass(cls, basium_model.Model):
-            self.logger.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
+            self.log.error("Fatal: addClass() called with object that doesn't inherit from basium_model.Model")
             return False
         if cls._table in self.cls:
-            self.logger.error("addClass() already called for %s" % cls._table)
+            self.log.error("addClass() already called for %s" % cls._table)
             return False
         self.cls[cls._table] = cls
         return True
@@ -165,17 +165,17 @@ class Basium(basium_orm.BasiumOrm):
 
     def start(self):
         if self.drivermodule:
-            self.logger.error("basium::start() already called")
+            self.log.error("basium::start() already called")
             return None
             
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
         except ImportError:
-            self.logger.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
+            self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             return None
             
-        self.driver = self.drivermodule.Driver(log=self.logger, dbconf=self.dbconf)
+        self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
         if not self.startOrm(self.driver, self.drivermodule):
             log.error("Cannot initialize ORM")
             return None

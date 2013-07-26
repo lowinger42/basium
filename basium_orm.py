@@ -147,7 +147,7 @@ class BasiumOrm:
 
     def count(self, query_):
         if isinstance(query_, basium_model.Model):
-            query = Query(self, query_)
+            query = Query(query_)
         elif isinstance(query_, Query):
             query = query_
         else:
@@ -175,7 +175,7 @@ class BasiumOrm:
         response = basium.Response()
         one = False
         if isinstance(query_, basium_model.Model):
-            query = Query(self).filter(query_.q._id, EQ, query_._id)
+            query = Query().filter(query_.q._id, EQ, query_._id)
             one = True
         elif isinstance(query_, Query):
             query = query_
@@ -231,7 +231,7 @@ class BasiumOrm:
         response = basium.Response()
         clearID = False
         if isinstance(query_, basium_model.Model):
-            query = Query(self).filter(query_.q._id, EQ, query_._id)
+            query = Query().filter(query_.q._id, EQ, query_._id)
             clearID = True
         elif isinstance(query_, Query):
             query = query_
@@ -249,7 +249,7 @@ class BasiumOrm:
         Convenience method, makes it unnecessary to import the basium_orm module
         just for doing queries
         """
-        q = Query(self, obj)
+        q = Query(obj)
         return q
 
 
@@ -258,8 +258,7 @@ class Query():
     Class that build queries
     """
 
-    def __init__(self, bas, model = None):
-        self._db = bas
+    def __init__(self, model = None):
         self._model = model
         self.reset()
 
@@ -359,7 +358,7 @@ class Query():
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
-            self.log.error('Filter from multiple tables not implemented')
+            basium.log.error('Filter from multiple tables not implemented')
             return None
         self._where.append( self.Where(column=column, operand=operand, value=value) )
         return self
