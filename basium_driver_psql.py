@@ -48,6 +48,10 @@ import basium
 import basium_driver
 import basium_compatibilty as c
 
+if sys.version_info[0] < 3:
+    psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+    psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+
 Response=basium.Response
 
 #
