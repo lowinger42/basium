@@ -162,9 +162,12 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if c.isstring(value):
-            value = str(value)
-        return value
+        if c.isunicode(value):
+            return value
+        try:
+            return c.to_unicode(value)
+        except:
+            return value
 
 
 class Driver(basium_driver.Driver):

@@ -180,12 +180,12 @@ class IntegerCol(Column):
 class VarcharCol(Column):
     """Stores a string"""
     def toPython(self, value):
+        if c.isunicode(value):
+            return value
         try:
-            if c.isstring(value):
-                value = str(value)
+            return c.to_unicode(value)
         except:
-            pass
-        return value
+            return value
 
 class DriverError(Exception):
     def __init__(self, errno=1, errmsg=""):

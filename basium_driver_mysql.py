@@ -223,10 +223,6 @@ class VarcharCol(basium_driver.Column):
                 sql += " default '%s'" % self.default
         return sql
 
-    def toPython(self, value):
-        if c.isstring(value):
-            value = str(value)
-        return value
 
 class Action:
     

@@ -67,6 +67,12 @@ if major < 3:
     def isstring(obj):
         return isinstance(obj, basestring)
 
+    def isunicode(obj):
+        return isinstance(obj, unicode)
+    
+    def to_unicode(obj):
+        return unicode(obj)
+
     rawinput = raw_input
     
     class RequestWithMethod(urllib2.Request):
@@ -159,6 +165,12 @@ else:
     def isstring(obj):
         return isinstance(obj, str)
     
+    def isunicode(obj):
+        return isinstance(obj, str)
+
+    def to_unicode(obj):
+        return str(obj)
+
     rawinput = input
 
     class RequestWithMethod(urllib.request.Request):
