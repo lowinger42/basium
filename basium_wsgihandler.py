@@ -277,7 +277,7 @@ class AppServer:
 class WSGIloghandler(wsgiref.simple_server.WSGIRequestHandler):
     """log to basium handler"""
     def log_message(self, *args):
-        log.info("%s %s %s" % (args[1], args[2], args[3]))
+        log.info(args[0] % args[1:])
 
 
 class Server(threading.Thread):
