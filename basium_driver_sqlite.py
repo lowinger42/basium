@@ -260,7 +260,7 @@ class Driver:
     def connect(self):
         response = Response()
         try:
-            self.dbconnection = sqlite3.connect(self.dbconf.database)
+            self.dbconnection = sqlite3.connect(self.dbconf.database,  check_same_thread=False)
             self.dbconnection.row_factory = sqlite3.Row   # return querys as dictionaries
             self.cursor = self.dbconnection.cursor()
         except sqlite3.Error as e:
