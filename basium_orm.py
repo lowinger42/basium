@@ -165,8 +165,10 @@ class BasiumOrm:
         Fetch one or multiple rows from table, each stored in a object
         If no query is specified, the default is to fetch one object identified with the object._id
         Query can be either
-          An instance of Model
-          Query()
+            Model class
+            An instance of Model
+            Query()
+        If model class, an instance will be created
         Driver returns an object that can be iterated one row at a time, 
         or throws DriverError
         
@@ -354,12 +356,12 @@ class Query():
     def filter(self, column, operand, value):
         """Add a filter. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
-            self.log.error('Fatal: filter() called with a non-Column %s' % column)
+            self.log.error('Query.filter() called with a non-Column %s' % column)
             return None
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
-            basium.log.error('Filter from multiple tables not implemented')
+            basium.log.error('Query.Filter from multiple tables not implemented')
             return None
         self._where.append( self.Where(column=column, operand=operand, value=value) )
         return self
@@ -371,12 +373,12 @@ class Query():
     def order(self, column, desc = False):
         """Add a sort order. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
-            self.log.error('Fatal: order() called with a non-Column %s' % column)
+            self.log.error('Query.order() called with a non-Column %s' % column)
             return None
         if self._model == None:
             self._model = column._model
         elif self._model != column._model:
-            self.log.error('Fatal: filter from multiple tables not implemented')
+            self.log.error('Query.order() filter from multiple tables not implemented')
             return None
         self._order.append( self.Order(column=column, desc=desc) )
         return self
@@ -384,20 +386,21 @@ class Query():
     def limit(self, offset=None, rowcount=None):
         """
         Offset and maximum number of rows that should be returned
-        Offset is optional
-        Maximum number of rows is mandatory
-        Can be called once, if multiple calls last one wins
+        Offset is optional, maximum number of rows is mandatory
+        Can be called once, if multiple calls last one is the one being used
         """
         self._limit = self.Limit(offset, rowcount)
         return self
         
     def toSql(self):
-        # Return the query as SQL
-        # Handles
-        # - WHERE
-        # - GROUP BY
-        # - ORDER BY
-        # - LIMIT
+        """
+        Return the query as SQL
+        Handles
+        - WHERE
+        - GROUP BY (todo)
+        - ORDER BY
+        - LIMIT
+        """
         value = []
         sql = ''
         if len(self._where) > 0:
@@ -430,9 +433,10 @@ class Query():
         return (sql, value)
 
     def encode(self):
-        # Return the query as a string that can be appended to an URI
+        """Return the query as a string that can be appended to an URI"""
         url = []
         
+        # where
         for where in self._where:
             url.append(where.encode() )
 
