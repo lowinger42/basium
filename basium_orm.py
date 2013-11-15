@@ -350,13 +350,23 @@ class Query():
             offset = 0
             if self.offset != None:
                 offset = self.offset
-            return ' LIMIT %i, %i' % ( offset, self._maxcount )
+            return ' LIMIT %i, %i' % ( offset, self.rowcount )
 
         def encode(self):
-            pass
+            return "l=" + c.urllib_quote("%s,%s" % (self.offset, self.rowcount))
         
         def decode(self, value):
-            pass
+            tmp = value.split(',')
+            if len(tmp) != 2:
+                return
+            if tmp[0] != "None":
+                self.offset = int(tmp[0])
+            else:
+                self.offset = None
+            if tmp[0] != "None":
+                self.rowcount = int(tmp[1])
+            else:
+                self.rowcount = None
 
     def filter(self, column, operand, value):
         """Add a filter. Returns self so it can be chained"""
@@ -434,7 +444,7 @@ class Query():
                 sql += order.toSql()
 
         if self._limit != None:
-            sql += self._limit.encode()
+            sql += self._limit.toSql()
 
         return (sql, value)
 
@@ -452,6 +462,8 @@ class Query():
             url.append(order.encode() )
         
         # limit
+        if self._limit:
+            url.append(self._limit.encode())
         
         return "&".join(url)
 
