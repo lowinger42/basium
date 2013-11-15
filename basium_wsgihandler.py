@@ -32,7 +32,6 @@ Can handle static files and importing and running python modules
 """
 
 from __future__ import print_function
-from __future__ import unicode_literals
 __metaclass__ = type
 
 import os
@@ -68,9 +67,13 @@ class Response():
         self.contentType = 'text/plain'
         self.headers = []
         self.out = ''
+        self.encoding = None
 
     def write(self, msg):
-        self.out += msg
+        if self.encoding:
+            self.out += msg.encode(self.encoding)
+        else:
+            self.out += msg
 
     def addHeader(self, header, value):
         self.headers.append( ( c.b(header), c.b(value)) )
@@ -248,8 +251,8 @@ class AppServer:
         self.request.path = environ['PATH_INFO']
         self.request.method = environ['REQUEST_METHOD']
         self.request.querystr = environ['QUERY_STRING']
-        
         self.response = Response()
+        self.response.encoding = "utf-8"  # default encoding
         self.write = self.response.write    # make sure stdout works
         
         if self.request.method in ['POST', 'PUT']:
@@ -265,9 +268,6 @@ class AppServer:
             # in the file like wsgi.input environment variable.
             self.request.body = self.request.environ['wsgi.input'].read(self.request.body_size)
             
-            # convert to unicode, assuming utf-8 
-            self.request.body = self.request.body.decode("utf-8")
-
         if not self.handleFile():
             self.handleError()
 
@@ -276,7 +276,7 @@ class AppServer:
         self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
         start_response(c.b(self.response.status), self.response.headers)
-        return [self.response.out.encode("utf-8")]
+        return [self.response.out]
 
     
 class WSGIloghandler(wsgiref.simple_server.WSGIRequestHandler):
