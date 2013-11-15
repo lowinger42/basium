@@ -75,10 +75,8 @@ class BasiumOrm:
             if issubclass(modelcls, basium_model.Column) and modelclsname != 'Column':
                 # ok, found one, get the drivers corresponding class
                 if modelclsname in drvclasses:
-#                    print("found %s!" % modelclsname)
-#                    print("  " + modelcls.__bases__)
-                    modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
-#                    print("  " + modelcls.__bases__)
+                    if not drvclasses[modelclsname] in modelcls.__bases__:
+                        modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
                 else:
                     self.log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
                     return False
@@ -189,7 +187,10 @@ class BasiumOrm:
             for row in self.driver.select(query):
                 newobj = query._model.__class__()
                 for colname,column in newobj._iterNameColumn():
-                    newobj._values[colname] = column.toPython( row[colname] )
+                    try:
+                        newobj._values[colname] = column.toPython( row[colname] )
+                    except (KeyError, ValueError):
+                        pass
                 response.data.append(newobj)
             if one and len(response.data) < 1:
                 response.setError(1, "Unknown UD %s in table %s" % (query_._id, query_._table))
@@ -259,8 +260,10 @@ class Query():
     Class that build queries
     """
 
-    def __init__(self, model = None):
+    def __init__(self, model = None, log=None):
         self._model = model
+        self.log = log
+
         self.reset()
 
     def reset(self):
