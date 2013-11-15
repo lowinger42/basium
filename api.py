@@ -49,11 +49,13 @@ class API():
         self.write = response.write # convenience
 
     def getData(self, obj):
+        decodeddata = {}
         postdata = c.urllib_parse_qs(request.body)
-        for key in postdata.keys():
-            if key in obj._columns:
+        for key in obj._columns:
+            if key in postdata.keys():
                 column = obj._columns[key]
                 data = postdata[key][0]
+                data = data.decode("utf-8")
                 if isinstance(column, basium_model.BooleanCol):
                     data = basium_driver_json.BooleanCol.toPython(data)
                 elif isinstance(column, basium_model.DateCol):
@@ -68,10 +70,10 @@ class API():
                     data = basium_driver_json.IntegerCol.toPython(data)
                 elif isinstance(column, basium_model.VarcharCol):
                     data = basium_driver_json.VarcharCol.toPython(data)
-                postdata[key] = column.toSql(data)        # encode to database specific format
+                decodeddata[key] = column.toSql(data)        # encode to database specific format
             else:
                 log.warning("Warning, handlePost got unknown key/column %s" % key)
-        return postdata
+        return decodeddata
 
     def handleGet(self, classname, _id, path):
         obj = classname()
