@@ -213,6 +213,9 @@ class Response():
     def __str__(self):
         return "errno=%s, errmsg=%s, data=%s" % (self.errno, self.errmsg, self.data)
 
+    def ok(self):
+        return self.errno == 0
+
     def isError(self):
         return self.errno != 0
 
