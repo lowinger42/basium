@@ -224,7 +224,12 @@ class AppServer:
             # log.debug(self.response.out)
         else:
             f = open(ur.abspath, 'rb')
-            self.write( f.read() )
+            data = f.read()
+            if self.response.contentType.startswith("image/"):
+                self.write( data )
+                self.response.encoding = None
+            else:
+                self.write( data.decode("utf-8") )
             f.close()
         return True
 
