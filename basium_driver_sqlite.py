@@ -409,10 +409,6 @@ class Driver:
                         unattended=False,
                         sqlcmd='ALTER TABLE %s DROP %s' % (obj._table, colname)
                         ))
-        if len(actions) < 1:
-            self.log.debug("SQL Table '%s' matches the object" % obj._table)
-        else:
-            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
         response.data = actions
         return response
 
@@ -426,7 +422,7 @@ class Driver:
         response = Response()
         if len(actions) == 0:
             self.log.debug("  Nothing to do")
-            return False
+            return response
 
         print("Actions that needs to be done:")
         askForConfirmation = False
@@ -440,8 +436,8 @@ class Driver:
             print("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                print("Aborted!")
-                return True
+                response.setError(1, "Aborted!")
+                return response
 
         # we first remove columns, so we dont get into conflicts
         # with the new columns, for example changing primary key (there can only be one primary key)
@@ -456,7 +452,7 @@ class Driver:
                 print("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
         self.dbconnection.commit()
-        return False
+        return Response
 
     def count(self, query):
         sql = "select count(*) from %s" % (query.table())
