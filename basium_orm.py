@@ -263,9 +263,9 @@ class Query():
 
     def __init__(self, model = None):
         self._model = model
-        self.reset()
+        self._reset()
 
-    def reset(self):
+    def _reset(self):
         self._where = []
         self._group = []
         self._order = []
@@ -282,7 +282,7 @@ class Query():
             return self._model._table
         return None
 
-    class Where:
+    class _Where:
         def __init__(self, column = None, operand = None, value = None):
             self.column = column
             self.operand = operand
@@ -300,7 +300,7 @@ class Query():
             column, self.operand, self.value = value.split(',')
             self.column = obj._columns[column]
 
-    class Group:
+    class _Group:
         def __init__(self):
             pass
         
@@ -313,7 +313,7 @@ class Query():
         def decode(self, obj, value):
             return None
 
-    class Order:
+    class _Order:
         def __init__(self, column=None, desc=False):
             self.column = column
             self.desc = desc
@@ -336,7 +336,7 @@ class Query():
             if len(tmp) == 2:
                 self.desc = tmp[1] == 'True'
 
-    class Limit:
+    class _Limit:
         def __init__(self, offset=None, rowcount=None):
             self.offset = offset
             self.rowcount = rowcount
@@ -363,7 +363,7 @@ class Query():
         elif self._model != column._model:
             basium.log.error('Query.Filter from multiple tables not implemented')
             return None
-        self._where.append( self.Where(column=column, operand=operand, value=value) )
+        self._where.append( self._Where(column=column, operand=operand, value=value) )
         return self
     
     def group(self):
@@ -380,7 +380,7 @@ class Query():
         elif self._model != column._model:
             self.log.error('Query.order() filter from multiple tables not implemented')
             return None
-        self._order.append( self.Order(column=column, desc=desc) )
+        self._order.append( self._Order(column=column, desc=desc) )
         return self
 
     def limit(self, offset=None, rowcount=None):
@@ -389,7 +389,7 @@ class Query():
         Offset is optional, maximum number of rows is mandatory
         Can be called once, if multiple calls last one is the one being used
         """
-        self._limit = self.Limit(offset, rowcount)
+        self._limit = self._Limit(offset, rowcount)
         return self
         
     def toSql(self):
@@ -453,22 +453,22 @@ class Query():
     def decode(self, url):
         """Decode an URL query and update this query object"""
         u = c.urllib_parse_qsl(url)
-        self.reset()
+        self._reset()
         for (key, val) in u:
             if key == 'w':
-                w = self.Where()
+                w = self._Where()
                 w.decode(self._model, val)
                 self._where.append(w)
             elif key == 'g':
-                g = self.Group()
+                g = self._Group()
                 g.decode(val)
-                self._group.append(g)
+                self._group.append(self._model, g)
             elif key == 'o':
                 o = self.Order()
                 o.decode(val)
                 self._order.append(o)
             elif key == 'l':
-                l = self.Limit()
+                l = self._Limit()
                 l.decode(val)
                 self._limit = l
             else:
