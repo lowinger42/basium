@@ -131,12 +131,12 @@ class Model(ModelMetaClass2):
     """Base class for all classes that should be persistable"""
     __metaclass__ = ModelMetaClass
 
-    def __init__(self):
+    def __init__(self, id = -1):
         _id = IntegerCol(primary_key=True)
         _id._model = self
         _id.name = c.b('_id')
         columns = { c.b('_id'): _id }
-        values = { c.b('_id'): -1 }
+        values = { c.b('_id'): id }
         
         # create instance variables of the class columns
         q = Q()
