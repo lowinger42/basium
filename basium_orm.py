@@ -193,7 +193,7 @@ class BasiumOrm:
                         newobj._values[colname] = column.toPython( row[colname] )
                     except (KeyError, ValueError):
                         pass
-                response.data.append(newobj)
+                data.append(newobj)
             if one and len(response.data) < 1:
                 response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
                 
@@ -273,7 +273,7 @@ class Query():
                 self.log.error('Fatal: Query() called with a non-Model object')
                 return
             self._table = model._table
-        self.reset()
+        self._reset()
 
     def _reset(self):
         self._where = []
