@@ -43,6 +43,7 @@ import inspect
 import basium
 import basium_model
 import basium_compatibilty as c
+import basium_driver
 
 # to make less errors in queries
 LT = '<'
@@ -185,7 +186,6 @@ class BasiumOrm:
         else:
             response.setError(1, "Fatal: incorrect object type in load()")
             return response
-        import basium_driver
         try:
             response.data = []
             for row in self.driver.select(query):
