@@ -264,6 +264,12 @@ class Query():
         self._model = model
         self.log = log
 
+        self._table = None
+        if model:
+            if not isinstance(model, basium_model.Model):
+                self.log.error('Fatal: Query() called with a non-Model object')
+                return
+            self._table = model._table
         self.reset()
 
     def reset(self):
@@ -279,9 +285,7 @@ class Query():
         return w.column.name == '_id' and w.operand == '='
 
     def table(self):
-        if self._model != None:
-            return self._model._table
-        return None
+        return self._table
 
     class Where:
         def __init__(self, column = None, operand = None, value = None):
@@ -361,7 +365,8 @@ class Query():
             return None
         if self._model == None:
             self._model = column._model
-        elif self._model != column._model:
+            self._table = column._model._table
+        elif self._table != column._model._table:
             basium.log.error('Filter from multiple tables not implemented')
             return None
         self._where.append( self.Where(column=column, operand=operand, value=value) )
@@ -378,8 +383,9 @@ class Query():
             return None
         if self._model == None:
             self._model = column._model
-        elif self._model != column._model:
-            self.log.error('Fatal: filter from multiple tables not implemented')
+            self._table = column._model._table
+        elif self._table != column._model._table:
+            basium.log.error('Filter from multiple tables not implemented')
             return None
         self._order.append( self.Order(column=column, desc=desc) )
         return self
