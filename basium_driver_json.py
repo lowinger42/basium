@@ -99,6 +99,8 @@ class DateTimeCol(basium_driver.DateTimeCol):
 
     @classmethod
     def toPython(self, value):
+        if value == "NULL":
+            return None
         if c.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
