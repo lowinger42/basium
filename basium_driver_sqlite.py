@@ -287,6 +287,8 @@ class Driver:
             try:
                 if self.dbconf.debugSQL:
                     self.log.debug('SQL=%s' % sql)
+                    if values:
+                        self.log.debug('   =%s' % values)
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
@@ -422,7 +424,6 @@ class Driver:
         by copying the table to a new one
         """
         response = Response()
-        self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
             self.log.debug("  Nothing to do")
             return False
