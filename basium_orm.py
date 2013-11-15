@@ -76,10 +76,8 @@ class BasiumOrm:
             if issubclass(modelcls, basium_model.Column) and modelclsname != 'Column':
                 # ok, found one, get the drivers corresponding class
                 if modelclsname in drvclasses:
-#                    print("found %s!" % modelclsname)
-#                    print("  " + modelcls.__bases__)
-                    modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
-#                    print("  " + modelcls.__bases__)
+                    if not drvclasses[modelclsname] in modelcls.__bases__:
+                        modelcls.__bases__ = (drvclasses[modelclsname],) + modelcls.__bases__
                 else:
                     self.log.error('Driver %s is missing Class %s' % (self.drivermodule.__name__, modelclsname))
                     return False
@@ -191,14 +189,13 @@ class BasiumOrm:
             for row in self.driver.select(query):
                 newobj = query._model.__class__()
                 for colname,column in newobj._iterNameColumn():
-                    newobj._values[colname] = column.toPython( row[colname] )
-                data.append(newobj)
-            if one:
-                if len(data) < 1:
-                    data = None
-                    response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
-                else:
-                    data = data[0]
+                    try:
+                        newobj._values[colname] = column.toPython( row[colname] )
+                    except (KeyError, ValueError):
+                        pass
+                response.data.append(newobj)
+            if one and len(response.data) < 1:
+                response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
                 
         except basium_driver.DriverError as err:
             data = None
@@ -266,9 +263,17 @@ class Query():
     Class that build queries
     """
 
-    def __init__(self, model = None):
+    def __init__(self, model = None, log=None):
         self._model = model
-        self._reset()
+        self.log = log
+
+        self._table = None
+        if model:
+            if not isinstance(model, basium_model.Model):
+                self.log.error('Fatal: Query() called with a non-Model object')
+                return
+            self._table = model._table
+        self.reset()
 
     def _reset(self):
         self._where = []
@@ -283,9 +288,7 @@ class Query():
         return w.column.name == '_id' and w.operand == '='
 
     def table(self):
-        if self._model != None:
-            return self._model._table
-        return None
+        return self._table
 
     class _Where:
         def __init__(self, column = None, operand = None, value = None):
@@ -375,8 +378,9 @@ class Query():
             return None
         if self._model == None:
             self._model = column._model
-        elif self._model != column._model:
-            basium.log.error('Query.Filter from multiple tables not implemented')
+            self._table = column._model._table
+        elif self._table != column._model._table:
+            basium.log.error('Filter from multiple tables not implemented')
             return None
         self._where.append( self._Where(column=column, operand=operand, value=value) )
         return self
@@ -392,8 +396,9 @@ class Query():
             return None
         if self._model == None:
             self._model = column._model
-        elif self._model != column._model:
-            self.log.error('Query.order() filter from multiple tables not implemented')
+            self._table = column._model._table
+        elif self._table != column._model._table:
+            basium.log.error('Filter from multiple tables not implemented')
             return None
         self._order.append( self._Order(column=column, desc=desc) )
         return self
@@ -462,8 +467,8 @@ class Query():
             url.append(order.encode() )
         
         # limit
-        for limit in self._limit:
-            url.append(order.encode() )
+        if self._limit:
+            url.append(self._limit.encode())
         
         return "&".join(url)
 

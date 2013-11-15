@@ -192,7 +192,7 @@ else:
             req.add_header(b"Authorization", b"Basic " + base64.b64encode(auth))
         try:
             if data:
-                resp = urllib.request.urlopen(req, urllib.parse.urlencode(data).encode("utf-8"))
+                resp = urllib.request.urlopen(req, urllib.parse.urlencode(data, encoding="utf-8").encode("ascii") )
             else:
                 resp = urllib.request.urlopen(req)
             response.info = resp.info

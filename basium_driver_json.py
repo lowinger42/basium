@@ -55,7 +55,10 @@ import basium_compatibilty as c
 # handles the database specific functions such
 # as converting to/from SQL types
 #
-
+# The JSON driver handles toSql differently compared to a standard sql driver, 
+# it converts to string and utf-8 encodes the data, so it can be sent in a 
+# HTTP POST/PUT message
+#
 class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
@@ -68,9 +71,9 @@ class BooleanCol(basium_driver.BooleanCol):
         if value == None:
             return "NULL"
         if value:
-            return 'True'
-        return 'False'
- 
+            return "True"
+        return "False"
+
 # stores a date
 class DateCol(basium_driver.DateCol):
     
@@ -85,7 +88,7 @@ class DateCol(basium_driver.DateCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores date+time
 # ignores microseconds
@@ -104,6 +107,12 @@ class DateTimeCol(basium_driver.DateTimeCol):
         if c.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
+    
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return str(value)
+        
 
 # stores a fixed precision number
 class DecimalCol(basium_driver.DecimalCol):
@@ -129,7 +138,7 @@ class DecimalCol(basium_driver.DecimalCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores a floating point number
 class FloatCol(basium_driver.FloatCol):
@@ -157,7 +166,7 @@ class IntegerCol(basium_driver.IntegerCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores a string
 class VarcharCol(basium_driver.VarcharCol):
@@ -170,6 +179,11 @@ class VarcharCol(basium_driver.VarcharCol):
             return c.to_unicode(value)
         except:
             return value
+
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return value
 
 
 class Driver(basium_driver.Driver):
@@ -200,7 +214,6 @@ class Driver(basium_driver.Driver):
         """
         Check if a database exist
         """
-        self.log.debug("Check if database '%s' exist, using HTTP API" % dbName)
         url = '%s/_database/%s' %(self.uri, dbName )
         response = self.execute(method='GET', url=url, decode=True)
         return response
@@ -209,7 +222,6 @@ class Driver(basium_driver.Driver):
         """
         Check if a table exist
         """
-        self.log.debug("Check if table '%s' exist, using HTTP API" % tableName)
         url = '%s/_table/%s' %(self.uri, tableName )
         response = self.execute(method='GET', url=url, decode=True)
         return response
@@ -239,7 +251,6 @@ class Driver(basium_driver.Driver):
     
     def count(self, query):
         """Count the number of objects, filtered by query"""
-        self.log.debug("Count query from database, using HTTP API")
         if len(query._where) == 0:
             url = '%s/%s' %(self.uri, query.table() )
         else:
@@ -260,7 +271,6 @@ class Driver(basium_driver.Driver):
           simple: <url>/<table>/<id>
           query : <url>/<table>/filter?column=oper,value[&column=oper,value]
         """
-        self.log.debug("Load query from database, using HTTP API")
 
         if query.isId():
             # simple
@@ -274,19 +284,16 @@ class Driver(basium_driver.Driver):
         return response.data
 
     def insert(self, table, values):
-        self.log.debug("Store obj in database, using HTTP API")
         url = '%s/%s' % (self.uri, table)
         response = self.execute(method='POST', url=url, data=values, decode=True)
         return response
 
     def update(self, table, values):
-        self.log.debug("Update obj in database, using HTTP API")
-        url = '%s/%s/%i' % (self.uri, table, values['_id'])
+        url = '%s/%s/%s' % (self.uri, table, values['_id'])
         response = self.execute(method='PUT', url=url, data=values, decode=True)
         return response
 
     def delete(self, query):
-        self.log.debug("Delete obj from database, using HTTP API")
         if query.isId():
             # simple
             url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
