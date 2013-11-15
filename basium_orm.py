@@ -150,7 +150,7 @@ class BasiumOrm:
     def count(self, query_):
         if isinstance(query_, basium_model.Model):
             query = Query(query_)
-        elif isinstance(query_, Query):
+        elif isinstance(query_, basium.basium_orm.Query):
             query = query_
         else:
             self.log.error("Fatal: incorrect object type in count")
