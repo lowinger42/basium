@@ -88,7 +88,7 @@ class DateCol(basium_driver.DateCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores date+time
 # ignores microseconds
@@ -105,6 +105,12 @@ class DateTimeCol(basium_driver.DateTimeCol):
         if c.isstring(value):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
+    
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return str(value)
+        
 
 # stores a fixed precision number
 class DecimalCol(basium_driver.DecimalCol):
@@ -130,7 +136,7 @@ class DecimalCol(basium_driver.DecimalCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores a floating point number
 class FloatCol(basium_driver.FloatCol):
@@ -158,7 +164,7 @@ class IntegerCol(basium_driver.IntegerCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return value
+        return str(value)
 
 # stores a string
 class VarcharCol(basium_driver.VarcharCol):
@@ -171,6 +177,11 @@ class VarcharCol(basium_driver.VarcharCol):
             return c.to_unicode(value)
         except:
             return value
+
+    def toSql(self, value):
+        if value == None:
+            return "NULL"
+        return value
 
 
 class Driver(basium_driver.Driver):
@@ -276,6 +287,7 @@ class Driver(basium_driver.Driver):
         return response
 
     def update(self, table, values):
+        url = '%s/%s/%s' % (self.uri, table, values['_id'])
         response = self.execute(method='PUT', url=url, data=values, decode=True)
         return response
 
