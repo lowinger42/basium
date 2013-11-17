@@ -194,7 +194,7 @@ class BasiumOrm:
                     except (KeyError, ValueError):
                         pass
                 data.append(newobj)
-            if one and len(response.data) < 1:
+            if one and len(data) < 1:
                 response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
                 
         except basium_driver.DriverError as err:
