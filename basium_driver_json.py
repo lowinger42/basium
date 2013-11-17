@@ -111,7 +111,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
     def toSql(self, value):
         if value == None:
             return "NULL"
-        return str(value)
+        return value.strftime('%Y-%m-%d %H:%M:%S')
         
 
 # stores a fixed precision number
