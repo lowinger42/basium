@@ -353,7 +353,7 @@ class Query():
             offset = 0
             if self.offset != None:
                 offset = self.offset
-            return ' OFFSET %i LIMIT %i' % ( offset, self.rowcount )
+            return ' LIMIT %i OFFSET %i' % ( self.rowcount, offset)
         
         def encode(self):
             return "l=" + c.urllib_quote("%s,%s" % (self.offset, self.rowcount))
