@@ -118,7 +118,7 @@ class ObjectFactory:
             elif isinstance(column, basium_model.IntegerCol):
                 val = p
             elif isinstance(column, basium_model.VarcharCol):
-                val = 'text ' + str(p)
+                val = 'text räksmörgås RÄKSMÖRGÅS' + str(p)
             else:
                 fatal('Unknown column type: %s' % column)
             obj._values[colname] = val
