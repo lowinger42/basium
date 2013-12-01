@@ -90,25 +90,25 @@ class API():
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
         try:
-            response = basium.Response()
-            response.data = []
+            resp = basium.Response()
+            resp.data = []
             for row in basium.driver.select(dbquery):  # we call driver directly for efficiency reason
                 tmp = {}
                 for colname in obj._iterName():
                     tmp[colname] = row[colname]
-                response.data.append(tmp)
+                resp.data.append(tmp)
         except basium_driver.DriverError as err:
             msg = "Could not load objects from table '%s'. %s %s" % (obj._table, err.errno, err.errmsg)
             log.debug(msg)
-            self.write(msg)
+            response.write(msg)
             response.status = '404 ' + msg
             return
             
-        if _id != None and _id != 'filter' and len(response.data) == 0:
+        if _id != None and _id != 'filter' and len(resp.data) == 0:
             msg = "Unknown ID %s in table '%s'" % (_id, obj._table)
             log.debug(msg)
-            response.setError(1, msg)
-            response.status = '404 ' + msg
+            resp.setError(1, msg)
+            resp.status = '404 ' + msg
             return
         response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
 
@@ -119,7 +119,6 @@ class API():
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        response = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         resp = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
 
@@ -132,7 +131,6 @@ class API():
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['_id'] = _id
-        response = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         resp = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
 
@@ -152,7 +150,6 @@ class API():
             # one row, identified by rowID
             dbquery = basium.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
-        response = basium.driver.delete(dbquery)
         resp = basium.driver.delete(dbquery)
         response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
 
