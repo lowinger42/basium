@@ -207,13 +207,11 @@ class API():
 def _database():
     if len(path) != 1:
         request.status = "404 not found"
-        print(request.status)
         return
     dbname = path[0]
     resp = basium.driver.isDatabase(dbname)
     if resp.isError():
         request.status = "404 Not found"
-        print(request.status)
         return
     
     response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
@@ -222,14 +220,12 @@ def _database():
 def _table():
     if len(path) != 1:
         request.status = "400 Bad request"
-        print(request.status)
         return
     
     table = path[0]
     resp = basium.driver.isTable(table)
     if resp.isError():
         request.status = "404 Not found"
-        print(request.status)
         return
     
     response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
