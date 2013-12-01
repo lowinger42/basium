@@ -72,17 +72,23 @@ class Response():
         self.status = "200 OK"
         self.contentType = 'text/plain'
         self.headers = []
-        self.out = ''
+        self.out = []
         self.encoding = None
+        self.length = 0
 
     def write(self, msg):
         if self.encoding:
             self.out += msg.encode(self.encoding)
         else:
             self.out += msg
+        self.out.append( msg )
 
     def addHeader(self, header, value):
         self.headers.append( ( c.b(header), c.b(value)) )
+        
+    def iter(self):
+        for line in self.out:
+            yield line
 
 class URLRouterResponse:
     pass
@@ -244,7 +250,8 @@ class AppServer:
 
     def handleError(self):
         """File does not exist"""
-        self.response.out = "404 Page not found"
+        self.response.out = []
+        self.response.write("404 Page not found")
         self.response.status = "404 Page not found"
         
     def __call__(self, environ, start_response):
@@ -282,7 +289,9 @@ class AppServer:
         self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
         
         start_response(c.b(self.response.status), self.response.headers)
-        return [self.response.out]
+        self.response.addHeader( 'Content-Length', "%s" % self.response.length )
+
+        return self.response.iter()
 
     
 class WSGIloghandler(wsgiref.simple_server.WSGIRequestHandler):
