@@ -70,8 +70,16 @@ if major < 3:
     def isunicode(obj):
         return isinstance(obj, unicode)
     
+    def to_str(x):
+        return codecs.latin_1_encode(x)[0]
+
     def to_unicode(obj):
         return unicode(obj)
+
+    def to_bytes(obj, encoding="utf-8"):
+        if isinstance(obj, unicode):
+            return obj.encode(encoding)
+        return obj
 
     rawinput = raw_input
     
@@ -168,8 +176,16 @@ else:
     def isunicode(obj):
         return isinstance(obj, str)
 
+    def to_str(x):
+        return x
+
     def to_unicode(obj):
         return str(obj)
+
+    def to_bytes(obj, encoding="utf-8"):
+        if isinstance(obj, str):
+            return obj.encode(encoding)
+        return str
 
     rawinput = input
 
