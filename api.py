@@ -45,8 +45,6 @@ import basium_driver
 import basium_driver_json
 
 class API():
-    def __init__(self):
-        self.write = response.write # convenience
 
     def getData(self, obj):
         decodeddata = {}
@@ -112,7 +110,7 @@ class API():
             response.setError(1, msg)
             response.status = '404 ' + msg
             return
-        self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
+        response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
 
     def handlePost(self, classname, _id, path):
         if _id != None:
@@ -122,7 +120,8 @@ class API():
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
         response = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
+        resp = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
 
     def handlePut(self, classname, _id, path):
         if _id == None:
@@ -134,7 +133,8 @@ class API():
         putdata = self.getData(obj)
         putdata['_id'] = _id
         response = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        print(json.dumps(response.dict(), cls=basium.JsonOrmEncoder))
+        resp = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
 
     def handleDelete(self, classname, _id, path):
         obj = classname()
@@ -153,7 +153,8 @@ class API():
             dbquery = basium.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
         response = basium.driver.delete(dbquery)
-        self.write( json.dumps(response.dict(), cls=basium.JsonOrmEncoder) )
+        resp = basium.driver.delete(dbquery)
+        response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
 
     def handleHead(self, classname, _id, path):
         """
@@ -218,7 +219,7 @@ def _database():
         print(request.status)
         return
     
-    print( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+    response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
     
 
 def _table():
@@ -234,7 +235,7 @@ def _table():
         print(request.status)
         return
     
-    print( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+    response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
 
 def _default():
     api = API()
