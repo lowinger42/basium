@@ -46,7 +46,7 @@ import basium
 import basium_compatibilty as c
 
 if __name__.startswith("_mod_wsgi_"):
-    # Running under wsgi, apache writes the date&time info so we don't need to write it
+    # Running under wsgi, apache writes the date&time info so we don't need to include it
     basium.log = basium.Logger(formatstr="%(levelname)s %(message)s ")
 
 log = basium.log
@@ -62,6 +62,12 @@ class Request():
     pass
 
 class Response():
+    """
+    Stores the response, sent back to the user
+    
+    stdout is redirected to the write() function. All data is
+    stored as bytes, since that is what WSGI/HTML works with.
+    """
     def __init__(self):
         self.status = "200 OK"
         self.contentType = 'text/plain'
@@ -307,7 +313,6 @@ class Server(threading.Thread):
             self.documentroot = os.path.dirname( os.path.abspath(sys.argv[0]))
 
     def run(self):
-        
         log.info("-" * 79)
         log.info("Starting WSGI server, press Ctrl-c to quit")
         log.info("Using %s as documentroot" % self.documentroot)
