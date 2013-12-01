@@ -256,11 +256,11 @@ class Driver:
             if not self.dbconf.port:
                 self.dbconf.port = 3306
             self.dbconnection = mysql.connector.connect (
-                                    host=self.dbconf.host,
+                                    host=c.b(self.dbconf.host),
                                     port=int(self.dbconf.port),
-                                    user=self.dbconf.username,
-                                    passwd=self.dbconf.password,
-                                    db=self.dbconf.database)
+                                    user=c.b(self.dbconf.username),
+                                    passwd=c.b(self.dbconf.password),
+                                    db=c.b(self.dbconf.database))
             self.cursor = self.dbconnection.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
             if self.dbconf.debugSQL:
