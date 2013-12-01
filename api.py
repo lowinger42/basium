@@ -53,7 +53,6 @@ class API():
             if key in postdata.keys():
                 column = obj._columns[key]
                 data = postdata[key][0]
-                data = data.decode("utf-8")
                 if isinstance(column, basium_model.BooleanCol):
                     data = basium_driver_json.BooleanCol.toPython(data)
                 elif isinstance(column, basium_model.DateCol):

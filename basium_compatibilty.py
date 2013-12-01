@@ -139,11 +139,16 @@ if major < 3:
 #             return urllib.urlencode(query, doseq)
 #         return urllib.urlencode(query)
     
-    def urllib_parse_qs(data):
-        return urlparse.parse_qs(data, keep_blank_values=True)
+    def urllib_parse_qs(data, encoding="utf-8"):
+        data = urlparse.parse_qs(data, keep_blank_values=True)
+        for k, v in data.items():
+            for i in range(len(v)):
+                data[k][i] = unicode(v[i], encoding)
+        return data
 
-    def urllib_parse_qsl(data):
-        return urlparse.parse_qsl(data, keep_blank_values=True)
+    def urllib_parse_qsl(data, encoding="utf-8"):
+        data = urlparse.parse_qsl(data, keep_blank_values=True)
+        return data
 
 else:
     """Python 3 compability"""
@@ -238,8 +243,8 @@ else:
 #             return urllib.parse.urlencode(query, doseq)
 #         return urllib.parse.urlencode(query)
     
-    def urllib_parse_qs(data):
-        return urllib.parse.parse_qs(data, keep_blank_values=True)
+    def urllib_parse_qs(data, encoding="utf-8"):
+        return urllib.parse.parse_qs(data.decode("ascii"), keep_blank_values=True, encoding=encoding)
     
-    def urllib_parse_qsl(data):
-        return urllib.parse.parse_qsl(data, keep_blank_values=True)
+    def urllib_parse_qsl(data, encoding="utf-8"):
+        return urllib.parse.parse_qsl(data.decode("ascii"), keep_blank_values=True, encoding=encoding)
