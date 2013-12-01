@@ -83,7 +83,7 @@ class Response():
         self.out.append( msg )
 
     def addHeader(self, header, value):
-        self.headers.append( ( c.b(header), c.b(value)) )
+        self.headers.append( ( c.to_str(header), c.to_str(value)) )
         
     def iter(self):
         for line in self.out:
@@ -285,8 +285,8 @@ class AppServer:
         self.response.contentType += "; charset=utf-8"
         self.response.addHeader( 'Content-type', self.response.contentType )
         self.response.addHeader( 'Content-Length', str(self.response.length) )
-        start_response(c.b(self.response.status), self.response.headers)
 
+        start_response(self.response.status, self.response.headers)
         return self.response.iter()
 
     
