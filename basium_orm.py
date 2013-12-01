@@ -185,7 +185,7 @@ class BasiumOrm:
             response.setError(1, "Fatal: incorrect object type in load()")
             return response
         try:
-            data = []
+            response.data = []
             for row in self.driver.select(query):
                 newobj = query._model.__class__()
                 for colname,column in newobj._iterNameColumn():
@@ -193,15 +193,15 @@ class BasiumOrm:
                         newobj._values[colname] = column.toPython( row[colname] )
                     except (KeyError, ValueError):
                         pass
-                data.append(newobj)
-            if one and len(data) < 1:
+                response.data.append(newobj)
+            if one and len(response.data) < 1:
                 response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
                 
         except basium_driver.DriverError as err:
-            data = None
+            response.data = None
             response.setError(err.errno, err.errmsg)
 
-        return data, response
+        return response
     
     def store(self, obj):
         """
