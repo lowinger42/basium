@@ -76,24 +76,20 @@ class Logger():
             self.logger.addHandler(self.consolehandler)
 
     def info(self, msg):
-        if c.isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.logger.info(msg)
+        msg = str(msg).replace('\n', ', ')
+        self.logger.info(c.to_bytes(msg))
 
     def warning(self, msg):
-        if c.isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.logger.warning(msg)
+        msg = str(msg).replace('\n', ', ')
+        self.logger.warning(c.to_bytes(msg))
 
     def error(self, msg):
-        if c.isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.logger.error(msg)
+        msg = str(msg).replace('\n', ', ')
+        self.logger.error(c.to_bytes(msg))
 
     def debug(self, msg):
-        if c.isstring(msg):
-            msg = msg.replace('\n', ', ')
-        self.logger.debug(msg)
+        msg = str(msg).replace('\n', ', ')
+        self.logger.debug(c.to_bytes(msg))
 
 
 log = Logger()
