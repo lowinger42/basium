@@ -265,7 +265,6 @@ class AppServer:
         self.request.querystr = environ['QUERY_STRING']
         self.response = Response()
         self.response.encoding = "utf-8"  # default encoding
-        self.write = self.response.write    # make sure stdout works
         
         if self.request.method in ['POST', 'PUT']:
             # get the posted data
