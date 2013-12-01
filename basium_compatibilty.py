@@ -100,10 +100,13 @@ if major < 3:
             req.add_header("Authorization", "Basic %s" % base64string)
         try:
             if data:
-                o = urllib2.urlopen(req, urllib.urlencode(data))
+                for k, v in data.items():
+                    if isinstance(v, unicode):
+                        data[k] = v.encode("utf-8")
+                resp = urllib2.urlopen(req, urllib.urlencode(data))
             else:
-                o = urllib2.urlopen(req)
-            response.info = o.info
+                resp = urllib2.urlopen(req)
+            response.info = resp.info
         except urllib2.HTTPError as e:
             response.setError(1, "HTTPerror %s" % e)
             return response
@@ -115,10 +118,13 @@ if major < 3:
             return response
 
         if decode:
+            encoding = None # resp.headers.get_content_charset()
+            if encoding == None:
+                encoding = "utf-8"
             try:
-                tmp = o.read()
-                res = json.loads(tmp)
-                o.close()
+                tmp = resp.read()
+                res = json.loads(tmp.decode(encoding))
+                resp.close()
             except ValueError:
                 response.setError(1, "JSON ValueError for " + tmp)
                 return response
