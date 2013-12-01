@@ -134,11 +134,6 @@ if major < 3:
             return urllib.quote(s, safe)
         return urllib.quote(s)
     
-#     def urllib_encode(query, doseq=None):
-#         if doseq:
-#             return urllib.urlencode(query, doseq)
-#         return urllib.urlencode(query)
-    
     def urllib_parse_qs(data, encoding="utf-8"):
         data = urlparse.parse_qs(data, keep_blank_values=True)
         for k, v in data.items():
@@ -237,11 +232,6 @@ else:
         if safe:
             return urllib.parse.quote(s, safe)
         return urllib.parse.quote(s)
-    
-#     def urllib_encode(query, doseq=None):
-#         if doseq:
-#             return urllib.parse.urlencode(query, doseq)
-#         return urllib.parse.urlencode(query)
     
     def urllib_parse_qs(data, encoding="utf-8"):
         return urllib.parse.parse_qs(data.decode("ascii"), keep_blank_values=True, encoding=encoding)
