@@ -256,7 +256,11 @@ else:
         return urllib.parse.quote(s)
     
     def urllib_parse_qs(data, encoding="utf-8"):
-        return urllib.parse.parse_qs(data.decode("ascii"), keep_blank_values=True, encoding=encoding)
+        if isinstance(data, bytes):
+            data = data.decode("ascii)")
+        return urllib.parse.parse_qs(data, keep_blank_values=True, encoding=encoding)
     
     def urllib_parse_qsl(data, encoding="utf-8"):
-        return urllib.parse.parse_qsl(data.decode("ascii"), keep_blank_values=True, encoding=encoding)
+        if isinstance(data, bytes):
+            data = data.decode("ascii)")
+        return urllib.parse.parse_qsl(data, keep_blank_values=True, encoding=encoding)
