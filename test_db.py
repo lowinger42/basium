@@ -32,6 +32,7 @@ Unit testing of the object persistence code
 Uses any supported driver to communicate directly with the database
 
 to test postgresql driver:
+
     create database, user, fix permissions
         su - postgres
         psql 
@@ -52,17 +53,43 @@ to test postgresql driver:
         then restart mysql
 
     test created user
-        psql -U basium_user -W 
+        psql -U basium_user -W
+        
+    install postgres python driver
+        python2
+            python-psycopg2
+        python3
+            python3-psycopg2    
 
+    test that the psycopg2 driver is loaded
+        python2
+            python2 ./basium_driver_psql.py
+        python3
+            python3 ./basium_driver_psql.py
+            
 to test mysql driver
-    create database, user, fix permissions
     
+    create database, user, fix permissions
+
+        mysql -u root -p
         create database basium_db;
         grant all on basium_db.* to basium_user@localhost identified by 'secret';
         flush privileges;
 
     test created user
         mysql -u basium_user -p basium_db
+
+    install mysql python driver
+        python2 
+            apt-get install python-mysql.connector 
+        python3
+            ?
+
+    test that the python mysql driver is loaded
+        python2
+            python2 ./basium_driver_mysql.py
+        python3
+            python3 ./basium_driver_mysql.py
 
 
 run with python2
