@@ -77,10 +77,9 @@ class Response():
         self.length = 0
 
     def write(self, msg):
-        if self.encoding:
-            self.out += msg.encode(self.encoding)
-        else:
-            self.out += msg
+        if self.encoding != None:
+            msg = c.to_bytes(msg, self.encoding)
+        self.length += len(msg)
         self.out.append( msg )
 
     def addHeader(self, header, value):
@@ -286,10 +285,8 @@ class AppServer:
 
         self.response.contentType += "; charset=utf-8"
         self.response.addHeader( 'Content-type', self.response.contentType )
-        self.response.addHeader( 'Content-Length', "%s" % len(self.response.out)  )
-        
+        self.response.addHeader( 'Content-Length', str(self.response.length) )
         start_response(c.b(self.response.status), self.response.headers)
-        self.response.addHeader( 'Content-Length', "%s" % self.response.length )
 
         return self.response.iter()
 
