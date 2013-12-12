@@ -39,8 +39,82 @@ import sys
 import json
 import base64
 import urllib
+import logging.handlers
 
-import basium
+
+class Logger():
+
+    def __init__(self, loglevel=logging.DEBUG, formatstr='%(asctime)s %(levelname)s %(message)s ', syslog=False):
+        self.logger = logging.getLogger('basium')
+        self.logger.setLevel(loglevel)
+
+        # remove all handlers
+        for hdlr in self.logger.handlers:
+            self.logger.removeHandler(hdlr)
+
+        if syslog:
+            self.syslogger = logging.handlers.SysLogHandler(address='/dev/logger')
+            self.syslogger.setLevel(loglevel)
+            
+            self.formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
+            self.syslogger.setFormatter(self.formatter)
+            self.logger.addHandler(self.syslogger)
+        else:
+            self.consolehandler = logging.StreamHandler()
+            self.consolehandler.setLevel(loglevel)
+            
+            self.formatter = logging.Formatter(formatstr)
+            self.consolehandler.setFormatter(self.formatter)
+            self.logger.addHandler(self.consolehandler)
+
+    def info(self, msg):
+        msg = str(msg).replace('\n', ', ')
+        self.logger.info(to_bytes(msg))
+
+    def warning(self, msg):
+        msg = str(msg).replace('\n', ', ')
+        self.logger.warning(to_bytes(msg))
+
+    def error(self, msg):
+        msg = str(msg).replace('\n', ', ')
+        self.logger.error(to_bytes(msg))
+
+    def debug(self, msg):
+        msg = str(msg).replace('\n', ', ')
+        self.logger.debug(to_bytes(msg))
+
+
+class Response():
+    """
+    Main result object from functions etc.
+    
+    Makes it possible to return both status and the result data
+    """
+    
+    def __init__(self, errno=0, errmsg=''):
+        self.errno = errno
+        self.errmsg = errmsg
+        self.data = None
+
+    def __str__(self):
+        return "errno=%s, errmsg=%s, data=%s" % (self.errno, self.errmsg, self.data)
+
+    def ok(self):
+        return self.errno == 0
+
+    def isError(self):
+        return self.errno != 0
+
+    def getError(self):
+        return "Errno: %d Errmsg: '%s'" % (self.errno, self.errmsg)
+
+    def setError(self, errno=1, errmsg=''):
+        self.errno = errno
+        self.errmsg = errmsg
+        
+    def dict(self):
+        return { "errno": self.errno, "errmsg": self.errmsg, "data": self.data}
+
 
 major = sys.version_info[0]
 minor = sys.version_info[1]
@@ -90,7 +164,7 @@ if major < 3:
             return self._method if self._method else super(RequestWithMethod, self).get_method()
 
     def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = basium.Response()
+        response = Response()
         req = RequestWithMethod(url, method=method)
         if username != None:
             base64string = base64.standard_b64encode('%s:%s' % (username, password))
@@ -203,7 +277,7 @@ else:
             return self._method if self._method else super(RequestWithMethod, self).get_method()
     
     def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = basium.Response()
+        response = Response()
         req = RequestWithMethod(url, method=method)
         if username != None:
             auth = '%s:%s' % (username, password)

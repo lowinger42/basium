@@ -38,7 +38,6 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium
 import basium_compatibilty as c
 
 
@@ -198,27 +197,27 @@ class Driver:
     """
 
     def connect(self):
-        return basium.Response()
+        return c.Response()
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        return basium.Response(1, 'Not implemented')
+        return c.Response(1, 'Not implemented')
 
     def isDatabase(self, dbName):
-        response = basium.Response()
+        response = c.Response()
         response.data = True
         return response
 
     def isTable(self, tableName):
-        response = basium.Response()
+        response = c.Response()
         response.data = True
         return response
 
     def createTable(self, obj):
-        response = basium.Response()
+        response = c.Response()
         return response
 
     def verifyTable(self, obj):
-        response = basium.Response()
+        response = c.Response()
         response.data = []
         return response
     
@@ -226,16 +225,16 @@ class Driver:
         return True
 
     def count(self, query):
-        return basium.Response(1, 'Not implemented')
+        return c.Response(1, 'Not implemented')
     
     def select(self, query):
         raise DriverError(1, "Not implemented")
 
     def insert(self, table, values):
-        return basium.Response(1, 'Not implemented')
+        return c.Response(1, 'Not implemented')
 
     def update(self, table, values):
-        return basium.Response(1, 'Not implemented')
+        return c.Response(1, 'Not implemented')
 
     def delete(self, query):
-        return basium.Response(1, 'Not implemented')
+        return c.Response(1, 'Not implemented')

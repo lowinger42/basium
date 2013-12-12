@@ -39,7 +39,6 @@ __metaclass__ = type
 import inspect
 import pprint
 
-import basium
 import basium_compatibilty as c
 
 class Column:

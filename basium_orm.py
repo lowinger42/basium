@@ -40,9 +40,8 @@ __metaclass__ = type
 
 import inspect
 
-import basium
-import basium_model
 import basium_compatibilty as c
+import basium_model
 import basium_driver
 
 # to make less errors in queries
@@ -148,7 +147,7 @@ class BasiumOrm:
     def count(self, query_):
         if isinstance(query_, basium_model.Model):
             query = Query(query_)
-        elif isinstance(query_, basium.basium_orm.Query):
+        elif isinstance(query_, Query):
             query = query_
         else:
             self.log.error("Fatal: incorrect object type in count")
@@ -174,7 +173,7 @@ class BasiumOrm:
         Note: getting a single object returns an error if not found. 
         Workaround is to use a query instead
         """
-        response = basium.Response()
+        response = c.Response()
         one = False
         if isinstance(query_, basium_model.Model):
             query = Query().filter(query_.q._id, EQ, query_._id)
@@ -233,7 +232,7 @@ class BasiumOrm:
           If instance of model, that instance will be deleted
           If query, the objects matching the query is deleted
         """ 
-        response = basium.Response()
+        response = c.Response()
         clearID = False
         if isinstance(query_, basium_model.Model):
             query = Query().filter(query_.q._id, EQ, query_._id)
