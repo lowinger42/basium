@@ -46,7 +46,7 @@ import basium
 import basium_driver
 import basium_compatibilty as c
 
-Response=basium.Response
+Response=c.Response
 
 class BooleanCol(basium_driver.Column):
     """Stores boolean as number: 0 or 1"""
@@ -342,7 +342,7 @@ class Driver:
                     response.setError(err.errno, str(err))
                     return response
             
-        response = basium.Response()
+        response = c,Response()
         response.data = tableName in self.tables
         return response
     

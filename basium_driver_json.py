@@ -228,7 +228,7 @@ class Driver(basium_driver.Driver):
 
 #     def createTable(self, obj):
 #         """This is not valid for JSON API due to security issues"""
-#         response = basium.Response()
+#         response = c.Response()
 #         return response
 
 #     def verifyTable(self, obj):
@@ -238,7 +238,7 @@ class Driver(basium_driver.Driver):
 #            One idea is to calulate a checksum on all columns and their
 #            attributes, and then compare client and server checksum
 #         """
-#         response = basium.Response()
+#         response = c.Response()
 #         response.data = []
 #         return response
     

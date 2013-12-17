@@ -52,7 +52,7 @@ if sys.version_info[0] < 3:
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
-Response=basium.Response
+Response=c.Response
 
 #
 # These are shadow classes from the basium_model
@@ -364,7 +364,7 @@ class Driver:
                 response.setError( 1, str(e) )
                 return response
 
-        response = basium.Response()
+        response = c.Response()
         response.data = tableName in self.tables
         return response
 

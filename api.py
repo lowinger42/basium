@@ -89,7 +89,7 @@ class API():
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
         try:
-            resp = basium.Response()
+            resp = c.Response()
             resp.data = []
             for row in basium.driver.select(dbquery):  # we call driver directly for efficiency reason
                 tmp = {}

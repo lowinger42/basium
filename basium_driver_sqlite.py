@@ -49,7 +49,7 @@ import basium
 import basium_driver
 import basium_compatibilty as c
 
-Response=basium.Response
+Response=c.Response
 
 class ColumnInfo:
     
@@ -325,7 +325,7 @@ class Driver:
                 except sqlite3.Error as e:
                     response.setError( 1, e.args[0] )
                     return response
-        response = basium.Response()
+        response = c.Response()
         response.data = tableName in self.tables
         return response
 
