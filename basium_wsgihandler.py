@@ -76,8 +76,9 @@ class Response():
         self.encoding = None
         self.length = 0
 
-    def write(self, msg):
-        if self.encoding != None:
+    def write(self, msg, encoding=True):
+        # log.debug("data type=%s %s" % ( type(msg), len(msg)))
+        if encoding and self.encoding != None:
             msg = c.to_bytes(msg, self.encoding)
         self.length += len(msg)
         self.out.append( msg )
@@ -240,10 +241,10 @@ class AppServer:
             f = open(ur.abspath, 'rb')
             data = f.read()
             if self.response.contentType.startswith("image/"):
-                self.write( data )
+                self.response.write( data, encoding=False ) # always binary format
                 self.response.encoding = None
             else:
-                self.write( data.decode("utf-8") )
+                self.response.write( data, encoding=False ) # assumes file is in utf-8 format
             f.close()
         return True
 
