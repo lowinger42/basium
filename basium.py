@@ -86,7 +86,7 @@ class Basium(basium_orm.BasiumOrm):
         
         self.cls = {}
         self.drivermodule = None
-        self.Response = Response    # for convenience in dynamic pages
+        self.Response = c.Response    # for convenience in dynamic pages
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -105,7 +105,7 @@ class Basium(basium_orm.BasiumOrm):
         """Handle additional types in JSON encoder"""
         def default(self, obj):
             # print( "JsonOrmEncoder::default() Type =", type(obj) )
-            if isinstance(obj, Response):
+            if isinstance(obj, c.Response):
                 return obj.data
             if isinstance(obj, datetime.date):
                 return strFromDatetime(obj)
