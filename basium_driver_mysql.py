@@ -342,7 +342,7 @@ class Driver:
                     response.setError(err.errno, str(err))
                     return response
             
-        response = c,Response()
+        response = c.Response()
         response.data = tableName in self.tables
         return response
     
