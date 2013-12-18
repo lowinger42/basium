@@ -216,7 +216,7 @@ if major < 3:
        
     def urllib_quote(s, safe=None):
         if safe:
-            return urllib.quote(s, safe)
+            return urllib.quote(s, to_str(safe))
         return urllib.quote(s)
     
     def urllib_parse_qs(data, encoding="utf-8"):
