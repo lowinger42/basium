@@ -38,7 +38,6 @@ __metaclass__ = type
 
 import json
 
-import basium
 import basium_compatibilty as c
 import basium_model
 import basium_driver
@@ -69,7 +68,7 @@ class API():
                     data = basium_driver_json.VarcharCol.toPython(data)
                 decodeddata[key] = column.toSql(data)        # encode to database specific format
             else:
-                log.warning("Warning, handlePost got unknown key/column %s" % key)
+                log.warning("Warning, missing key/column %s" % key)
         return decodeddata
 
     def handleGet(self, classname, _id, path):
