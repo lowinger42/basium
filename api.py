@@ -77,21 +77,21 @@ class API():
         if _id == None:
             log.debug('Get all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium.query(obj)
+            dbquery = db.query(obj)
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = basium.query(obj)
+            dbquery = db.query(obj)
             dbquery.decode(request.querystr)
             log.debug("Get all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium.query().filter(obj.q._id, '=', _id)
+            dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
         try:
             resp = c.Response()
             resp.data = []
-            for row in basium.driver.select(dbquery):  # we call driver directly for efficiency reason
+            for row in db.driver.select(dbquery):  # we call driver directly for efficiency reason
                 tmp = {}
                 for colname in obj._iterName():
                     tmp[colname] = row[colname]
@@ -109,7 +109,7 @@ class API():
             resp.setError(1, msg)
             resp.status = '404 ' + msg
             return
-        response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+        response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
 
     def handlePost(self, classname, _id, path):
         if _id != None:
@@ -118,8 +118,8 @@ class API():
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        resp = basium.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
+        resp = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
 
     def handlePut(self, classname, _id, path):
         if _id == None:
@@ -130,8 +130,8 @@ class API():
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['_id'] = _id
-        resp = basium.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        response.write(json.dumps(resp.dict(), cls=basium.JsonOrmEncoder))
+        resp = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
 
     def handleDelete(self, classname, _id, path):
         obj = classname()
@@ -142,15 +142,15 @@ class API():
             return
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = basium.query(obj)
+            dbquery = db.query(obj)
             dbquery.decode(request.querystr)
             log.debug("Delete all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         else:
             # one row, identified by rowID
-            dbquery = basium.query().filter(obj.q._id, '=', _id)
+            dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
-        resp = basium.driver.delete(dbquery)
-        response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+        resp = db.driver.delete(dbquery)
+        response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
 
     def handleHead(self, classname, _id, path):
         """
@@ -161,14 +161,14 @@ class API():
         if _id == None:
             log.debug('Count all rows in table %s' % obj._table)
             # all rows (put some sane limit here maybe?)
-            dbquery = basium.query(obj)
+            dbquery = db.query(obj)
         elif _id == 'filter':
             # filter out specific rows
-            dbquery = basium.query()
+            dbquery = db.query()
             dbquery.decode(request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        resp = basium.driver.count(dbquery)  # we call driver direct for efficiency reason
+        resp = db.driver.count(dbquery)  # we call driver direct for efficiency reason
         if resp.isError():
             msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
             log.debug(msg)
@@ -179,10 +179,10 @@ class API():
     
     def run(self):
         ix = 0
-        if not path[ix] in basium.cls:
+        if not path[ix] in db.cls:
             response.status = "404 table '%s' not found" % (path[ix])
             return
-        classname = basium.cls[path[ix]]
+        classname = db.cls[path[ix]]
         ix += 1
         if len(path) > ix:
             _id = path[ix]
@@ -208,12 +208,12 @@ def _database():
         request.status = "404 not found"
         return
     dbname = path[0]
-    resp = basium.driver.isDatabase(dbname)
+    resp = db.driver.isDatabase(dbname)
     if resp.isError():
         request.status = "404 Not found"
         return
     
-    response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+    response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
     
 
 def _table():
@@ -222,12 +222,12 @@ def _table():
         return
     
     table = path[0]
-    resp = basium.driver.isTable(table)
+    resp = db.driver.isTable(table)
     if resp.isError():
         request.status = "404 Not found"
         return
     
-    response.write( json.dumps(resp.dict(), cls=basium.JsonOrmEncoder) )
+    response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
 
 def _default():
     api = API()

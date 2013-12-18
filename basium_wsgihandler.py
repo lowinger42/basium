@@ -218,7 +218,7 @@ class AppServer:
 
             # send data over to dynamic page as module global variables, for easy access
             extpage.log = log
-            extpage.basium = self.basium
+            extpage.db = self.basium
             extpage.request = self.request
             extpage.path = ur.path
             extpage.response = self.response
