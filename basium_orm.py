@@ -379,7 +379,7 @@ class Query():
             self._model = column._model
             self._table = column._model._table
         elif self._table != column._model._table:
-            basium.log.error('Filter from multiple tables not implemented')
+            self.log.error('Filter from multiple tables not implemented')
             return None
         self._where.append( self._Where(column=column, operand=operand, value=value) )
         return self
@@ -397,7 +397,7 @@ class Query():
             self._model = column._model
             self._table = column._model._table
         elif self._table != column._model._table:
-            basium.log.error('Filter from multiple tables not implemented')
+            self.log.error('Order from multiple tables not implemented')
             return None
         self._order.append( self._Order(column=column, desc=desc) )
         return self
