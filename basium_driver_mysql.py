@@ -39,12 +39,19 @@ from __future__ import unicode_literals
 __metaclass__ = type
 
 import datetime
-import mysql.connector
 import decimal
 
 import basium
 import basium_driver
 import basium_compatibilty as c
+
+err = None
+try:
+    import mysql.connector
+except ImportError:
+    err = "Can't find the mysql.connector python module"
+if err:
+    raise basium_driver.DriverError(1, err)
 
 Response=c.Response
 

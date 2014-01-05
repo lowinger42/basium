@@ -48,6 +48,7 @@ import datetime
 import decimal
 
 import basium_compatibilty as c
+import basium_driver
 
 log = c.Logger()
 log.info("Basium default logger started")
@@ -125,6 +126,9 @@ class Basium(basium_orm.BasiumOrm):
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
+        except basium_driver.DriverError as err:
+            self.log.error('Message from driver errno=%s  errmsg=%s.py' % (err.errno, err.errmsg))
+            return None
         except ImportError:
             self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             return None

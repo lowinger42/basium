@@ -43,11 +43,18 @@ __metaclass__ = type
 
 import datetime
 import decimal
-import sqlite3
 
 import basium
 import basium_driver
 import basium_compatibilty as c
+
+err = None
+try:
+    import sqlite3
+except ImportError:
+    err = "Can't find the sqlite3 python module"
+if err:
+    raise basium_driver.DriverError(1, err)
 
 Response=c.Response
 

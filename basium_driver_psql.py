@@ -40,13 +40,20 @@ __metaclass__ = type
 
 import sys
 import datetime
-import psycopg2
-import psycopg2.extras
 import decimal
 
 import basium
 import basium_driver
 import basium_compatibilty as c
+
+err = None
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    err = "Can't find the psycopg2 python module"
+if err:
+    raise basium_driver.DriverError(1, err)
 
 if sys.version_info[0] < 3:
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
