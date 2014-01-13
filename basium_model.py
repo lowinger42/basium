@@ -37,6 +37,7 @@ __metaclass__ = type
 
 import inspect
 import pprint
+import datetime
 
 import basium_compatibilty as c
 
@@ -60,6 +61,11 @@ class DateCol(Column):
         self.nullable = nullable
         self.default = default
 
+    def getDefault(self):
+        if self.default == 'NOW':
+            return datetime.datetime.now().date()
+        return self.default
+
 class DateTimeCol(Column):
     """
     Stores date+time
@@ -71,6 +77,11 @@ class DateTimeCol(Column):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
+
+    def getDefault(self):
+        if self.default == 'NOW':
+            return datetime.datetime.now().replace(microsecond=0)
+        return self.default
 
 class DecimalCol(Column):
     """

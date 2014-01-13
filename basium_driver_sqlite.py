@@ -128,11 +128,6 @@ class DateTimeCol(basium_driver.Column):
     if default is 'NOW' the current date+time is stored
     """
     
-    def getDefault(self):
-        if self.default == 'NOW':
-            return datetime.datetime.now().replace(microsecond=0)
-        return self.default
-
     def typeToSql(self):
         sql = 'datetime'
         if self.nullable:

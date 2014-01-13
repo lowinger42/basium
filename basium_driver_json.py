@@ -91,14 +91,8 @@ class DateCol(basium_driver.DateCol):
 
 # stores date+time
 # ignores microseconds
-# if default is 'NOW' the current date+time is stored
 class DateTimeCol(basium_driver.DateTimeCol):
     
-    def getDefault(self):
-        if self.default == 'NOW':
-            return datetime.datetime.now().replace(microsecond=0)
-        return self.default
-
     @classmethod
     def toPython(self, value):
         if value == "NULL":
