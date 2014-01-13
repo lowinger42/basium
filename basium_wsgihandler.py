@@ -287,7 +287,7 @@ class AppServer:
         self.response.addHeader( 'Content-type', self.response.contentType )
         self.response.addHeader( 'Content-Length', str(self.response.length) )
 
-        start_response(self.response.status, self.response.headers)
+        start_response(c.to_str(self.response.status), self.response.headers)
         return self.response.iter()
 
     
