@@ -31,7 +31,7 @@ Basium WSGI handler
 Can handle static files and importing and running python modules
 """
 
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 __metaclass__ = type
 
 import os

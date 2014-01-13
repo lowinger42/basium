@@ -31,8 +31,7 @@ module that implement functionality that is different between
 various python versions
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 __metaclass__ = type
 
 import sys

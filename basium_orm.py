@@ -34,8 +34,7 @@ This class handles all mapping between objects and dictionaries,
 before calling database driver, or returning objects
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 __metaclass__ = type
 
 import inspect

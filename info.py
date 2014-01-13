@@ -31,8 +31,7 @@ Page for the Basium WSGI handler
 Show basic info on http request
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 __metaclass__ = type
 
 

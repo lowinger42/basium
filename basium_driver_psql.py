@@ -34,8 +34,7 @@ connection if an error occurs. This makes all operations to reconnect if the
 connection to the database has been lost.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 __metaclass__ = type
 
 import sys
