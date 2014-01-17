@@ -114,7 +114,7 @@ class Basium(basium_orm.BasiumOrm):
             if isinstance(obj, decimal.Decimal):
                 return str(obj)
             if isinstance(obj, basium_model.Model):
-                return obj.getStrValues()
+                return obj._getStrValues()
             return json.JSONEncoder.default(self, obj)
 
     def start(self):

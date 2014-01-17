@@ -174,7 +174,7 @@ class Model(ModelMetaClass2):
             return object.__getattribute__(self, attr)
 
     def __str__(self):
-        return pprint.pformat(self.getValues(), indent=4)
+        return pprint.pformat(self._getValues(), indent=4)
 
     def __eq__(self, other):
         if other == None:
@@ -185,27 +185,27 @@ class Model(ModelMetaClass2):
                     return False
         return True
 
-    def get(self, attr):
+    def _get(self, attr):
         return self.__getattribute__(attr)
 
-    def set(self, attr, value):
+    def _set(self, attr, value):
         self.__setattr__(attr, value)
 
-    def getValues(self):
+    def _getValues(self):
         """return all columns as a dictionary, data presented in sql format"""
         res = {}
         for colname, column in self._iterNameColumn():
             res[colname] = column.toSql(self._values[colname])
         return res
     
-    def getStrValues(self):
+    def _getStrValues(self):
         """return all columns as a dictionary, data presented as strings"""
         res = {}
         for colname in self._iterName():
             res[colname] = str(self._values[colname])
         return res
 
-    def isPrimaryKey(self, pkey):
+    def _isPrimaryKey(self, pkey):
         if pkey != None:
             if self._primary_key != None:
                 return pkey in self._primary_key
