@@ -128,7 +128,11 @@ class ModelMetaClass(type):
     def __init__(cls, name, bases, dct):
         super(ModelMetaClass, cls).__init__(name, bases, dct)
         cls._primary_key = ['_id']
-        cls._table = name.lower()
+        if "_table" in dct:
+            cls._table = dct["_table"]
+        else:
+            cls._table = name.lower()
+        print("_table=", cls._table)
         cls._columns = {}
         cls._values = {}
 
