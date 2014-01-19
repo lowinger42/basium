@@ -115,6 +115,15 @@ class Response():
         return { "errno": self.errno, "errmsg": self.errmsg, "data": self.data}
 
 
+class Error(Exception):
+    def __init__(self, errno=1, errmsg=""):
+        self.errno = errno
+        self.errmsg = errmsg
+    
+    def __str__(self):
+        return "errno=%s, errmsg=%s" % (self.errno, self.errmsg)        
+
+
 major = sys.version_info[0]
 minor = sys.version_info[1]
 
@@ -163,7 +172,8 @@ if major < 3:
             return self._method if self._method else super(RequestWithMethod, self).get_method()
 
     def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = Response()
+        respdata = None
+        info = None
         req = RequestWithMethod(url, method=method)
         if username != None:
             base64string = base64.standard_b64encode('%s:%s' % (username, password))
@@ -176,16 +186,13 @@ if major < 3:
                 resp = urllib2.urlopen(req, urllib.urlencode(data))
             else:
                 resp = urllib2.urlopen(req)
-            response.info = resp.info
+            info = resp.info
         except urllib2.HTTPError as e:
-            response.setError(1, "HTTPerror %s" % e)
-            return response
+            raise Error(1, "HTTPerror %s" % e)
         except urllib2.URLError as e:
-            response.setError(1, "URLerror %s" % e)
-            return response
+            raise Error(1, "URLerror %s" % e)
         except httplib.HTTPException as e:
-            response.setError(1, 'HTTPException %s' % e)
-            return response
+            raise Error(1, 'HTTPException %s' % e)
 
         if decode:
             encoding = None # resp.headers.get_content_charset()
@@ -196,21 +203,18 @@ if major < 3:
                 res = json.loads(tmp.decode(encoding))
                 resp.close()
             except ValueError:
-                response.setError(1, "JSON ValueError for " + tmp)
-                return response
+                raise Error(1, "JSON ValueError for " + tmp)
             except TypeError:
-                response.setError(1, "JSON TypeError for " + tmp)
-                return response
+                raise Error(1, "JSON TypeError for " + tmp)
 
             try:
-                if res['errno'] == 0:
-                    response.data = res["data"]
-                else:
-                    response.setError(res['errno'], res['errmsg'])
+                if res['errno'] != 0:
+                    raise Error(res['errno'], res['errmsg'])
+                respdata = res["data"]
             except KeyError:
-                response.setError(1, "Result keyerror, missing errno/errmsg")
+                raise Error(1, "Result keyerror, missing errno/errmsg")
 
-        return response
+        return respdata, info
 
        
     def urllib_quote(s, safe=None):
@@ -276,7 +280,8 @@ else:
             return self._method if self._method else super(RequestWithMethod, self).get_method()
     
     def urllib_request_urlopen(url, method, username=None, password=None, data=None, decode=None):
-        response = Response()
+        respdata = None
+        info = None
         req = RequestWithMethod(url, method=method)
         if username != None:
             auth = '%s:%s' % (username, password)
@@ -287,13 +292,11 @@ else:
                 resp = urllib.request.urlopen(req, urllib.parse.urlencode(data, encoding="utf-8").encode("ascii") )
             else:
                 resp = urllib.request.urlopen(req)
-            response.info = resp.info
+            info = resp.info
         except urllib.error.HTTPError as e:
-            response.setError(1, "HTTPerror %s" % e)
-            return response
+            raise Error(1, "HTTPerror %s" % e)
         except urllib.error.URLError as e:
-            response.setError(1, "URLerror %s" % e)
-            return response
+            raise Error(1, "URLerror %s" % e)
         
         if decode:
             encoding = resp.headers.get_content_charset()
@@ -304,21 +307,18 @@ else:
                 res = json.loads(tmp)
                 resp.close()
             except ValueError:
-                response.setError(1, "JSON ValueError for " + tmp)
-                return response
+                raise Error(1, "JSON ValueError for " + tmp)
             except TypeError:
-                response.setError(1, "JSON TypeError for " + tmp)
-                return response
+                raise Error(1, "JSON TypeError for " + tmp)
 
             try:
-                if res['errno'] == 0:
-                    response.data = res["data"]
-                else:
-                    response.setError(res['errno'], res['errmsg'])
+                if res['errno'] != 0:
+                    raise Error(res['errno'], res['errmsg'])
+                respdata = res["data"]
             except KeyError:
-                response.setError(1, "Result keyerror, missing errno/errmsg")
+                raise Error(1, "Result keyerror, missing errno/errmsg")
 
-        return response
+        return respdata, info
     
     def urllib_quote(s, safe=None):
         if safe:

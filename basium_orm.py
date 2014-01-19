@@ -88,34 +88,25 @@ class BasiumOrm:
            False if the database does not exist
            None  if there was an error
         """
-        result = self.driver.isDatabase(dbName)
-        if result.isError():
-            self.log.error("Check if Database '%s' exist: %s" % (dbName, result.getError()) )
-            return None
-        if result.data:
+        exist = self.driver.isDatabase(dbName) 
+        if exist:
             self.log.debug("SQL Database '%s' exist" % dbName)
         else:
-            self.log.error("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
-        return result.data
+            self.log.debug("SQL Database '%s' does NOT exist, it needs to be created" % dbName)
+        return exist
 
     def isTable(self, obj):
         """Check if a table exist in the database"""
-        result = self.driver.isTable(obj._table)
-        if result == None:
-            self.log.error("Check if Table '%s' exist: %s" % (obj._table, result.getError()))
-            return False
-        if result.data:
+        exist = self.driver.isTable(obj._table)
+        if exist:
             self.log.debug("SQL Table '%s' does exist" % obj._table)
         else:
             self.log.debug("SQL Table '%s' does NOT exist" % obj._table)
-        return result.data
+        return exist
 
     def createTable(self, obj):
         """Create a table that can store objects"""
-        result = self.driver.createTable(obj)
-        if result.isError():
-            self.log.error("Create SQL Table '%s' failed. %s" % (obj._table, result.getError()))
-            return False
+        self.driver.createTable(obj)
         return True
 
     def verifyTable(self, obj):
@@ -124,8 +115,7 @@ class BasiumOrm:
         Returns None if table does not exist
         Returns list of Action, zero length if nothing needs to be done
         """
-        result = self.driver.verifyTable(obj)
-        actions = result.data
+        actions = self.driver.verifyTable(obj)
         if len(actions) < 1:
             self.log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
@@ -137,10 +127,7 @@ class BasiumOrm:
         Update table to latest definition of class
         actions is the result from verifyTable
         """
-        result = self.driver.modifyTable(obj, actions)
-        if result.isError():
-            self.log.error('Fatal: Cannot update table structure for %s. %s' % (obj._table, result.getError()))
-            return False
+        self.driver.modifyTable(obj, actions)
         return True
 
     def count(self, query_):
@@ -149,30 +136,22 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            self.log.error("Fatal: incorrect object type in count")
-            return None
-        result = self.driver.count(query)
-        if result.isError():
-            self.log.error('Cannot do count(*) on %s' % (query.table()))
-            return None
-        return int(result.data)
+            raise c.Error(1, "Fatal: incorrect object type in count")
+        return self.driver.count(query)
 
     def load(self, query_):
         """
         Fetch one or multiple rows from table, each stored in a object
         If no query is specified, the default is to fetch one object identified with the object._id
         Query can be either
-            Model class
-            An instance of Model
-            Query()
-        If model class, an instance will be created
-        Driver returns an object that can be iterated one row at a time, 
+            An instance of Model()
+            An instance of Query()
+        Driver returns an object that can be iterated over one row at a time
         or throws DriverError
         
-        Note: getting a single object returns an error if not found. 
+        Note: when loading a single object, an error is returned if not found. 
         Workaround is to use a query instead
         """
-        response = c.Response()
         one = False
         if isinstance(query_, basium_model.Model):
             query = Query().filter(query_.q._id, EQ, query_._id)
@@ -180,31 +159,26 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            response.setError(1, "Fatal: incorrect object type in load()")
-            return response
-        try:
-            response.data = []
-            for row in self.driver.select(query):
-                newobj = query._model.__class__()
-                for colname,column in newobj._iterNameColumn():
-                    try:
-                        newobj._values[colname] = column.toPython( row[colname] )
-                    except (KeyError, ValueError):
-                        pass
-                response.data.append(newobj)
-            if one and len(response.data) < 1:
-                response.setError(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
-                
-        except basium_driver.DriverError as err:
-            response.data = None
-            response.setError(err.errno, err.errmsg)
+            raise c.Error(1, "Fatal: incorrect object type")
 
-        return response
+        data = []
+        for row in self.driver.select(query):
+            newobj = query._model.__class__()
+            for colname,column in newobj._iterNameColumn():
+                try:
+                    newobj._values[colname] = column.toPython( row[colname] )
+                except (KeyError, ValueError):
+                    pass
+            data.append(newobj)
+        if one and len(data) < 1:
+            raise c.Error(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
+
+        return data
     
     def store(self, obj):
         """
         Store the query in the database
-        If the objects _ID is set, we update the current row in the table,
+        If the objects _id is set, we update the current row in the table,
         otherwise we create a new row
         """
         columns = {}
@@ -213,38 +187,34 @@ class BasiumOrm:
 
         if obj._id >= 0:
             # update
-            response = self.driver.update(obj._table, columns)
+            data = self.driver.update(obj._table, columns)
         else:
             # insert
-            response = self.driver.insert(obj._table, columns)
-            if not response.isError():
-                obj._id = response.data
-        return response
+            obj._id = self.driver.insert(obj._table, columns)
+        return obj._id
     
     def delete(self, query_):
         """
         Delete objects in the table.
-          query_ can be either
-            An instance of Model
-            Query()
+        query_ can be either
+            An instance of Model()
+            An instance of Query()
         
-          If instance of model, that instance will be deleted
-          If query, the objects matching the query is deleted
+        If instance of model, that instance will be deleted
+        If query, the objects matching the query is deleted
         """ 
-        response = c.Response()
-        clearID = False
+        one = False
         if isinstance(query_, basium_model.Model):
             query = Query().filter(query_.q._id, EQ, query_._id)
-            clearID = True
+            one = True
         elif isinstance(query_, Query):
             query = query_
         else:
-            response.setError(1, "Fatal: incorrect object type in delete()")
-            return response
-        response = self.driver.delete(query)
-        if not response.isError() and clearID:
+            raise c.Error(1, "Fatal: incorrect object type passed")
+        rowcount = self.driver.delete(query)
+        if one:
             query_._id = -1
-        return response
+        return rowcount
 
     def query(self, obj = None):
         """

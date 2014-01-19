@@ -125,8 +125,8 @@ class Basium(basium_orm.BasiumOrm):
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
-        except basium_driver.DriverError as err:
-            self.log.error('Message from driver errno=%s  errmsg=%s.py' % (err.errno, err.errmsg))
+        except c.Error as err:
+            self.log.error(str(err))
             return None
         except ImportError:
             self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))

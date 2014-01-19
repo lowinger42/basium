@@ -86,16 +86,16 @@ class API():
             dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
+        resp = c.Response()
         try:
-            resp = c.Response()
             resp.data = []
             for row in db.driver.select(dbquery):  # we call driver directly for efficiency reason
                 tmp = {}
                 for colname in obj._iterName():
                     tmp[colname] = row[colname]
                 resp.data.append(tmp)
-        except basium_driver.DriverError as err:
-            msg = "Could not load objects from table '%s'. %s %s" % (obj._table, err.errno, err.errmsg)
+        except c.Error as e:
+            msg = "Could not load objects from table '%s'. %s" % (obj._table, e)
             log.debug(msg)
             response.write(msg)
             response.status = '404 ' + msg
@@ -116,7 +116,12 @@ class API():
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        resp = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        resp = c.Response()
+        try:
+            resp.data = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
+        except c.Error as e:
+            resp.errno = e.errno
+            resp.errmsg = e.errmsg
         response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
 
     def handlePut(self, classname, _id, path):
@@ -128,7 +133,12 @@ class API():
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['_id'] = _id
-        resp = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        resp = c.Response()
+        try:
+            resp.data = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
+        except c.Error as e:
+            resp.errno = e.errno
+            resp.errmsg = e.errmsg
         response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
 
     def handleDelete(self, classname, _id, path):
@@ -147,7 +157,12 @@ class API():
             # one row, identified by rowID
             dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
-        resp = db.driver.delete(dbquery)
+        resp = c.Response()
+        try:
+            resp.data = db.driver.delete(dbquery)
+        except c.Error as e:
+            resp.errno = e.errno
+            resp.errmsg = e.errmsg
         response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
 
     def handleHead(self, classname, _id, path):
@@ -166,9 +181,11 @@ class API():
             dbquery.decode(request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        resp = db.driver.count(dbquery)  # we call driver direct for efficiency reason
-        if resp.isError():
-            msg = "Could not count objects in table '%s'. %s" % (obj._table, response.getError())
+        resp = c.Response()
+        try:
+            resp.data = db.driver.count(dbquery)  # we call driver direct for efficiency reason
+        except c.Error as e:
+            msg = "Could not count objects in table '%s'. %s" % (obj._table, e)
             log.debug(msg)
             self.status = '404 ' + msg
             return
@@ -203,28 +220,29 @@ class API():
 
 def _database():
     if len(path) != 1:
-        request.status = "404 not found"
+        request.status = "400 bad request, please provide name of database, as URL"
         return
+    resp = c.Response()
     dbname = path[0]
-    resp = db.driver.isDatabase(dbname)
-    if resp.isError():
-        request.status = "404 Not found"
-        return
-    
+    try:
+        resp.data = db.driver.isDatabase(dbname)
+    except c.Error as e:
+        resp.errno = e.errno
+        resp.errmsg = e.errmsg
     response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
     
 
 def _table():
     if len(path) != 1:
-        request.status = "400 Bad request"
+        request.status = "400 Bad request, please provide name of table, as URL"
         return
-    
+    resp = c.Response()
     table = path[0]
-    resp = db.driver.isTable(table)
-    if resp.isError():
-        request.status = "404 Not found"
-        return
-    
+    try:
+        resp.data = db.driver.isTable(table)
+    except c.Error as e:
+        resp.errno = e.errno
+        resp.errmsg = e.errmsg
     response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
 
 def _default():

@@ -45,7 +45,6 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium
 import basium_driver
 import basium_compatibilty as c
 
@@ -197,27 +196,27 @@ class Driver(basium_driver.Driver):
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.dbconf.debugSQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        response = c.urllib_request_urlopen(url, method, 
+        data, info = c.urllib_request_urlopen(url, method,
                                             username=self.dbconf.username,
                                             password=self.dbconf.password,
                                             data=data, decode=decode)
-        return response
+        return data, info
 
     def isDatabase(self, dbName):
         """
         Check if a database exist
         """
         url = '%s/_database/%s' %(self.uri, dbName )
-        response = self.execute(method='GET', url=url, decode=True)
-        return response
+        data, info = self.execute(method='GET', url=url, decode=True)
+        return data
 
     def isTable(self, tableName):
         """
         Check if a table exist
         """
         url = '%s/_table/%s' %(self.uri, tableName )
-        response = self.execute(method='GET', url=url, decode=True)
-        return response
+        data, info = self.execute(method='GET', url=url, decode=True)
+        return data
 
 #     def createTable(self, obj):
 #         """This is not valid for JSON API due to security issues"""
@@ -248,11 +247,8 @@ class Driver(basium_driver.Driver):
             url = '%s/%s' %(self.uri, query.table() )
         else:
             url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
-        response = self.execute(method='HEAD', url=url)
-        if not response.isError():
-            rows = response.info().get('X-Result-Count')
-            response.data = rows
-        return response
+        data, info = self.execute(method='HEAD', url=url)
+        return int( info().get('X-Result-Count') )
     
     def select(self, query):
         """
@@ -271,27 +267,31 @@ class Driver(basium_driver.Driver):
         else:
             # real query 
             url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
-        response = self.execute(method='GET', url=url, decode=True)
-        if response.isError():
-            raise basium_driver.DriverError(response.errno, response.errmsg)
-        return response.data
+        data, info = self.execute(method='GET', url=url, decode=True)
+        return data
 
     def insert(self, table, values):
         url = '%s/%s' % (self.uri, table)
-        response = self.execute(method='POST', url=url, data=values, decode=True)
-        return response
+        data, info = self.execute(method='POST', url=url, data=values, decode=True)
+        return data
 
     def update(self, table, values):
         url = '%s/%s/%s' % (self.uri, table, values['_id'])
-        response = self.execute(method='PUT', url=url, data=values, decode=True)
-        return response
+        data, info = self.execute(method='PUT', url=url, data=values, decode=True)
+        return data
 
     def delete(self, query):
+        """
+        delete a row from a table
+        "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
+        refuses to delete all rows in a table (empty query)
+        returns number of rows deleted
+        """
         if query.isId():
             # simple
             url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
         else:
             # real query 
             url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
-        response = self.execute('DELETE', url, decode = True)
-        return response
+        data, info = self.execute('DELETE', url, decode = True)
+        return data

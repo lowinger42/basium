@@ -43,7 +43,6 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium
 import basium_driver
 import basium_compatibilty as c
 
@@ -53,9 +52,7 @@ try:
 except ImportError:
     err = "Can't find the sqlite3 python module"
 if err:
-    raise basium_driver.DriverError(1, err)
-
-Response=c.Response
+    raise c.Error(1, err)
 
 class ColumnInfo:
     
@@ -125,7 +122,6 @@ class DateTimeCol(basium_driver.Column):
     """
     Stores date+time
     ignores microseconds
-    if default is 'NOW' the current date+time is stored
     """
     
     def typeToSql(self):
@@ -259,32 +255,25 @@ class Driver:
         self.connectionStatus = None
 
     def connect(self):
-        response = Response()
         try:
             self.dbconnection = sqlite3.connect(self.dbconf.database,  check_same_thread=False)
             self.dbconnection.row_factory = sqlite3.Row   # return querys as dictionaries
             self.cursor = self.dbconnection.cursor()
         except sqlite3.Error as e:
-            response.setError( 1, e.args[0] )
-
-        return response
+            raise c.Error(1, e.args[0])
     
     def disconnect(self):
         self.dbconnection = None
         self.tables = None
-        
 
     def execute(self, sql, values=None, commit=True):
         """
         Execute a query, if error try to reconnect and redo the query
         to handle timeouts
         """
-        response = Response()
         for i in range(0, 2):
             if self.dbconnection == None:
-                response = self.connect()
-                if response.isError():
-                    return response
+                self.connect()
             try:
                 if self.dbconf.debugSQL:
                     self.log.debug('SQL=%s' % sql)
@@ -296,39 +285,31 @@ class Driver:
                     self.cursor.execute(sql)
                 if commit:
                     self.dbconnection.commit()
-                return response
-                    
+                return
+
             except sqlite3.Error as e:
                 if i == 1:
-                    response.setError( 1, e.args[0] )
-            
-        return response
+                    raise c.Error( 1, e.args[0] )
     
     def isDatabase(self, dbName):
         """
         Returns True if the database exist
         We always return true, sqlite automatically creates the database when opened
         """
-        response = Response()
-        response.data = True
-        return response
+        return True
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
         if not self.tables:
             self.tables = {}
             sql = "SELECT name FROM sqlite_master WHERE type='table'"
-            response = self.execute(sql)
-            if not response.isError():
-                try:
-                    for row in self.cursor.fetchall():
-                        self.tables[row[0]] = 1
-                except sqlite3.Error as e:
-                    response.setError( 1, e.args[0] )
-                    return response
-        response = c.Response()
-        response.data = tableName in self.tables
-        return response
+            self.execute(sql)
+            try:
+                for row in self.cursor.fetchall():
+                    self.tables[row[0]] = 1
+            except sqlite3.Error as e:
+                raise c.Error( 1, e.args[0] )
+        return tableName in self.tables
 
     def createTable(self, obj):
         """Create a table"""
@@ -338,8 +319,8 @@ class Driver:
             columnlist.append('%s %s' % (colname, column.typeToSql()))
         sql += "  ,".join(columnlist)
         sql += ')'
-        response = self.execute(sql)
-        return response
+        self.execute(sql)
+        return True
 
     def tableTypeToSql(self, tabletype):
         """
@@ -369,9 +350,7 @@ class Driver:
         """
         
         sql = "PRAGMA table_info([%s])" % obj._table
-        response = self.execute(sql)
-        if response.isError():
-            return response
+        self.execute(sql)
 
         # cid, name, type, notnull, dflt_value, pk
         tabletypes = {}
@@ -410,8 +389,7 @@ class Driver:
                         unattended=False,
                         sqlcmd='ALTER TABLE %s DROP %s' % (obj._table, colname)
                         ))
-        response.data = actions
-        return response
+        return actions
 
     def modifyTable(self, obj, actions):
         """
@@ -420,10 +398,9 @@ class Driver:
         todo: sqlite only support a subset of functionality in "ALTER TABLE...", so we work around this
         by copying the table to a new one
         """
-        response = Response()
         if len(actions) == 0:
             self.log.debug("  Nothing to do")
-            return response
+            return
 
         print("Actions that needs to be done:")
         askForConfirmation = False
@@ -437,8 +414,7 @@ class Driver:
             print("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                response.setError(1, "Aborted!")
-                return response
+                raise c.Error(1, "Aborted!")
 
         # we first remove columns, so we dont get into conflicts
         # with the new columns, for example changing primary key (there can only be one primary key)
@@ -453,39 +429,33 @@ class Driver:
                 print("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
         self.dbconnection.commit()
-        return Response
 
     def count(self, query):
         sql = "select count(*) from %s" % (query.table())
         sql2, values = query.toSql()
         sql += sql2
-        rows = 0
-        response = self.execute(sql, values)
-        if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                if row != None:
-                    key = c.b('count(*)')
-                    rows = int(row[key])
-                else:
-                    response.setError(1, 'Cannot query for count(*) in %s' % (query.table()))
-            except sqlite3.Error as e:
-                response.setError( 1, e.args[0] )
-        response.data = rows
-        return response
+        self.execute(sql, values)
+        try:
+            row = self.cursor.fetchone()
+            if row != None:
+                key = c.b('count(*)')
+                rows = int(row[key])
+            else:
+                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+        except sqlite3.Error as e:
+            raise c.Error( 1, e.args[0] )
+        return rows
 
     def select(self, query):
         """
         Fetch one or multiple rows from a database
         Returns an object that can be iterated over, returning rows
-        If there is any errors, an DriverError exception is raised
+        If there is any errors, an exception is raised
         """
         sql = "SELECT * FROM %s" % query.table() 
         sql2, values = query.toSql()
         sql += sql2.replace("%s", "?")
-        response = self.execute(sql, values)
-        if response.isError():
-            raise basium_driver.DriverError(response.errno, response.errmsg)
+        self.execute(sql, values)
         return self.cursor
 
     def insert(self, table, values):
@@ -502,10 +472,8 @@ class Driver:
                 holder.append("?")
                 vals.append(val)
         sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ",".join(parms), ",".join(holder))
-        response = self.execute(sql, vals, commit=True)
-        if not response.isError():
-            response.data = self.cursor.lastrowid
-        return response
+        self.execute(sql, vals, commit=True)
+        return self.cursor.lastrowid
 
     def update(self, table, values):
         """Update a row in the table"""
@@ -519,23 +487,22 @@ class Driver:
                 primary_key_val = val
         sql = "UPDATE %s SET %s WHERE _id=?" % (table, ",".join(parms))
         vals.append(primary_key_val)
-        response = self.execute(sql, vals)
-        return response
+        self.execute(sql, vals)
 
     def delete(self, query):
         """
         delete a row from a table
          "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
+        returns number of rows deleted
         """
         sql = "DELETE FROM %s" % query.table() 
         sql2, values = query.toSql()
         if sql2 == '':
-            return Response(1, 'Missing query on delete(), empty query is not accepted')
+            raise c.Error(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2.replace("%s", "?")
-        response = self.execute(sql, values)
-        if not response.isError():
-            try:
-                response.data = self.cursor.rowcount
-            except sqlite3.Error as e:
-                response.setError( 1, e.args[0] )
-        return response
+        self.execute(sql, values)
+        try:
+            data = self.cursor.rowcount
+        except sqlite3.Error as e:
+            raise c.Error( 1, e.args[0] )
+        return data

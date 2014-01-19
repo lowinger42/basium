@@ -40,7 +40,6 @@ __metaclass__ = type
 import datetime
 import decimal
 
-import basium
 import basium_driver
 import basium_compatibilty as c
 
@@ -50,7 +49,7 @@ try:
 except ImportError:
     err = "Can't find the mysql.connector python module"
 if err:
-    raise basium_driver.DriverError(1, err)
+    raise c.Error(1, err)
 
 Response=c.Response
 
@@ -252,7 +251,6 @@ class Driver:
         self.tables = None
 
     def connect(self):
-        response = Response()
         try:
             if not self.dbconf.port:
                 self.dbconf.port = 3306
@@ -270,9 +268,7 @@ class Driver:
             if self.dbconnection:
                 self.dbconnection.commit()
         except mysql.connector.Error as err:
-            response.setError( err.errno, str(err) )
-            
-        return response
+            raise c.Error( err.errno, str(err) )
 
     def disconnect(self):
         self.dbconnection = None
@@ -283,23 +279,19 @@ class Driver:
         Execute a query, 
         if error try to reconnect and redo the query to handle timeouts
         """    
-        response = Response()
         for i in range(0, 2):
             if self.dbconnection == None:
-                response = self.connect()
-                if response.isError():
-                    return response
-            try:
+                self.connect()
                 if self.dbconf.debugSQL:
                     self.log.debug('SQL=%s, values=%s' % (sql, values))
+            try:
                 if values != None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
                 if commit:
                     self.dbconnection.commit()
-                return response
-                    
+                return
             except mysql.connector.Error as err:
                 if self.dbconnection != None:
                     try:
@@ -307,25 +299,21 @@ class Driver:
                     except mysql.connector.Error as err:
                         pass
                 if i == 1:
-                    response.setError( err.errno, str(err) )
+                    raise c.Error( err.errno, str(err) )
                 self.disconnect()
-            
-        return response
     
     def isDatabase(self, dbName):
         """Returns True if the database exist"""
         sql = "SELECT IF(EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s'), 'Yes','No')" % dbName
         exist = False
-        response = self.execute(sql)
-        if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                key = list(row.keys())[0]
-                exist = row[key] == 'Yes'
-            except mysql.connector.Error as err:
-                response.setError(err.errno, str(err))
-        response.data = exist
-        return response
+        self.execute(sql)
+        try:
+            row = self.cursor.fetchone()
+            key = list(row.keys())[0]
+            exist = row[key] == 'Yes'
+        except mysql.connector.Error as err:
+            raise c.Error(err.errno, str(err))
+        return exist
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
@@ -333,20 +321,14 @@ class Driver:
             # Read all tables and cache locally
             self.tables = {}
             sql = "show tables like %s"
-            response = self.execute(sql, (tableName,))
-            if not response.isError():
-                try:
-                    for row in self.cursor.fetchall():
-                        value= list(row.values())[0]
-                        self.tables[value] = 1
-                except mysql.connector.Error as err:
-                    response.setError(err.errno, str(err))
-                    return response
-            
-        response = c.Response()
-        response.data = tableName in self.tables
-        return response
-    
+            self.execute(sql, (tableName,))
+            try:
+                for row in self.cursor.fetchall():
+                    value= list(row.values())[0]
+                    self.tables[value] = 1
+            except mysql.connector.Error as err:
+                raise c.Error(err.errno, str(err))
+        return tableName in self.tables
 
     def createTable(self, obj):
         """Create a tablet"""
@@ -356,8 +338,7 @@ class Driver:
             columnlist.append('%s %s' % (colname, column.typeToSql()))
         sql += "\n  ,".join(columnlist)
         sql += '\n)'
-        response = self.execute(sql, commit=True)
-        return response
+        self.execute(sql, commit=True)
 
     def verifyTable(self, obj):
         """
@@ -366,9 +347,7 @@ class Driver:
         Returns list of Action, zero length if nothing needs to be done
         """
         sql = 'DESCRIBE %s' % obj._table
-        response = self.execute(sql)
-        if response.isError():
-            return response
+        self.execute(sql)
         tabletypes = {}
         rows = self.cursor.fetchall()
         for row in rows:
@@ -407,13 +386,12 @@ class Driver:
             self.log.debug("SQL Table '%s' matches the object" % obj._table)
         else:
             self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
-        response.data = actions
-        return response
+        return actions
 
     def modifyTable(self, obj, actions):
         """
         Update table to latest definition of class
-        actions is the result from verifytable
+        actions is the result from verifyTable()
         """
         self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
@@ -454,19 +432,15 @@ class Driver:
         sql = "select count(*) from %s" % (query.table())
         sql2, values = query.toSql()
         sql += sql2
-        rows = 0
-        response = self.execute(sql, values)
-        if not response.isError():
-            try:
-                row = self.cursor.fetchone()
-                if row != None:
-                    rows = int(row['count(*)'])
-                else:
-                    response.setError(1, 'Cannot query for count(*) in %s' % (query.table()))
-            except mysql.connector.Error as err:
-                response.setError(err.errno, str(err))
-        response.data = rows
-        return response
+        self.execute(sql, values)
+        try:
+            row = self.cursor.fetchone()
+            if row == None:
+                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+            rows = int(row['count(*)'])
+        except mysql.connector.Error as err:
+            raise c.Error(err.errno, str(err))
+        return rows
 
     def select(self, query):
         """
@@ -477,9 +451,7 @@ class Driver:
         sql = "SELECT * FROM %s" % query.table() 
         sql2, values = query.toSql()
         sql += sql2
-        response = self.execute(sql, values)
-        if response.isError():
-            raise basium_driver.DriverError(response.errno, response.errmsg)
+        self.execute(sql, values)
         return self.cursor
 
     def insert(self, table, values):
@@ -496,10 +468,8 @@ class Driver:
                 holder.append("%s")
                 vals.append(val)
         sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % (table, ",".join(parms), ",".join(holder))
-        response = self.execute(sql, vals, commit=True)
-        if not response.isError():
-            response.data = self.cursor.lastrowid
-        return response
+        self.execute(sql, vals, commit=True)
+        return self.cursor.lastrowid
 
     def update(self, table, values):
         """Update a row in the table"""
@@ -513,21 +483,19 @@ class Driver:
                 primary_key_val = val
         sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), '_id')
         vals.append(primary_key_val)
-        response = self.execute(sql, vals, commit=True)
-        return response
+        self.execute(sql, vals, commit=True)
 
     def delete(self, query):
         """
         delete a row from a table
         "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
         refuses to delete all rows in a table (empty query)
+        returns number of rows deleted
         """
         sql = "DELETE FROM %s" % query.table()
         sql2, values = query.toSql()
         if sql2 == '':
-            return Response(1, 'Missing query on delete(), empty query is not accepted')
+            raise c.Error(1, 'delete() with empty query not accepted')
         sql += sql2
-        response = self.execute(sql, values, commit=True)
-        if not response.isError():
-            response.data = self.cursor.rowcount
-        return response
+        self.execute(sql, values, commit=True)
+        return self.cursor.rowcount

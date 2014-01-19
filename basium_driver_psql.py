@@ -41,7 +41,6 @@ import sys
 import datetime
 import decimal
 
-import basium
 import basium_driver
 import basium_compatibilty as c
 
@@ -52,13 +51,12 @@ try:
 except ImportError:
     err = "Can't find the psycopg2 python module"
 if err:
-    raise basium_driver.DriverError(1, err)
+    raise c.Error(1, err)
 
 if sys.version_info[0] < 3:
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
-Response=c.Response
 
 #
 # These are shadow classes from the basium_model
@@ -281,7 +279,6 @@ class Driver:
         self.tables = None
 
     def connect(self):
-        response = Response()
         try:
             if not self.dbconf.port:
                 self.dbconf.port = 5432
@@ -289,8 +286,7 @@ class Driver:
                 host=self.dbconf.host, port=self.dbconf.port, user=self.dbconf.username, password=self.dbconf.password, dbname=self.dbconf.database)
             self.cursor = self.dbconnection.cursor(cursor_factory=psycopg2.extras.DictCursor)
         except psycopg2.DatabaseError as e:
-            response.setError( 1, str(e) )
-        return response
+            raise c.Error( 1, str(e) )
     
     def disconnect(self):
         self.dbconnection = None
@@ -301,12 +297,9 @@ class Driver:
         Execute a query
         If error try to reconnect and redo the query to handle timeouts
         """
-        response = Response()
         for i in range(0, 2):
             if self.dbconnection == None:
-                response = self.connect()
-                if response.isError():
-                    return response
+                self.connect()
             try:
                 if self.dbconf.debugSQL:
                     self.log.debug(self.cursor.mogrify(sql, values))
@@ -316,37 +309,29 @@ class Driver:
                     self.cursor.execute(sql)
                 if commit:
                     self.dbconnection.commit()
-                return response
-                    
+                return
+
             except psycopg2.DatabaseError as e:
                 if i == 1:
-                    response.setError( 1, str(e) )
+                    raise c.Error( 1, str(e) )
                 self.disconnect()
 #                    try:
 #                        self.dbconnection.rollback()    # make sure to clear any previous hanging transactions
 #                    except psycopg2.DatabaseError, e:
 #                        pass
-             
-        return response
     
     def isDatabase(self, dbName):
         """Returns True if the database exist"""
-        response = Response()
         sql = "select * from pg_database where datname=%s" # % dbName
         values = (dbName,)
-        exist = False
+        self.execute(sql, values)
         try:
-            resp = self.execute(sql, values)
-            if resp.isError():
-                return resp
             row = self.cursor.fetchone()
             if row and len(row) > 0:
                 exist = row[0] == dbName
         except psycopg2.DatabaseError as e:
-            response.setError( 1, str(e) )
-
-        response.data = exist
-        return response
+            raise c.Error( 1, str(e) )
+        return exist
 
     def isTable(self, tableName):
         """Returns True if the table exist"""
@@ -354,33 +339,23 @@ class Driver:
             self.tables = {}
             sql = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
             values = (tableName,)
+            self.execute(sql, values)
             try:
-                response = self.execute(sql, values)
-                if response.isError():
-                    return response
                 for row in self.cursor.fetchall():
                     self.tables[row[0]] = 1
             except psycopg2.DatabaseError as e:
-                response.setError( 1, str(e) )
-                return response
-
-        response = c.Response()
-        response.data = tableName in self.tables
-        return response
+                raise c.Error( 1, str(e) )
+        return tableName in self.tables
 
     def createTable(self, obj):
         """Create a table"""
-        response = Response()
         sql = 'CREATE TABLE %s (' % obj._table
         columnlist = []
         for colname, column in obj._iterNameColumn():
             columnlist.append('"%s" %s' % (colname, column.typeToSql()))
         sql += ",".join(columnlist)
         sql += ')'
-        res = self.execute(sql, commit=True)
-        if res.isError():
-            return res
-        return response
+        self.execute(sql, commit=True)
 
     def verifyTable(self, obj):
         """
@@ -388,7 +363,6 @@ class Driver:
         Returns None if table does not exist
         Returns list of Action, zero length if nothing needs to be done
         """
-        response = Response()
         actions = []
 #        sql = 'DESCRIBE %s' % obj._table
 #        for i in range(0,2):
@@ -439,8 +413,7 @@ class Driver:
 #            self.log.debug("SQL Table '%s' matches the object" % obj._table)
 #        else:
 #            self.log.debug("SQL Table '%s' DOES NOT match the object, need changes" % obj._table)
-        response.data = actions
-        return response
+        return actions
 
     def modifyTable(self, obj, actions):
         """
@@ -489,28 +462,26 @@ class Driver:
         sql2, values = query.toSql()
         sql += sql2
 
-        response = self.execute(sql, values)
-        if not response.isError():
+        self.execute(sql, values)
+        try:
             row = self.cursor.fetchone()
-            if row != None:
-                response.data = int(row[0])
-            else:
-                response.setError(1, 'Cannot query for count(*) in %s' % (query.table()))
-        return response
+            if row == None:
+                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+            data = int(row[0])
+        except psycopg2.DatabaseError as e:
+            raise c.Error( 1, str(e) )
+        return data
 
     def select(self, query):
         """
         Fetch one or multiple rows from a database
         Returns an object that can be iterated over, returning rows
-        If there is any errors, an DriverError exception is raised
+        If there is any errors, an exception is raised
         """
         sql = "SELECT * FROM %s" % query.table() 
         sql2, values = query.toSql()
         sql += sql2
-        response = self.execute(sql, values)
-        if response.isError():
-            raise basium_driver.DriverError(response.errno, response.errmsg)
-            
+        self.execute(sql, values)
         return self.cursor
 
     def insert(self, table, values):
@@ -527,10 +498,12 @@ class Driver:
                 holder.append("%s")
                 vals.append(val)
         sql = "INSERT INTO %s ( %s ) VALUES ( %s ) RETURNING _id" % (table, ",".join(parms), ",".join(holder))
-        response = self.execute(sql, vals, commit=True)
-        if not response.isError():
-            response.data = self.cursor.fetchone()[0]
-        return response
+        self.execute(sql, vals, commit=True)
+        try:
+            data = self.cursor.fetchone()[0]
+        except psycopg2.DatabaseError as e:
+            raise c.Error( 1, str(e) )
+        return data
 
     def update(self, table, values):
         """Update a row in the table"""
@@ -544,21 +517,18 @@ class Driver:
                 primary_key_val = val
         sql = "UPDATE %s SET %s WHERE %s=%%s" % (table, ",".join(parms), '_id')
         vals.append(primary_key_val)
-        response = self.execute(sql, vals, commit=True)
-        response.data = None
-        return response
+        self.execute(sql, vals, commit=True)
 
     def delete(self, query):
         """
         delete a row from a table
         "DELETE FROM EMPLOYEE WHERE AGE > '%s'", (20, )
+        returns number of rows deleted
         """
         sql = "DELETE FROM %s" % query.table()
         sql2, values = query.toSql()
         if sql2 == '':
-            return Response(1, 'Missing query on delete(), empty query is not accepted')
+            raise c.Error(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2
-        response = self.execute(sql, values, commit=True)
-        if not response.isError():
-            response.data = self.cursor.rowcount
-        return response
+        self.execute(sql, values, commit=True)
+        return self.cursor.rowcount

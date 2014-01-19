@@ -185,10 +185,6 @@ class VarcharCol(Column):
         except:
             return value
 
-class DriverError(Exception):
-    def __init__(self, errno=1, errmsg=""):
-        self.errno = errno
-        self.errmsg = errmsg
 
 class Driver:
     """
@@ -196,44 +192,37 @@ class Driver:
     """
 
     def connect(self):
-        return c.Response()
+        raise c.Error(1, 'Not implemented')
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        return c.Response(1, 'Not implemented')
+        raise c.Error(1, 'Not implemented')
 
     def isDatabase(self, dbName):
-        response = c.Response()
-        response.data = True
-        return response
+        return True
 
     def isTable(self, tableName):
-        response = c.Response()
-        response.data = True
-        return response
+        return True
 
     def createTable(self, obj):
-        response = c.Response()
-        return response
+        return True
 
     def verifyTable(self, obj):
-        response = c.Response()
-        response.data = []
-        return response
+        return []
     
     def modifyTable(self, obj, actions):
         return True
 
     def count(self, query):
-        return c.Response(1, 'Not implemented')
+        raise c.Error(1, 'Not implemented')
     
     def select(self, query):
-        raise DriverError(1, "Not implemented")
+        raise c.Error(1, "Not implemented")
 
     def insert(self, table, values):
-        return c.Response(1, 'Not implemented')
+        raise c.Error(1, 'Not implemented')
 
     def update(self, table, values):
-        return c.Response(1, 'Not implemented')
+        raise c.Error(1, 'Not implemented')
 
     def delete(self, query):
-        return c.Response(1, 'Not implemented')
+        raise c.Error(1, 'Not implemented')

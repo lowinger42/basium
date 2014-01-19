@@ -43,6 +43,7 @@ import logging
 import basium
 import basium_model
 import basium_wsgihandler
+import basium_compatibilty as c
 import test_tables
 
 # ----- Start of module globals
@@ -108,6 +109,7 @@ objFactory = ObjectFactory()
 
 class TestFunctions(unittest.TestCase):
     """TestFunctions, test the store, load, delete, filter orm functions"""
+
     def setUp(self):
         # Based on driver, create a dbconf object
         self.dbconf = None
@@ -137,15 +139,18 @@ class TestFunctions(unittest.TestCase):
          Compare and see if the two are equal
         """
         log.info("Store object in table '%s'" % obj1._table )
-        response1 = self.db.store(obj1)
-        self.assertFalse( response1.isError(), msg="Could not store object " + response1.getError())
+        try:
+            data1 = self.db.store(obj1)
+        except c.Error as e:
+            self.assertFalse( True, msg="Could not store object %s" % e)
         
         log.info("Load same object from table '%s'" % (obj1._table) )
         obj2._id = obj1._id
-        response2 = self.db.load(obj2)
-        self.assertFalse( response2.isError(), msg="Could not load object " + response2.getError())
+        try:
+            rows = self.db.load(obj2)
+        except c.Error as e:
+            self.assertFalse( True, msg="Could not load object %s" % e)
 
-        rows = response2.data
         self.assertEqual( len(rows), 1, msg="Only expected one row in result, got %s" % len(rows))
         
         obj2 = rows[0]
@@ -167,22 +172,26 @@ class TestFunctions(unittest.TestCase):
     def testUpdate(self):
         """Test the update functionality"""
         test1 = objFactory.new( self.Cls, 1 )
-        res = self.db.store(test1)
-        self.assertFalse(res.isError(), msg="Can't store new object " + res.getError())
+        try:
+            data = self.db.store(test1)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't store new object %s" % e)
         
         test1.varcharTest += " more text"
-        res = self.db.store(test1)
-        self.assertFalse(res.isError(), msg="Can't update object " + res.getError())
+        try:
+            _id = self.db.store(test1)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't update object %s" % e)
         
-        test2 = self.Cls()
-        test2._id = test1._id
-        res = self.db.load(test2)
-        self.assertFalse(res.isError(), msg="Can't load updated object " + res.getError())
+        test2 = self.Cls(_id)
+        try:
+            data = self.db.load(test2)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't load updated object %s" % e)
 
-        test2 = res.data[0]
+        test2 = data[0]
         self.assertEqual(test1.varcharTest, test2.varcharTest, msg =
             "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
-
 
     def testQuery(self):
         """Test the query functionality"""
@@ -191,18 +200,21 @@ class TestFunctions(unittest.TestCase):
         first = None
         for rowid in range(100,115):
             obj1 = objFactory.new( self.Cls, rowid )
-            res = self.db.store(obj1)
-            self.assertFalse( res.isError(), msg="Could not store object " + res.getError())
+            try:
+                data = self.db.store(obj1)
+            except c.Error as e:
+                self.assertFalse( True, msg="Could not store object %s" % e)
             if not first:
                 first = obj1._id
 
         query = self.db.query()
         obj = self.Cls()
         query.filter(obj.q._id, '>', first + 2).filter(obj.q._id, '<', first + 13)
-        res = self.db.load(query)
-        self.assertFalse(res.isError(), msg="Can't query objects " + res.getError())
+        try:
+            data = self.db.load(query)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't query objects %s" % e)
         
-        data = res.data
         self.assertEqual(len(data), 10, msg="Wrong number of objects returned, expected %s got %s" % (10, len(data)))
         if len(data) == 10:
             for i in range(0, 10):
@@ -211,22 +223,27 @@ class TestFunctions(unittest.TestCase):
     def testDelete(self):
         test1 = objFactory.new( self.Cls, 1 )
         log.info("Store object in table '%s'" % test1._table )
-        res = self.db.store(test1)
-        self.assertFalse(res.isError(), msg="Can't store new object " + res.getError()) 
+        try:
+            _id = self.db.store(test1)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't store new object %s" % e)
         
-        _id = test1._id
+        rowsaffected = None
         log.info("Delete object in table '%s'" % test1._table )
-        res = self.db.delete(test1)
-        self.assertFalse(res.isError(), msg="Can't delete object " + res.getError()) 
+        try:
+            rowsaffected = self.db.delete(test1)
+        except c.Error as e:
+            self.assertFalse(True, msg="Can't delete object %s" % e) 
         
-        rowsaffected = res.data
-        self.assertEqual(rowsaffected, 1, "Expected delete to affect one row")
+        self.assertEqual(rowsaffected, 1)
     
         # Try to get the object we just deleted        
         log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table )
         test2 = self.Cls()
-        res = self.db.load(test2)
-        self.assertTrue(res.isError(), msg="Expected error when loading deleted object " + res.getError())
+        try:
+            data = self.db.load(test2)
+        except c.Error as e:
+            self.assertTrue(True, msg="Expected error when loading deleted object %s" % e)
 
 
 class TestModel(unittest.TestCase):
