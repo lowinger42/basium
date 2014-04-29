@@ -47,7 +47,6 @@ import datetime
 import decimal
 
 import basium_compatibilty as c
-import basium_driver
 
 log = c.Logger()
 log.info("Basium default logger started")
@@ -56,6 +55,7 @@ log.info("Basium default logger started")
 import basium_orm
 import basium_model
 
+Error = c.Error
 
 class DbConf:
     """Information to the selected database driver, how to connect to database"""
@@ -87,6 +87,7 @@ class Basium(basium_orm.BasiumOrm):
         self.cls = {}
         self.drivermodule = None
         self.Response = c.Response    # for convenience in dynamic pages
+        self.Error = c.Error          # for convenience in dynamic pages
 
     def addClass(self, cls):
         if not isinstance(cls, type):
