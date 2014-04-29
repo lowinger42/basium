@@ -56,6 +56,7 @@ log.info("Basium default logger started")
 import basium_orm
 import basium_model
 
+Error = c.Error
 
 class DbConf:
     """Information to the selected database driver, how to connect to database"""
