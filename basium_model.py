@@ -132,7 +132,6 @@ class ModelMetaClass(type):
             cls._table = dct["_table"]
         else:
             cls._table = name.lower()
-        print("_table=", cls._table)
         cls._columns = {}
         cls._values = {}
 
