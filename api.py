@@ -42,6 +42,17 @@ import basium_model
 import basium_driver
 import basium_driver_json
 
+def writejson(resp):
+#    resp.errmsg = c.to_bytes(resp.errmsg)
+    try:
+        tmp = json.dumps(resp.dict(), cls=db.JsonOrmEncoder)
+        response.write( tmp )
+    except ValueError:
+        raise c.Error(1, "JSON ValueError for " + resp.dict())
+    except TypeError:
+        raise c.Error(1, "JSON TypeError for " + resp.dict())
+
+
 class API():
 
     def getData(self, obj):
@@ -107,7 +118,7 @@ class API():
             resp.setError(1, msg)
             resp.status = '404 ' + msg
             return
-        response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
+        writejson(resp)
 
     def handlePost(self, classname, _id, path):
         if _id != None:
@@ -122,7 +133,7 @@ class API():
         except c.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
-        response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
+        writejson(resp)
 
     def handlePut(self, classname, _id, path):
         if _id == None:
@@ -139,7 +150,7 @@ class API():
         except c.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
-        response.write(json.dumps(resp.dict(), cls=db.JsonOrmEncoder))
+        writejson(resp)
 
     def handleDelete(self, classname, _id, path):
         obj = classname()
@@ -163,7 +174,7 @@ class API():
         except c.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
-        response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
+        writejson(resp)
 
     def handleHead(self, classname, _id, path):
         """
@@ -229,7 +240,7 @@ def _database():
     except c.Error as e:
         resp.errno = e.errno
         resp.errmsg = e.errmsg
-    response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
+    writejson(resp)
     
 
 def _table():
@@ -243,7 +254,7 @@ def _table():
     except c.Error as e:
         resp.errno = e.errno
         resp.errmsg = e.errmsg
-    response.write( json.dumps(resp.dict(), cls=db.JsonOrmEncoder) )
+    writejson(resp)
 
 def _default():
     api = API()
