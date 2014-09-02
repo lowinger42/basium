@@ -68,12 +68,12 @@ class Response():
     stdout is redirected to the write() function. All data is
     stored as bytes, since that is what WSGI/HTML works with.
     """
-    def __init__(self):
+    def __init__(self, encoding="utf-8"):
         self.status = "200 OK"
         self.contentType = 'text/plain'
         self.headers = []
         self.out = []
-        self.encoding = None
+        self.encoding = encoding
         self.length = 0
 
     def write(self, msg, encoding=True):
@@ -265,7 +265,6 @@ class AppServer:
         self.request.method = environ['REQUEST_METHOD']
         self.request.querystr = environ['QUERY_STRING']
         self.response = Response()
-        self.response.encoding = "utf-8"  # default encoding
         
         if self.request.method in ['POST', 'PUT']:
             # get the posted data
