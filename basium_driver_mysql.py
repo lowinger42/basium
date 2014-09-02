@@ -52,7 +52,6 @@ except ImportError:
 if err:
     raise c.Error(1, err)
 
-Response=c.Response
 
 class BooleanCol(basium_driver.Column):
     """Stores boolean as number: 0 or 1"""
