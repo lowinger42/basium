@@ -184,7 +184,7 @@ class AppServer:
         mimetype = mimetypes.guess_type(ur.abspath)
         if mimetype[0] != None:
             self.response.contentType = mimetype[0]
-        if mimetype[0] == 'text/x-python':
+        if self.response.contentType == 'text/x-python':
             # we import and execute code in the module
             self.response.contentType = 'text/html'
 
