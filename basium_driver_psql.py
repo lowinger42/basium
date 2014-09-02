@@ -53,9 +53,8 @@ except ImportError:
 if err:
     raise c.Error(1, err)
 
-if sys.version_info[0] < 3:
-    psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
-    psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 
 #
