@@ -38,6 +38,7 @@ __metaclass__ = type
 
 import json
 
+import basium_common as bc
 import basium_compatibilty as c
 import basium_model
 import basium_driver
@@ -48,9 +49,9 @@ def writejson(resp):
         tmp = json.dumps(resp.dict(), cls=db.JsonOrmEncoder)
         response.write( tmp )
     except ValueError:
-        raise c.Error(1, "JSON ValueError for " + resp.dict())
+        raise bc.Error(1, "JSON ValueError for " + resp.dict())
     except TypeError:
-        raise c.Error(1, "JSON TypeError for " + resp.dict())
+        raise bc.Error(1, "JSON TypeError for " + resp.dict())
 
 
 class API():
@@ -97,7 +98,7 @@ class API():
             dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Get one row in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
         
-        resp = c.Response()
+        resp = bc.Response()
         try:
             resp.data = []
             for row in db.driver.select(dbquery):  # we call driver directly for efficiency reason
@@ -127,7 +128,7 @@ class API():
         obj = classname()
         log.debug("Insert one row in table '%s'" % (obj._table))
         postdata = self.getData(obj)
-        resp = c.Response()
+        resp = bc.Response()
         try:
             resp.data = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
         except db.Error as e:
@@ -144,7 +145,7 @@ class API():
         log.debug("Update one row in table '%s'" % (obj._table))
         putdata = self.getData(obj)
         putdata['_id'] = _id
-        resp = c.Response()
+        resp = bc.Response()
         try:
             resp.data = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
         except db.Error as e:
@@ -168,7 +169,7 @@ class API():
             # one row, identified by rowID
             dbquery = db.query().filter(obj.q._id, '=', _id)
             log.debug("Delete one row in table '%s' matching id %s" % (obj._table, _id))
-        resp = c.Response()
+        resp = bc.Response()
         try:
             resp.data = db.driver.delete(dbquery)
         except db.Error as e:
@@ -192,7 +193,7 @@ class API():
             dbquery.decode(request.querystr)
             log.debug("Count all rows in table '%s' matching query %s" % (obj._table, dbquery.toSql()))
 
-        resp = c.Response()
+        resp = bc.Response()
         try:
             resp.data = db.driver.count(dbquery)  # we call driver direct for efficiency reason
         except db.Error as e:
@@ -233,7 +234,7 @@ def _database():
     if len(path) != 1:
         request.status = "400 bad request, please provide name of database, as URL"
         return
-    resp = c.Response()
+    resp = bc.Response()
     dbname = path[0]
     try:
         resp.data = db.driver.isDatabase(dbname)
@@ -247,7 +248,7 @@ def _table():
     if len(path) != 1:
         request.status = "400 Bad request, please provide name of table, as URL"
         return
-    resp = c.Response()
+    resp = bc.Response()
     table = path[0]
     try:
         resp.data = db.driver.isTable(table)

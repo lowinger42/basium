@@ -38,94 +38,8 @@ import sys
 import json
 import base64
 import urllib
-import logging.handlers
 
-
-class Logger():
-
-    def __init__(self, loglevel=logging.DEBUG, formatstr='%(asctime)s %(levelname)s %(message)s ', syslog=False):
-        self.logger = logging.getLogger('basium')
-        self.logger.setLevel(loglevel)
-
-        # remove all handlers
-        for hdlr in self.logger.handlers:
-            self.logger.removeHandler(hdlr)
-
-        if syslog:
-            self.syslogger = logging.handlers.SysLogHandler(address='/dev/logger')
-            self.syslogger.setLevel(loglevel)
-            
-            self.formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
-            self.syslogger.setFormatter(self.formatter)
-            self.logger.addHandler(self.syslogger)
-        else:
-            self.consolehandler = logging.StreamHandler()
-            self.consolehandler.setLevel(loglevel)
-            
-            self.formatter = logging.Formatter(formatstr)
-            self.consolehandler.setFormatter(self.formatter)
-            self.logger.addHandler(self.consolehandler)
-
-    def info(self, msg):
-        msg = str(msg).replace('\n', ', ')
-        self.logger.info(to_bytes(msg))
-
-    def warning(self, msg):
-        msg = str(msg).replace('\n', ', ')
-        self.logger.warning(to_bytes(msg))
-
-    def error(self, msg):
-        msg = str(msg).replace('\n', ', ')
-        self.logger.error(to_bytes(msg))
-
-    def debug(self, msg):
-        try:
-            msg = str(msg).replace('\n', ', ')
-        except UnicodeDecodeError:
-            return
-        self.logger.debug(to_bytes(msg))
-
-
-class Response():
-    """
-    Main result object from functions etc.
-    
-    Makes it possible to return both status and the result data
-    """
-    
-    def __init__(self, errno=0, errmsg=''):
-        self.errno = errno
-        self.errmsg = errmsg
-        self.data = None
-
-    def __str__(self):
-        return "errno=%s, errmsg=%s, data=%s" % (self.errno, self.errmsg, self.data)
-
-    def ok(self):
-        return self.errno == 0
-
-    def isError(self):
-        return self.errno != 0
-
-    def getError(self):
-        return "Errno: %d Errmsg: '%s'" % (self.errno, self.errmsg)
-
-    def setError(self, errno=1, errmsg=''):
-        self.errno = errno
-        self.errmsg = errmsg
-        
-    def dict(self):
-        return { "errno": self.errno, "errmsg": self.errmsg, "data": self.data}
-
-
-class Error(Exception):
-    def __init__(self, errno=1, errmsg=""):
-        self.errno = errno
-        self.errmsg = errmsg
-    
-    def __str__(self):
-        return "errno=%s, errmsg=%s" % (self.errno, self.errmsg)        
-
+import basium_common as bc
 
 major, minor = sys.version_info[0:2]
 
@@ -199,11 +113,11 @@ if major < 3:
                 resp = urllib2.urlopen(req)
             info = resp.info
         except urllib2.HTTPError as e:
-            raise Error(1, "HTTPerror %s" % e)
+            raise bc.Error(1, "HTTPerror %s" % e)
         except urllib2.URLError as e:
-            raise Error(1, "URLerror %s" % e)
+            raise bc.Error(1, "URLerror %s" % e)
         except httplib.HTTPException as e:
-            raise Error(1, 'HTTPException %s' % e)
+            raise bc.Error(1, 'HTTPException %s' % e)
 
         if decode:
             encoding = None # resp.headers.get_content_charset()
@@ -215,16 +129,16 @@ if major < 3:
                 res = json.loads(tmp)
                 resp.close()
             except ValueError:
-                raise Error(1, "JSON ValueError for " + tmp)
+                raise bc.Error(1, "JSON ValueError for " + tmp)
             except TypeError:
-                raise Error(1, "JSON TypeError for " + tmp)
+                raise bc.Error(1, "JSON TypeError for " + tmp)
 
             try:
                 if res['errno'] != 0:
-                    raise Error(res['errno'], res['errmsg'])
+                    raise bc.Error(res['errno'], res['errmsg'])
                 respdata = res["data"]
             except KeyError:
-                raise Error(1, "Result keyerror, missing errno/errmsg")
+                raise bc.Error(1, "Result keyerror, missing errno/errmsg")
 
         return respdata, info
 
@@ -315,9 +229,9 @@ else:
                 resp = urllib.request.urlopen(req)
             info = resp.info
         except urllib.error.HTTPError as e:
-            raise Error(1, "HTTPerror %s" % e)
+            raise bc.Error(1, "HTTPerror %s" % e)
         except urllib.error.URLError as e:
-            raise Error(1, "URLerror %s" % e)
+            raise bc.Error(1, "URLerror %s" % e)
         
         if decode:
             encoding = resp.headers.get_content_charset()
@@ -328,16 +242,16 @@ else:
                 res = json.loads(tmp)
                 resp.close()
             except ValueError:
-                raise Error(1, "JSON ValueError for " + tmp)
+                raise bc.Error(1, "JSON ValueError for " + tmp)
             except TypeError:
-                raise Error(1, "JSON TypeError for " + tmp)
+                raise bc.Error(1, "JSON TypeError for " + tmp)
 
             try:
                 if res['errno'] != 0:
-                    raise Error(res['errno'], res['errmsg'])
+                    raise bc.Error(res['errno'], res['errmsg'])
                 respdata = res["data"]
             except KeyError:
-                raise Error(1, "Result keyerror, missing errno/errmsg")
+                raise bc.Error(1, "Result keyerror, missing errno/errmsg")
 
         return respdata, info
     

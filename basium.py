@@ -46,18 +46,17 @@ import json
 import datetime
 import decimal
 
-from basium_common import *
-
+import basium_common as bc
 import basium_compatibilty as c
 
-log = c.Logger()
+log = bc.Logger()
 log.info("Basium default logger started")
 
 # These must be after definition of the logger instance
 import basium_orm
 import basium_model
 
-Error = c.Error
+Error = bc.Error
 
 class DbConf:
     """Information to the selected database driver, how to connect to database"""
@@ -88,8 +87,8 @@ class Basium(basium_orm.BasiumOrm):
         
         self.cls = {}
         self.drivermodule = None
-        self.Response = c.Response    # for convenience in dynamic pages
-        self.Error = c.Error          # for convenience in dynamic pages
+        self.Response = bc.Response      # for convenience in dynamic pages
+        self.Error = bc.Error            # for convenience in dynamic pages
         self.debug = 0
 
     def setDebug(self, debugLevel):
@@ -111,7 +110,7 @@ class Basium(basium_orm.BasiumOrm):
     class JsonOrmEncoder(json.JSONEncoder):
         """Handle additional types in JSON encoder"""
         def default(self, obj):
-            if isinstance(obj, c.Response):
+            if isinstance(obj, bc.Response):
                 return obj.data
             if isinstance(obj, datetime.date):
                 return strFromDatetime(obj)
@@ -133,7 +132,7 @@ class Basium(basium_orm.BasiumOrm):
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
-        except c.Error as err:
+        except bc.Error as err:
             self.log.error(str(err))
             return None
         except ImportError:

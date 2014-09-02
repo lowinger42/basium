@@ -40,9 +40,9 @@ __metaclass__ = type
 import datetime
 import decimal
 
-from basium_common import *
-import basium_driver
+import basium_common as bc
 import basium_compatibilty as c
+import basium_driver
 
 err = None
 try:
@@ -50,7 +50,7 @@ try:
 except ImportError:
     err = "Can't find the mysql.connector python module"
 if err:
-    raise c.Error(1, err)
+    raise bc.Error(1, err)
 
 
 class BooleanCol(basium_driver.Column):
@@ -262,13 +262,13 @@ class Driver:
                                     db=c.b(self.dbconf.database))
             self.cursor = self.dbconnection.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
-            if self.debug & DEBUG_SQL:
+            if self.debug & bc.DEBUG_SQL:
                 self.log.debug('SQL=%s' % sql)
             self.cursor.execute(sql)
             if self.dbconnection:
                 self.dbconnection.commit()
         except mysql.connector.Error as err:
-            raise c.Error( err.errno, str(err) )
+            raise bc.Error( err.errno, str(err) )
 
     def disconnect(self):
         self.dbconnection = None
@@ -282,7 +282,7 @@ class Driver:
         for i in range(0, 2):
             if self.dbconnection == None:
                 self.connect()
-                if self.debug & DEBUG_SQL:
+                if self.debug & bc.DEBUG_SQL:
                     self.log.debug('SQL=%s, values=%s' % (sql, values))
             try:
                 if values != None:
@@ -299,7 +299,7 @@ class Driver:
                     except mysql.connector.Error as err:
                         pass
                 if i == 1:
-                    raise c.Error( err.errno, str(err) )
+                    raise bc.Error( err.errno, str(err) )
                 self.disconnect()
     
     def isDatabase(self, dbName):
@@ -312,7 +312,7 @@ class Driver:
             key = list(row.keys())[0]
             exist = row[key] == 'Yes'
         except mysql.connector.Error as err:
-            raise c.Error(err.errno, str(err))
+            raise bc.Error(err.errno, str(err))
         return exist
 
     def isTable(self, tableName):
@@ -327,7 +327,7 @@ class Driver:
                     value= list(row.values())[0]
                     self.tables[value] = 1
             except mysql.connector.Error as err:
-                raise c.Error(err.errno, str(err))
+                raise bc.Error(err.errno, str(err))
         return tableName in self.tables
 
     def createTable(self, obj):
@@ -358,7 +358,7 @@ class Driver:
                 tabletype = tabletypes[colname]
                 if column.typeToSql() != column.tableTypeToSql(tabletype):
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    if self.debug & DEBUG_TABLE_MGMT:
+                    if self.debug & bc.DEBUG_TABLE_MGMT:
                         self.log.debug(msg)
                         self.log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
                         self.log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
@@ -369,7 +369,7 @@ class Driver:
                             ))
             else:
                 msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug(" " + msg)
                 actions.append(Action(
                         msg=msg,
@@ -395,29 +395,29 @@ class Driver:
         Update table to latest definition of class
         actions is the result from verifyTable()
         """
-        if self.debug & DEBUG_TABLE_MGMT:
+        if self.debug & bc.DEBUG_TABLE_MGMT:
             self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
-            if self.debug & DEBUG_TABLE_MGMT:
+            if self.debug & bc.DEBUG_TABLE_MGMT:
                 self.log.debug("  Nothing to do")
             return False
 
-        if self.debug & DEBUG_TABLE_MGMT:
+        if self.debug & bc.DEBUG_TABLE_MGMT:
             self.log.debug("Actions that needs to be done:")
         askForConfirmation = False
         for action in actions:
-            if self.debug & DEBUG_TABLE_MGMT:
+            if self.debug & bc.DEBUG_TABLE_MGMT:
                 self.log.debug("  " + action.msg)
                 self.log.debug("   SQL: " + action.sqlcmd)
             if not action.unattended:
                 askForConfirmation = True
 
         if askForConfirmation:
-            if self.debug & DEBUG_TABLE_MGMT:
+            if self.debug & bc.DEBUG_TABLE_MGMT:
                 self.log.debug("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug("Aborted!")
                     return True
 
@@ -425,13 +425,13 @@ class Driver:
         # with the new columns, for example changing primary key (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug("Fixing " + action.msg)
                     self.log.debug("  Cmd: " + action.sqlcmd)
                 self.execute(action.sqlcmd, commit=True)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug("Fixing " + action.msg)
                     self.log.debug("  Cmd: " + action.sqlcmd)
                 self.execute(action.sqlcmd, commit=True)
@@ -446,10 +446,10 @@ class Driver:
         try:
             row = self.cursor.fetchone()
             if row == None:
-                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+                raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
             rows = int(row['count(*)'])
         except mysql.connector.Error as err:
-            raise c.Error(err.errno, str(err))
+            raise bc.Error(err.errno, str(err))
         return rows
 
     def select(self, query):
@@ -505,7 +505,7 @@ class Driver:
         sql = "DELETE FROM %s" % query.table()
         sql2, values = query.toSql()
         if sql2 == '':
-            raise c.Error(1, 'delete() with empty query not accepted')
+            raise bc.Error(1, 'delete() with empty query not accepted')
         sql += sql2
         self.execute(sql, values, commit=True)
         return self.cursor.rowcount

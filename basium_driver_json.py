@@ -45,9 +45,9 @@ __metaclass__ = type
 import datetime
 import decimal
 
-from basium_common import *
-import basium_driver
+import basium_common as bc
 import basium_compatibilty as c
+import basium_driver
 
 #
 # These are shadow classes from the basium_model
@@ -195,7 +195,7 @@ class Driver(basium_driver.Driver):
         pass
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        if self.debug & DEBUG_SQL:
+        if self.debug & bc.DEBUG_SQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
         data, info = c.urllib_request_urlopen(url, method,
                                             username=self.dbconf.username,

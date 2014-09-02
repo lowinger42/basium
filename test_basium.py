@@ -40,11 +40,12 @@ import datetime
 import unittest
 import logging
 
-from basium_common import *
+import basium_common as bc
+# import basium_compatibilty as c
 import basium
 import basium_model
 import basium_wsgihandler
-import basium_compatibilty as c
+
 import test_tables
 
 # ----- Start of module globals
@@ -142,14 +143,14 @@ class TestFunctions(unittest.TestCase):
         log.info("Store object in table '%s'" % obj1._table )
         try:
             data1 = self.db.store(obj1)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse( True, msg="Could not store object %s" % e)
         
         log.info("Load same object from table '%s'" % (obj1._table) )
         obj2._id = obj1._id
         try:
             rows = self.db.load(obj2)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse( True, msg="Could not load object %s" % e)
 
         self.assertEqual( len(rows), 1, msg="Only expected one row in result, got %s" % len(rows))
@@ -175,19 +176,19 @@ class TestFunctions(unittest.TestCase):
         test1 = objFactory.new( self.Cls, 1 )
         try:
             data = self.db.store(test1)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't store new object %s" % e)
         
         test1.varcharTest += " more text"
         try:
             _id = self.db.store(test1)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't update object %s" % e)
         
         test2 = self.Cls(_id)
         try:
             data = self.db.load(test2)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't load updated object %s" % e)
 
         test2 = data[0]
@@ -203,7 +204,7 @@ class TestFunctions(unittest.TestCase):
             obj1 = objFactory.new( self.Cls, rowid )
             try:
                 data = self.db.store(obj1)
-            except c.Error as e:
+            except bc.Error as e:
                 self.assertFalse( True, msg="Could not store object %s" % e)
             if not first:
                 first = obj1._id
@@ -213,7 +214,7 @@ class TestFunctions(unittest.TestCase):
         query.filter(obj.q._id, '>', first + 2).filter(obj.q._id, '<', first + 13)
         try:
             data = self.db.load(query)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't query objects %s" % e)
         
         self.assertEqual(len(data), 10, msg="Wrong number of objects returned, expected %s got %s" % (10, len(data)))
@@ -226,14 +227,14 @@ class TestFunctions(unittest.TestCase):
         log.info("Store object in table '%s'" % test1._table )
         try:
             _id = self.db.store(test1)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't store new object %s" % e)
         
         rowsaffected = None
         log.info("Delete object in table '%s'" % test1._table )
         try:
             rowsaffected = self.db.delete(test1)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertFalse(True, msg="Can't delete object %s" % e) 
         
         self.assertEqual(rowsaffected, 1)
@@ -243,7 +244,7 @@ class TestFunctions(unittest.TestCase):
         test2 = self.Cls()
         try:
             data = self.db.load(test2)
-        except c.Error as e:
+        except bc.Error as e:
             self.assertTrue(True, msg="Expected error when loading deleted object %s" % e)
 
 
@@ -317,7 +318,7 @@ def runServer():
     driver = "psql"    
     dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
     db = basium.Basium(driver=driver, dbconf=dbconf, checkTables=True)
-    db.setDebug(DEBUG_ALL)
+    db.setDebug(bc.DEBUG_ALL)
     db.log.logger.setLevel(logging.ERROR)
     db.addClass(test_tables.BasiumTest)
     if not db.start():

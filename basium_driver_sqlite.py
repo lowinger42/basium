@@ -43,9 +43,9 @@ __metaclass__ = type
 import datetime
 import decimal
 
-from basium_common import *
-import basium_driver
+import basium_common as bc
 import basium_compatibilty as c
+import basium_driver
 
 err = None
 try:
@@ -53,7 +53,7 @@ try:
 except ImportError:
     err = "Can't find the sqlite3 python module"
 if err:
-    raise c.Error(1, err)
+    raise bc.Error(1, err)
 
 class ColumnInfo:
     
@@ -261,7 +261,7 @@ class Driver:
             self.dbconnection.row_factory = sqlite3.Row   # return querys as dictionaries
             self.cursor = self.dbconnection.cursor()
         except sqlite3.Error as e:
-            raise c.Error(1, e.args[0])
+            raise bc.Error(1, e.args[0])
     
     def disconnect(self):
         self.dbconnection = None
@@ -276,7 +276,7 @@ class Driver:
             if self.dbconnection == None:
                 self.connect()
             try:
-                if self.debug & DEBUG_SQL:
+                if self.debug & bc.DEBUG_SQL:
                     self.log.debug('SQL=%s' % sql)
                     if values:
                         self.log.debug('   =%s' % values)
@@ -290,7 +290,7 @@ class Driver:
 
             except sqlite3.Error as e:
                 if i == 1:
-                    raise c.Error( 1, e.args[0] )
+                    raise bc.Error( 1, e.args[0] )
     
     def isDatabase(self, dbName):
         """
@@ -309,7 +309,7 @@ class Driver:
                 for row in self.cursor.fetchall():
                     self.tables[row[0]] = 1
             except sqlite3.Error as e:
-                raise c.Error( 1, e.args[0] )
+                raise bc.Error( 1, e.args[0] )
         return tableName in self.tables
 
     def createTable(self, obj):
@@ -366,7 +366,7 @@ class Driver:
                 tabletype_str = self.tableTypeToSql(tabletype)
                 if columntype_str != tabletype_str:
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    if self.debug & DEBUG_TABLE_MGMT:
+                    if self.debug & bc.DEBUG_TABLE_MGMT:
                         self.log.debug(msg)
                         self.log.debug("  type in Object   : '%s'" % (columntype_str) )
                         self.log.debug("  type in SQL table: '%s'" % (tabletype_str))
@@ -377,7 +377,7 @@ class Driver:
                             ))
             else:
                 msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug(" %s" % msg)
                 actions.append(Action(
                         msg=msg,
@@ -402,14 +402,14 @@ class Driver:
         by copying the table to a new one
         """
         if len(actions) == 0:
-            if self.debug & DEBUG_TABLE_MGMT:
+            if self.debug & bc.DEBUG_TABLE_MGMT:
                 self.log.debug("  Nothing to do")
             return
 
         self.log.debug("Actions that needs to be done:")
         askForConfirmation = False
         for action in actions:
-            if self.debug & DEBUG_TABLE_MGMT:
+            if self.debug & bc.DEBUG_TABLE_MGMT:
                 self.log.debug("  %s" % action.msg)
                 self.log.debug("   SQL: %s" % action.sqlcmd)
             if not action.unattended:
@@ -419,13 +419,13 @@ class Driver:
             self.log.debug("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                raise c.Error(1, "Aborted!")
+                raise bc.Error(1, "Aborted!")
 
         # we first remove columns, so we dont get into conflicts
         # with the new columns, for example changing primary key (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
-                if self.debug & DEBUG_TABLE_MGMT:
+                if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug("Fixing %s" % action.msg)
                     self.log.debug("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
@@ -447,9 +447,9 @@ class Driver:
                 key = c.b('count(*)')
                 rows = int(row[key])
             else:
-                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+                raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
         except sqlite3.Error as e:
-            raise c.Error( 1, e.args[0] )
+            raise bc.Error( 1, e.args[0] )
         return rows
 
     def select(self, query):
@@ -504,11 +504,11 @@ class Driver:
         sql = "DELETE FROM %s" % query.table() 
         sql2, values = query.toSql()
         if sql2 == '':
-            raise c.Error(1, 'Missing query on delete(), empty query is not accepted')
+            raise bc.Error(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2.replace("%s", "?")
         self.execute(sql, values)
         try:
             data = self.cursor.rowcount
         except sqlite3.Error as e:
-            raise c.Error( 1, e.args[0] )
+            raise bc.Error( 1, e.args[0] )
         return data

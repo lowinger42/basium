@@ -42,12 +42,13 @@ import traceback
 import mimetypes
 import wsgiref.simple_server
 
-import basium
+import basium_common as bc
 import basium_compatibilty as c
+import basium
 
 if __name__.startswith("_mod_wsgi_"):
     # Running under wsgi, apache writes the date&time info so we don't need to include it
-    basium.log = basium.Logger(formatstr="%(levelname)s %(message)s ")
+    basium.log = bc.Logger(formatstr="%(levelname)s %(message)s ")
 
 log = basium.log
 

@@ -41,9 +41,9 @@ import sys
 import datetime
 import decimal
 
-from basium_common import *
-import basium_driver
+import basium_common as bc
 import basium_compatibilty as c
+import basium_driver
 
 err = None
 try:
@@ -52,7 +52,7 @@ try:
 except ImportError:
     err = "Can't find the psycopg2 python module"
 if err:
-    raise c.Error(1, err)
+    raise bc.Error(1, err)
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
@@ -286,7 +286,7 @@ class Driver:
                 host=self.dbconf.host, port=self.dbconf.port, user=self.dbconf.username, password=self.dbconf.password, dbname=self.dbconf.database)
             self.cursor = self.dbconnection.cursor(cursor_factory=psycopg2.extras.DictCursor)
         except psycopg2.DatabaseError as e:
-            raise c.Error( 1, str(e) )
+            raise bc.Error( 1, str(e) )
     
     def disconnect(self):
         self.dbconnection = None
@@ -301,7 +301,7 @@ class Driver:
             if self.dbconnection == None:
                 self.connect()
             try:
-                if self.debug & DEBUG_SQL:
+                if self.debug & bc.DEBUG_SQL:
                     self.log.debug(self.cursor.mogrify(sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
@@ -313,7 +313,7 @@ class Driver:
 
             except psycopg2.DatabaseError as e:
                 if i == 1:
-                    raise c.Error( 1, str(e) )
+                    raise bc.Error( 1, str(e) )
                 self.disconnect()
 #                    try:
 #                        self.dbconnection.rollback()    # make sure to clear any previous hanging transactions
@@ -330,7 +330,7 @@ class Driver:
             if row and len(row) > 0:
                 exist = row[0] == dbName
         except psycopg2.DatabaseError as e:
-            raise c.Error( 1, str(e) )
+            raise bc.Error( 1, str(e) )
         return exist
 
     def isTable(self, tableName):
@@ -344,7 +344,7 @@ class Driver:
                 for row in self.cursor.fetchall():
                     self.tables[row[0]] = 1
             except psycopg2.DatabaseError as e:
-                raise c.Error( 1, str(e) )
+                raise bc.Error( 1, str(e) )
         return tableName in self.tables
 
     def createTable(self, obj):
@@ -466,10 +466,10 @@ class Driver:
         try:
             row = self.cursor.fetchone()
             if row == None:
-                raise c.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
+                raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
             data = int(row[0])
         except psycopg2.DatabaseError as e:
-            raise c.Error( 1, str(e) )
+            raise bc.Error( 1, str(e) )
         return data
 
     def select(self, query):
@@ -502,7 +502,7 @@ class Driver:
         try:
             data = self.cursor.fetchone()[0]
         except psycopg2.DatabaseError as e:
-            raise c.Error( 1, str(e) )
+            raise bc.Error( 1, str(e) )
         return data
 
     def update(self, table, values):
@@ -528,7 +528,7 @@ class Driver:
         sql = "DELETE FROM %s" % query.table()
         sql2, values = query.toSql()
         if sql2 == '':
-            raise c.Error(1, 'Missing query on delete(), empty query is not accepted')
+            raise bc.Error(1, 'Missing query on delete(), empty query is not accepted')
         sql += sql2
         self.execute(sql, values, commit=True)
         return self.cursor.rowcount

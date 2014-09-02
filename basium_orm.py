@@ -39,8 +39,7 @@ __metaclass__ = type
 
 import inspect
 
-from basium_common import *
-
+import basium_common as bc
 import basium_compatibilty as c
 import basium_model
 import basium_driver
@@ -138,7 +137,7 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            raise c.Error(1, "Fatal: incorrect object type in count")
+            raise bc.Error(1, "Fatal: incorrect object type in count")
         return self.driver.count(query)
 
     def load(self, query_):
@@ -161,7 +160,7 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            raise c.Error(1, "Fatal: incorrect object type")
+            raise bc.Error(1, "Fatal: incorrect object type")
 
         data = []
         for row in self.driver.select(query):
@@ -173,7 +172,7 @@ class BasiumOrm:
                     pass
             data.append(newobj)
         if one and len(data) < 1:
-            raise c.Error(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
+            raise bc.Error(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
 
         return data
     
@@ -212,7 +211,7 @@ class BasiumOrm:
         elif isinstance(query_, Query):
             query = query_
         else:
-            raise c.Error(1, "Fatal: incorrect object type passed")
+            raise bc.Error(1, "Fatal: incorrect object type passed")
         rowcount = self.driver.delete(query)
         if one:
             query_._id = -1
