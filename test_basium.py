@@ -316,6 +316,7 @@ def runServer():
     driver = "psql"    
     dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
     db = basium.Basium(driver=driver, dbconf=dbconf, checkTables=True)
+    db.setDebug(DEBUG_ALL)
     db.log.logger.setLevel(logging.ERROR)
     db.addClass(test_tables.BasiumTest)
     if not db.start():

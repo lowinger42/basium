@@ -275,7 +275,7 @@ class Driver:
             if self.dbconnection == None:
                 self.connect()
             try:
-                if self.dbconf.debugSQL:
+                if self.debug & DEBUG_SQL:
                     self.log.debug('SQL=%s' % sql)
                     if values:
                         self.log.debug('   =%s' % values)
@@ -365,9 +365,10 @@ class Driver:
                 tabletype_str = self.tableTypeToSql(tabletype)
                 if columntype_str != tabletype_str:
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    self.log.debug(msg)
-                    self.log.debug("  type in Object   : '%s'" % (columntype_str) )
-                    self.log.debug("  type in SQL table: '%s'" % (tabletype_str))
+                    if self.debug & DEBUG_TABLE_MGMT:
+                        self.log.debug(msg)
+                        self.log.debug("  type in Object   : '%s'" % (columntype_str) )
+                        self.log.debug("  type in SQL table: '%s'" % (tabletype_str))
                     actions.append(Action(
                             msg=msg,
                             unattended=True,
@@ -375,7 +376,8 @@ class Driver:
                             ))
             else:
                 msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-                print(" %s" % msg)
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug(" %s" % msg)
                 actions.append(Action(
                         msg=msg,
                         unattended=True,
@@ -399,19 +401,21 @@ class Driver:
         by copying the table to a new one
         """
         if len(actions) == 0:
-            self.log.debug("  Nothing to do")
+            if self.debug & DEBUG_TABLE_MGMT:
+                self.log.debug("  Nothing to do")
             return
 
-        print("Actions that needs to be done:")
+        self.log.debug("Actions that needs to be done:")
         askForConfirmation = False
         for action in actions:
-            print("  %s" % action.msg)
-            print("   SQL: %s" % action.sqlcmd)
+            if self.debug & DEBUG_TABLE_MGMT:
+                self.log.debug("  %s" % action.msg)
+                self.log.debug("   SQL: %s" % action.sqlcmd)
             if not action.unattended:
                 askForConfirmation = True
 
         if askForConfirmation:
-            print("WARNING: removal of columns can lead to data loss.")
+            self.log.debug("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
                 raise c.Error(1, "Aborted!")
@@ -420,13 +424,14 @@ class Driver:
         # with the new columns, for example changing primary key (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
-                print("Fixing %s" % action.msg)
-                print("  Cmd: %s" % action.sqlcmd)
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug("Fixing %s" % action.msg)
+                    self.log.debug("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
-                print("Fixing %s" % action.msg)
-                print("  Cmd: %s" % action.sqlcmd)
+                self.log.debug("Fixing %s" % action.msg)
+                self.log.debug("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
         self.dbconnection.commit()
 

@@ -88,6 +88,10 @@ class Basium(basium_orm.BasiumOrm):
         self.drivermodule = None
         self.Response = c.Response    # for convenience in dynamic pages
         self.Error = c.Error          # for convenience in dynamic pages
+        self.debug = 0
+
+    def setDebug(self, debugLevel):
+        self.debug = debugLevel
 
     def addClass(self, cls):
         if not isinstance(cls, type):
@@ -135,6 +139,7 @@ class Basium(basium_orm.BasiumOrm):
             return None
             
         self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
+        self.driver.debug = self.debug
         if not self.startOrm(self.driver, self.drivermodule):
             log.error("Cannot initialize ORM")
             return None

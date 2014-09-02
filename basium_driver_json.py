@@ -194,7 +194,7 @@ class Driver(basium_driver.Driver):
         pass
 
     def execute(self, method=None, url=None, data=None, decode=False):
-        if self.dbconf.debugSQL:
+        if self.debug & DEBUG_SQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
         data, info = c.urllib_request_urlopen(url, method,
                                             username=self.dbconf.username,

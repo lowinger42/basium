@@ -262,7 +262,7 @@ class Driver:
                                     db=c.b(self.dbconf.database))
             self.cursor = self.dbconnection.cursor(cursor_class=MySQLCursorDict)
             sql = "set autocommit=1;"
-            if self.dbconf.debugSQL:
+            if self.debug & DEBUG_SQL:
                 self.log.debug('SQL=%s' % sql)
             self.cursor.execute(sql)
             if self.dbconnection:
@@ -282,7 +282,7 @@ class Driver:
         for i in range(0, 2):
             if self.dbconnection == None:
                 self.connect()
-                if self.dbconf.debugSQL:
+                if self.debug & DEBUG_SQL:
                     self.log.debug('SQL=%s, values=%s' % (sql, values))
             try:
                 if values != None:
@@ -358,9 +358,10 @@ class Driver:
                 tabletype = tabletypes[colname]
                 if column.typeToSql() != column.tableTypeToSql(tabletype):
                     msg = "Error: Column '%s' has incorrect type in SQL Table. Action: Change column type in SQL Table" % (colname)
-                    self.log.debug(msg)
-                    self.log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
-                    self.log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
+                    if self.debug & DEBUG_TABLE_MGMT:
+                        self.log.debug(msg)
+                        self.log.debug("  type in Object   : '%s'" % (column.typeToSql()) )
+                        self.log.debug("  type in SQL table: '%s'" % (column.tableTypeToSql(tabletype)))
                     actions.append(Action(
                             msg=msg,
                             unattended=True,
@@ -368,7 +369,8 @@ class Driver:
                             ))
             else:
                 msg = "Error: Column '%s' does not exist in the SQL Table. Action: Add column to SQL Table" % (colname)
-                print(" " + msg)
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug(" " + msg)
                 actions.append(Action(
                         msg=msg,
                         unattended=True,
@@ -393,37 +395,45 @@ class Driver:
         Update table to latest definition of class
         actions is the result from verifyTable()
         """
-        self.log.debug("Updating table %s" % obj._table)
+        if self.debug & DEBUG_TABLE_MGMT:
+            self.log.debug("Updating table %s" % obj._table)
         if len(actions) == 0:
-            self.log.debug("  Nothing to do")
+            if self.debug & DEBUG_TABLE_MGMT:
+                self.log.debug("  Nothing to do")
             return False
 
-        print("Actions that needs to be done:")
+        if self.debug & DEBUG_TABLE_MGMT:
+            self.log.debug("Actions that needs to be done:")
         askForConfirmation = False
         for action in actions:
-            print("  " + action.msg)
-            print("   SQL: " + action.sqlcmd)
+            if self.debug & DEBUG_TABLE_MGMT:
+                self.log.debug("  " + action.msg)
+                self.log.debug("   SQL: " + action.sqlcmd)
             if not action.unattended:
                 askForConfirmation = True
 
         if askForConfirmation:
-            print("WARNING: removal of columns can lead to data loss.")
+            if self.debug & DEBUG_TABLE_MGMT:
+                self.log.debug("WARNING: removal of columns can lead to data loss.")
             a = c.rawinput('Are you sure (yes/No)? ')
             if a != 'yes':
-                print("Aborted!")
-                return True
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug("Aborted!")
+                    return True
 
         # we first remove columns, so we dont get into conflicts
         # with the new columns, for example changing primary key (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
-                print("Fixing " + action.msg)
-                print("  Cmd: " + action.sqlcmd)
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug("Fixing " + action.msg)
+                    self.log.debug("  Cmd: " + action.sqlcmd)
                 self.execute(action.sqlcmd, commit=True)
         for action in actions:
             if not 'DROP' in action.sqlcmd:
-                print("Fixing " + action.msg)
-                print("  Cmd: " + action.sqlcmd)
+                if self.debug & DEBUG_TABLE_MGMT:
+                    self.log.debug("Fixing " + action.msg)
+                    self.log.debug("  Cmd: " + action.sqlcmd)
                 self.execute(action.sqlcmd, commit=True)
         self.dbconnection.commit()
         return False

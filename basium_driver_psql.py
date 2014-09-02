@@ -300,7 +300,7 @@ class Driver:
             if self.dbconnection == None:
                 self.connect()
             try:
-                if self.dbconf.debugSQL:
+                if self.debug & DEBUG_SQL:
                     self.log.debug(self.cursor.mogrify(sql, values))
                 if values != None:
                     self.cursor.execute(sql, values)
