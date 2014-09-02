@@ -127,12 +127,17 @@ class Error(Exception):
         return "errno=%s, errmsg=%s" % (self.errno, self.errmsg)        
 
 
-major = sys.version_info[0]
-minor = sys.version_info[1]
+major, minor = sys.version_info[0:2]
 
 if major < 3:
     
-    """Python 2 compability"""
+    """
+    Python 2 compability
+    
+    unicode is array of unicode characters
+    str     is array of bytes, with implicit encoding
+    bytes   is sames as str (does not exist in python2)
+    """
     
     import httplib
     import urllib2
@@ -237,7 +242,13 @@ if major < 3:
         return data
 
 else:
-    """Python 3 compability"""
+    """
+    Python 3 compability
+    
+    unicode is array of unicode characters
+    str     is same as unicode
+    bytes   is array of bytes, with implicit encoding
+    """
     
     import urllib.request
     import importlib
