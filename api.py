@@ -44,7 +44,6 @@ import basium_driver
 import basium_driver_json
 
 def writejson(resp):
-#    resp.errmsg = c.to_bytes(resp.errmsg)
     try:
         tmp = json.dumps(resp.dict(), cls=db.JsonOrmEncoder)
         response.write( tmp )
