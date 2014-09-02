@@ -105,7 +105,6 @@ class Basium(basium_orm.BasiumOrm):
     class JsonOrmEncoder(json.JSONEncoder):
         """Handle additional types in JSON encoder"""
         def default(self, obj):
-            # print( "JsonOrmEncoder::default() Type =", type(obj) )
             if isinstance(obj, c.Response):
                 return obj.data
             if isinstance(obj, datetime.date):
