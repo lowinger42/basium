@@ -106,7 +106,7 @@ class API():
                 for colname in obj._iterName():
                     tmp[colname] = row[colname]
                 resp.data.append(tmp)
-        except c.Error as e:
+        except db.Error as e:
             msg = "Could not load objects from table '%s'. %s" % (obj._table, e)
             log.debug(msg)
             response.write(msg)
@@ -131,7 +131,7 @@ class API():
         resp = c.Response()
         try:
             resp.data = db.driver.insert(obj._table, postdata) # we call driver direct for efficiency reason
-        except c.Error as e:
+        except db.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
         writejson(resp)
@@ -148,7 +148,7 @@ class API():
         resp = c.Response()
         try:
             resp.data = db.driver.update(obj._table, putdata) # we call driver direct for efficiency reason
-        except c.Error as e:
+        except db.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
         writejson(resp)
@@ -172,7 +172,7 @@ class API():
         resp = c.Response()
         try:
             resp.data = db.driver.delete(dbquery)
-        except c.Error as e:
+        except db.Error as e:
             resp.errno = e.errno
             resp.errmsg = e.errmsg
         writejson(resp)
@@ -196,7 +196,7 @@ class API():
         resp = c.Response()
         try:
             resp.data = db.driver.count(dbquery)  # we call driver direct for efficiency reason
-        except c.Error as e:
+        except db.Error as e:
             msg = "Could not count objects in table '%s'. %s" % (obj._table, e)
             log.debug(msg)
             self.status = '404 ' + msg
@@ -238,7 +238,7 @@ def _database():
     dbname = path[0]
     try:
         resp.data = db.driver.isDatabase(dbname)
-    except c.Error as e:
+    except db.Error as e:
         resp.errno = e.errno
         resp.errmsg = e.errmsg
     writejson(resp)
@@ -252,7 +252,7 @@ def _table():
     table = path[0]
     try:
         resp.data = db.driver.isTable(table)
-    except c.Error as e:
+    except db.Error as e:
         resp.errno = e.errno
         resp.errmsg = e.errmsg
     writejson(resp)
