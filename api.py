@@ -29,7 +29,8 @@
 """
 A basic HTTP REST API for the Basium registered classes
 
-If you want to use this, symlink to your web server documentroot
+If you want to use this, symlink or copy to your web server documentroot
+Make sure apache follows symlinks if you use one.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
