@@ -151,6 +151,9 @@ if major < 3:
     
     importlib_reload = reload
 
+    def isbytes(obj):
+        return False
+
     def isstring(obj):
         return isinstance(obj, basestring)
 
@@ -264,6 +267,9 @@ else:
     else:
         importlib_reload = importlib.reload    
     
+    def isbytes(obj):
+        return isinstance(obj, bytes)
+
     def isstring(obj):
         return isinstance(obj, str)
     

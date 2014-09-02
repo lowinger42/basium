@@ -116,6 +116,8 @@ class Basium(basium_orm.BasiumOrm):
                 return str(obj)
             if isinstance(obj, basium_model.Model):
                 return obj._getStrValues()
+            if c.isbytes(obj):  # only true in python3
+                return obj.decode()
             return json.JSONEncoder.default(self, obj)
 
     def start(self):
