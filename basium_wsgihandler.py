@@ -334,12 +334,12 @@ class Server(threading.Thread):
             try:
                 httpd.handle_request()
             except KeyboardInterrupt:
-                print("Ctrl-C, server shutting down...")
+                self.log.info("Ctrl-C, server shutting down...")
                 break
             except:
                 self.running = False
         self.ready = False
-        print("WSGI server stopping")
+        self.log.info("WSGI server stopping")
         
 
 if __name__ == "__main__":
