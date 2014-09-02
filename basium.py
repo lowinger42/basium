@@ -46,6 +46,8 @@ import json
 import datetime
 import decimal
 
+from basium_common import *
+
 import basium_compatibilty as c
 
 log = c.Logger()

@@ -40,6 +40,7 @@ __metaclass__ = type
 import datetime
 import decimal
 
+from basium_common import *
 import basium_driver
 import basium_compatibilty as c
 

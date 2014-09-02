@@ -40,6 +40,7 @@ import datetime
 import unittest
 import logging
 
+from basium_common import *
 import basium
 import basium_model
 import basium_wsgihandler
