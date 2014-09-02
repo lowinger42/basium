@@ -211,7 +211,8 @@ if major < 3:
                 encoding = "utf-8"
             try:
                 tmp = resp.read()
-                res = json.loads(tmp.decode(encoding))
+                tmp = tmp.decode(encoding)
+                res = json.loads(tmp)
                 resp.close()
             except ValueError:
                 raise Error(1, "JSON ValueError for " + tmp)
@@ -237,7 +238,7 @@ if major < 3:
         data = urlparse.parse_qs(data, keep_blank_values=True)
         for k, v in data.items():
             for i in range(len(v)):
-                data[k][i] = unicode(v[i], encoding)
+                data[k][i] = v[i].decode(encoding)
         return data
 
     def urllib_parse_qsl(data, encoding="utf-8"):
