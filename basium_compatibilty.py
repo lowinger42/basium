@@ -79,7 +79,10 @@ class Logger():
         self.logger.error(to_bytes(msg))
 
     def debug(self, msg):
-        msg = str(msg).replace('\n', ', ')
+        try:
+            msg = str(msg).replace('\n', ', ')
+        except UnicodeDecodeError:
+            return
         self.logger.debug(to_bytes(msg))
 
 
