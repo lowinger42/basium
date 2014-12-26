@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -31,16 +31,11 @@ module that implement functionality that is different between
 various python versions
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
-
 DEBUG_SQL        = 1 <<  0
 DEBUG_TABLE_MGMT = 1 <<  1
 DEBUG_ALL        = 1 <<  2 - 1
 
 import logging.handlers
-import basium_compatibilty as c
 
 class Logger():
 
@@ -69,22 +64,22 @@ class Logger():
 
     def info(self, msg):
         msg = str(msg).replace('\n', ', ')
-        self.logger.info(c.to_bytes(msg))
+        self.logger.info(msg)
 
     def warning(self, msg):
         msg = str(msg).replace('\n', ', ')
-        self.logger.warning(c.to_bytes(msg))
+        self.logger.warning(msg)
 
     def error(self, msg):
         msg = str(msg).replace('\n', ', ')
-        self.logger.error(c.to_bytes(msg))
+        self.logger.error(msg)
 
     def debug(self, msg):
         try:
             msg = str(msg).replace('\n', ', ')
         except UnicodeDecodeError:
             return
-        self.logger.debug(c.to_bytes(msg))
+        self.logger.debug(msg)
 
 
 

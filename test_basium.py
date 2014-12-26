@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -28,10 +28,31 @@
 
 """
 Common code used for testing
-"""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
+Preparation to database before testing:
+
+    sqlite3
+        No preparation is needed, included in python
+
+    mysql
+        create a database called basium_db
+            CREATE DATABASE basium_db;
+
+        create a user username basium_user with password secret, with full rights to the basium_db database
+            GRANT ALL PRIVILEGES ON basium_db.* To 'basium_user'@'localhost' IDENTIFIED BY 'secret';
+
+    psql
+        create a user username basium_user with password secret, with full rights to the basium_db database
+            sudo -u postgres createuser basium_user --pwprompt
+
+        create a database called basium_db
+            sudo -u postgres createdb basium_db --owner=basium_user
+            
+
+    json
+        uses the psql driver on the server side, see psql
+
+"""
 
 import sys
 import time
@@ -41,7 +62,6 @@ import unittest
 import logging
 
 import basium_common as bc
-# import basium_compatibilty as c
 import basium
 import basium_model
 import basium_wsgihandler
@@ -52,8 +72,13 @@ import test_tables
 
 log = basium.log
 log.info("Python version %s" % str(sys.version_info))
-drivers = ["psql", "mysql", "sqlite", "json"]
-# drivers = ["json"]
+
+drivers = [
+    "psql", 
+    "mysql",
+    "sqlite", 
+    "json",
+]
 
 # ----- End of module globals
 

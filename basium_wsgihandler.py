@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -31,9 +31,6 @@ Basium WSGI handler
 Can handle static files and importing and running python modules
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import os
 import sys
 import pprint
@@ -41,9 +38,10 @@ import threading
 import traceback
 import mimetypes
 import wsgiref.simple_server
+import imp
+import importlib
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium
 
 if __name__.startswith("_mod_wsgi_"):
@@ -80,12 +78,12 @@ class Response():
     def write(self, msg, encoding=True):
         # log.debug("data type=%s %s" % ( type(msg), len(msg)))
         if encoding and self.encoding != None:
-            msg = c.to_bytes(msg, self.encoding)
+            msg =  msg.encode(self.encoding)
         self.length += len(msg)
         self.out.append( msg )
 
     def addHeader(self, header, value):
-        self.headers.append( ( c.to_str(header), c.to_str(value)) )
+        self.headers.append( ( header, value) )
         
     def iter(self):
         for line in self.out:
@@ -198,8 +196,9 @@ class AppServer:
                 # to make sure we find the module, we add the directory as first entry in python path
                 sys.path.insert(0, ur.absdir)
                 log.debug("Importing module=%s  path=%s" % (ur.abspath, ur.path))
-                extpage = c.importlib_import(ur.module)
-                extpage = c.importlib_reload(extpage)
+                extpage = importlib.__import__(ur.module)
+                imp.reload(extpage)
+                
             except ImportError as err:
                 log.debug("Can't import module %s, error %s" % (ur.abspath, err))
                 return False
@@ -287,7 +286,7 @@ class AppServer:
         self.response.addHeader( 'Content-type', self.response.contentType )
         self.response.addHeader( 'Content-Length', str(self.response.length) )
 
-        start_response(c.to_str(self.response.status), self.response.headers)
+        start_response(self.response.status, self.response.headers)
         return self.response.iter()
 
     

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #
@@ -39,14 +39,13 @@ api.py is the code running on the server, that handles all requests from
 this driver
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import datetime
 import decimal
+import urllib
+import base64
+import json
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium_driver
 
 #
@@ -62,7 +61,7 @@ class BooleanCol(basium_driver.BooleanCol):
 
     @classmethod
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             return value.lower() == "true"
         return value
 
@@ -80,7 +79,7 @@ class DateCol(basium_driver.DateCol):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
         
@@ -97,7 +96,7 @@ class DateTimeCol(basium_driver.DateTimeCol):
     def toPython(self, value):
         if value == "NULL":
             return None
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
     
@@ -138,7 +137,7 @@ class FloatCol(basium_driver.FloatCol):
     
     @classmethod
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = float(value)
         return value
         
@@ -152,7 +151,7 @@ class IntegerCol(basium_driver.IntegerCol):
     
     @classmethod
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = int(value)
         return value
         
@@ -166,10 +165,10 @@ class VarcharCol(basium_driver.VarcharCol):
 
     @classmethod
     def toPython(self, value):
-        if c.isunicode(value):
+        if isinstance(value, str):
             return value
         try:
-            return c.to_unicode(value)
+            return str(value)
         except:
             return value
 
@@ -177,6 +176,17 @@ class VarcharCol(basium_driver.VarcharCol):
         if value == None:
             return "NULL"
         return value
+
+
+class RequestWithMethod(urllib.request.Request):
+    """Helper class, to implement HTTP GET, POST, PUT, DELETE"""
+    
+    def __init__(self, *args, **kwargs):
+        self._method = kwargs.pop('method', None)
+        urllib.request.Request.__init__(self, *args, **kwargs)
+
+    def get_method(self):
+        return self._method if self._method else super(RequestWithMethod, self).get_method()
 
 
 class Driver(basium_driver.Driver):
@@ -197,11 +207,45 @@ class Driver(basium_driver.Driver):
     def execute(self, method=None, url=None, data=None, decode=False):
         if self.debug & bc.DEBUG_SQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
-        data, info = c.urllib_request_urlopen(url, method,
-                                            username=self.dbconf.username,
-                                            password=self.dbconf.password,
-                                            data=data, decode=decode)
-        return data, info
+        respdata = None
+        info = None
+        req = RequestWithMethod(url, method=method)
+        if self.dbconf.username != None:
+            auth = '%s:%s' % (self.dbconf.username, self.dbconf.password)
+            auth = auth.encode("utf-8")
+            req.add_header(b"Authorization", b"Basic " + base64.b64encode(auth))
+        try:
+            if data:
+                resp = urllib.request.urlopen(req, urllib.parse.urlencode(data, encoding="utf-8").encode("ascii") )
+            else:
+                resp = urllib.request.urlopen(req)
+            info = resp.info
+        except urllib.error.HTTPError as e:
+            raise bc.Error(1, "HTTPerror %s" % e)
+        except urllib.error.URLError as e:
+            raise bc.Error(1, "URLerror %s" % e)
+        
+        if decode:
+            encoding = resp.headers.get_content_charset()
+            if encoding == None:
+                encoding = "utf-8"
+            try:
+                tmp = resp.read().decode(encoding)
+                res = json.loads(tmp)
+                resp.close()
+            except ValueError:
+                raise bc.Error(1, "JSON ValueError for " + tmp)
+            except TypeError:
+                raise bc.Error(1, "JSON TypeError for " + tmp)
+    
+            try:
+                if res['errno'] != 0:
+                    raise bc.Error(res['errno'], res['errmsg'])
+                respdata = res["data"]
+            except KeyError:
+                raise bc.Error(1, "Result keyerror, missing errno/errmsg")
+    
+        return respdata, info
 
     def isDatabase(self, dbName):
         """

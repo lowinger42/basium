@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -39,15 +39,12 @@ Usage:
  Call start
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
 
 import json
 import datetime
 import decimal
 
 import basium_common as bc
-import basium_compatibilty as c
 
 log = bc.Logger()
 log.info("Basium default logger started")
@@ -120,7 +117,7 @@ class Basium(basium_orm.BasiumOrm):
                 return str(obj)
             if isinstance(obj, basium_model.Model):
                 return obj._getStrValues()
-            if c.isbytes(obj):  # only true in python3
+            if isinstance(obj, bytes):
                 return obj.decode()
             return json.JSONEncoder.default(self, obj)
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -30,10 +30,6 @@
 Page for the Basium WSGI handler
 Show basic info on http request
 """
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 
 def index(direct=True):
     if direct:

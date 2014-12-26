@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2013, Anders Lowinger, Abundo AB
@@ -32,17 +32,18 @@ Basium database driver that handles PostgreSQL
 All database operations are tried twice if any error occurs, clearing the
 connection if an error occurs. This makes all operations to reconnect if the
 connection to the database has been lost.
-"""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
+To use this driver, install the psycopg2 connector
+    In ubuntu
+        sudo apt-get install python3-psycopg2
+
+"""
 
 import sys
 import datetime
 import decimal
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium_driver
 
 err = None
@@ -136,7 +137,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -163,7 +164,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -211,7 +212,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = float(value)
         return value
         
@@ -238,7 +239,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = int(value)
         return value
         

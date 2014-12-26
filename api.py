@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2013, Anders Lowinger, Abundo AB
@@ -33,13 +33,10 @@ If you want to use this, symlink or copy to your web server documentroot
 Make sure apache follows symlinks if you use one.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import json
+import urllib
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium_model
 import basium_driver
 import basium_driver_json
@@ -58,7 +55,10 @@ class API():
 
     def getData(self, obj):
         decodeddata = {}
-        postdata = c.urllib_parse_qs(request.body)
+        data = request.body
+        if isinstance(data, bytes):
+            data = data.decode("ascii)")
+        postdata = urllib.parse.parse_qs(data, keep_blank_values=True)
         for key in obj._columns:
             if key in postdata.keys():
                 column = obj._columns[key]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -29,9 +29,6 @@
 """
 Definition of the object (table) used for unit tests
 """
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
 
 import basium_model
 

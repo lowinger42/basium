@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -34,13 +34,10 @@ This class handles all mapping between objects and dictionaries,
 before calling database driver, or returning objects
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import inspect
+import urllib
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium_model
 import basium_driver
 
@@ -271,7 +268,7 @@ class Query():
             return (sql, value)
         
         def encode(self):
-            return "w=" + c.urllib_quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
+            return "w=" + urllib.parse.quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
         def decode(self, obj, value):
             column, self.operand, self.value = value.split(',')
@@ -302,7 +299,7 @@ class Query():
             return sql
         
         def encode(self):
-            return "o=" + c.urllib_quote("%s,%s" % (self.column.name, self.desc ))
+            return "o=" + urllib.parse.quote("%s,%s" % (self.column.name, self.desc ))
         
         def decode(self, obj, value):
             tmp = value.split(',')
@@ -325,7 +322,7 @@ class Query():
             return ' LIMIT %i OFFSET %i' % ( self.rowcount, offset)
         
         def encode(self):
-            return "l=" + c.urllib_quote("%s,%s" % (self.offset, self.rowcount))
+            return "l=" + urllib.parse.quote("%s,%s" % (self.offset, self.rowcount))
         
         def decode(self, value):
             tmp = value.split(',')
@@ -443,7 +440,10 @@ class Query():
 
     def decode(self, url):
         """Decode an URL query and update this query object"""
-        u = c.urllib_parse_qsl(url)
+        if isinstance(url, bytes):
+            url = url.decode("ascii)")
+        u = urllib.parse.parse_qsl(url, keep_blank_values=True)
+        
         self._reset()
         for (key, val) in u:
             if key == 'w':

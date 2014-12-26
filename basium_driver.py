@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -31,14 +31,10 @@
 Basium base class for all driver implementations
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import datetime
 import decimal
 
 import basium_common as bc
-import basium_compatibilty as c
 
 
 #
@@ -99,7 +95,7 @@ class DateCol(Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif c.isstring(value):
+        elif isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
         
@@ -121,7 +117,7 @@ class DateTimeCol(Column):
         return self.default
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -154,7 +150,7 @@ class FloatCol(Column):
     """Stores a floating point number"""
     
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = float(value)
         return value
         
@@ -167,7 +163,7 @@ class IntegerCol(Column):
     """Stores an integer"""
     
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value):
             value = int(value)
         return value
         
@@ -179,10 +175,10 @@ class IntegerCol(Column):
 class VarcharCol(Column):
     """Stores a string"""
     def toPython(self, value):
-        if c.isunicode(value):
+        if isinstance(value, str):
             return value
         try:
-            return c.to_unicode(value)
+            return str(value)
         except:
             return value
 

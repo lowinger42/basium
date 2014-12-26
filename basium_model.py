@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -32,15 +32,11 @@ Model classes, for each SQL datatype
 Metaclass, that initalizes each instance of a Model class
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import inspect
 import pprint
 import datetime
 
 # import basium_common as bc
-import basium_compatibilty as c
 
 class Column:
     """Base class for all different column types"""
@@ -136,20 +132,17 @@ class ModelMetaClass(type):
         cls._columns = {}
         cls._values = {}
 
-
-# handle python 2 & 3
-ModelMetaClass2 = ModelMetaClass(c.b("ModelMetaClass2"), (object, ), {})
-               
-class Model(ModelMetaClass2):
+              
+class Model(metaclass=ModelMetaClass):
     """Base class for all classes that should be persistable"""
     __metaclass__ = ModelMetaClass
 
     def __init__(self, id_value = -1):
         _id = IntegerCol(primary_key=True)
         _id._model = self
-        _id.name = c.b('_id')
-        columns = { c.b('_id'): _id }
-        values = { c.b('_id'): id_value }
+        _id.name = '_id'
+        columns = { '_id': _id }
+        values = { '_id': id_value }
         
         # create instance variables of the class columns
         q = Q()

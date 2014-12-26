@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2012-2013, Anders Lowinger, Abundo AB
@@ -37,14 +37,10 @@ SQLite only handles direct files, but the file can be located on a remote
 media that needs to be reconnected
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-__metaclass__ = type
-
 import datetime
 import decimal
 
 import basium_common as bc
-import basium_compatibilty as c
 import basium_driver
 
 err = None
@@ -109,7 +105,7 @@ class DateCol(basium_driver.Column):
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
-        elif c.isstring(value):
+        elif isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
         return value
         
@@ -136,7 +132,7 @@ class DateTimeCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
@@ -185,7 +181,7 @@ class FloatCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = float(value)
         return value
         
@@ -212,7 +208,7 @@ class IntegerCol(basium_driver.Column):
         return sql
 
     def toPython(self, value):
-        if c.isstring(value):
+        if isinstance(value, str):
             value = int(value)
         return value
         
@@ -417,7 +413,7 @@ class Driver:
 
         if askForConfirmation:
             self.log.debug("WARNING: removal of columns can lead to data loss.")
-            a = c.rawinput('Are you sure (yes/No)? ')
+            a = input('Are you sure (yes/No)? ')
             if a != 'yes':
                 raise bc.Error(1, "Aborted!")
 
@@ -444,7 +440,7 @@ class Driver:
         try:
             row = self.cursor.fetchone()
             if row != None:
-                key = c.b('count(*)')
+                key = 'count(*)'
                 rows = int(row[key])
             else:
                 raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
