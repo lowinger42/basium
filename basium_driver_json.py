@@ -42,6 +42,7 @@ this driver
 import datetime
 import decimal
 import urllib
+import urllib.request
 import base64
 import json
 
@@ -228,7 +229,6 @@ class BasiumDriver(basium_driver.BaseDriver):
         if self.debug & bc.DEBUG_SQL:
             self.log.debug('Method=%s URL=%s Data=%s' % (method, url, data))
         respdata = None
-        info = None
         req = RequestWithMethod(url, method=method)
         if self.dbconf.username is not None:
             auth = '%s:%s' % (self.dbconf.username, self.dbconf.password)
@@ -264,14 +264,14 @@ class BasiumDriver(basium_driver.BaseDriver):
             except KeyError:
                 raise bc.Error(1, "Result keyerror, missing errno/errmsg")
 
-        return respdata, info
+        return respdata, resp
 
     def isDatabase(self, dbName):
         """
         Check if a database exist
         """
         url = '%s/_database/%s' % (self.uri, dbName)
-        data, info = self.execute(method='GET', url=url, decode=True)
+        data, resp = self.execute(method='GET', url=url, decode=True)
         return data
 
     def isTable(self, tableName):
@@ -279,7 +279,7 @@ class BasiumDriver(basium_driver.BaseDriver):
         Check if a table exist
         """
         url = '%s/_table/%s' % (self.uri, tableName)
-        data, info = self.execute(method='GET', url=url, decode=True)
+        data, resp = self.execute(method='GET', url=url, decode=True)
         return data
 
 #     def createTable(self, obj):
@@ -313,9 +313,10 @@ class BasiumDriver(basium_driver.BaseDriver):
             url = '%s/%s' % (self.uri, query.table())
         else:
             url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
-        data, info = self.execute(method='HEAD', url=url)
-        return int( info().get('X-Result-Count') )
-    
+        data, resp = self.execute(method='HEAD', url=url)
+        count = resp.getheader("X-Result-Count")
+        return int(count)
+
     def select(self, query):
         """
         Fetch one or multiple rows from a database
@@ -333,17 +334,17 @@ class BasiumDriver(basium_driver.BaseDriver):
         else:
             # real query
             url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
-        data, info = self.execute(method='GET', url=url, decode=True)
+        data, resp = self.execute(method='GET', url=url, decode=True)
         return data
 
     def insert(self, table, values):
         url = '%s/%s' % (self.uri, table)
-        data, info = self.execute(method='POST', url=url, data=values, decode=True)
+        data, resp = self.execute(method='POST', url=url, data=values, decode=True)
         return data
 
     def update(self, table, values):
         url = '%s/%s/%s' % (self.uri, table, values['_id'])
-        data, info = self.execute(method='PUT', url=url, data=values, decode=True)
+        data, resp = self.execute(method='PUT', url=url, data=values, decode=True)
         return data
 
     def delete(self, query):
@@ -359,5 +360,5 @@ class BasiumDriver(basium_driver.BaseDriver):
         else:
             # real query
             url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
-        data, info = self.execute('DELETE', url, decode=True)
+        data, resp = self.execute('DELETE', url, decode=True)
         return data
