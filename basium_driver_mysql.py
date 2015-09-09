@@ -251,7 +251,7 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
         return None
 
 
-class Driver:
+class BasiumDriver(basium_driver.BaseDriver):
     def __init__(self, log=None, dbconf=None):
         self.log = log
         self.dbconf = dbconf

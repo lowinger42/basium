@@ -193,11 +193,11 @@ class VarcharCol(Column):
             return value
 
 
-class Driver:
+class BaseDriver:
     """
-    Driver base class, Mostly stubs, needs to be overridden by the specific driver
+    Driver base class, Mostly stubs, needs to be overridden
+    by the specific driver
     """
-
     def connect(self):
         raise bc.Error(1, 'Not implemented')
 

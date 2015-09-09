@@ -139,8 +139,8 @@ class Basium(basium_orm.BasiumOrm):
         except ImportError:
             self.log.error('Unknown driver %s, cannot find file %s.py' % (self.drivername, driverfile))
             return None
-            
-        self.driver = self.drivermodule.Driver(log=self.log, dbconf=self.dbconf)
+
+        self.driver = self.drivermodule.BasiumDriver(log=self.log, dbconf=self.dbconf)
         self.driver.debug = self.debug
         if not self.startOrm(self.driver, self.drivermodule):
             log.error("Cannot initialize ORM")

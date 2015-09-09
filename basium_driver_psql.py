@@ -280,7 +280,8 @@ class Action:
         self.unattended = unattended
         self.sqlcmd = sqlcmd
 
-class Driver:
+
+class BasiumDriver(basium_driver.BaseDriver):
     def __init__(self, log=None, dbconf=None):
         self.log = log
         self.dbconf = dbconf

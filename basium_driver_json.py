@@ -209,7 +209,7 @@ class RequestWithMethod(urllib.request.Request):
         return self._method if self._method else super(RequestWithMethod, self).get_method()
 
 
-class Driver(basium_driver.Driver):
+class BasiumDriver(basium_driver.BaseDriver):
     def __init__(self, log=None, dbconf=None):
         self.log = log
         self.dbconf = dbconf
