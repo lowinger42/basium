@@ -1,0 +1,75 @@
+{% extends "template/base.html" %}
+
+{% block "title" %}Basium Info{% endblock %}
+{% block "head" %}
+    {% super() %}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+{% endblock %}
+
+{% block "content" %}
+
+<h1>Information</h1>
+
+This page demonstrates the format of a basium request and response
+<br>
+
+<h3>Request</h3>
+ 
+<table border='1' cellspacing='0' cellpadding='2'>
+    <tr>
+   		<th>Attribute</th>
+   		<th>Value</th>
+	</tr>
+
+	{% keys = list(request.__dict__.keys() ) %}
+	{% keys.sort() %}
+	{% for key in keys: %}
+		{% if key != "environ": %}
+		<tr>
+        	<td>{{ key }}</td>
+        	<td>{{ request.__dict__[key] }}</td>
+	    </tr>
+	    {% end %}
+    {% end %}
+
+</table>
+
+<h3>Request environ</h3>
+
+<table border='1' cellspacing='0' cellpadding='2'>
+    <tr>
+   		<th>Key</th>
+   		<th>Value</th>
+	</tr>
+	{% keys = list(request.__dict__['environ']) %}
+	{% keys.sort() %}
+	{% for key in keys: %}
+		<tr>
+        	<td>{{ key }}</td>
+        	<td>{{ request.__dict__["environ"][key] }}</td>
+	    </tr>
+    {% end %}
+</table>
+
+<h3>Response</h3>
+Note: Response is incomplete, since it is still being generated. _out is not shown
+<table border='1' cellspacing='0' cellpadding='2'>
+    <tr>
+   		<th>Key</th>
+   		<th>Value</th>
+	</tr>
+	{% for key, val in response.__dict__.items(): %}
+	{% if key != "_out": %}
+		<tr>
+        	<td>{{ key }}</td>
+        	<td>{{ val }}</td>
+	    </tr>
+    {% end %}
+    {% end %}
+</table>
+
+end of response
+
+{% endblock %}

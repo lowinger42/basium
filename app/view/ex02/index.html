@@ -1,0 +1,64 @@
+{% extends "template/base.html" %}
+
+{% block "title" %}Basium Form example{% endblock %}
+{% block "head" %}
+    {% super() %}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+{% endblock %}
+
+{% block "content" %}
+{% import wsgi.htmlutil as h %}
+
+{% if request.method in ["POST", "PUT"]: %}
+Posted data:
+<table border='1' cellspacing='0' cellpadding='0'>
+<tr>
+  <th>Variable</th>
+  <th>Value</th>
+</tr>
+{% for key,val in data.items(): %}
+<tr>
+	<td>{{key}}</td>
+	<td>{{val}}</td>
+</tr>
+{% end %}
+</table><br>
+{% end %}
+
+<h3>Form</h3>
+<form method="post" action="">
+	<table border='1' cellspacing='0' cellpadding='2'>
+	    <tr>
+	   		<th>Name</th>
+	   		<th>Input field</th>
+		</tr>
+	    <tr>
+	   		<td>Text - Name</td>
+	   		<td> <input type="text" name="name" value="{{data['name']}}" ></td>
+		</tr>
+	    <tr>
+	   		<td>Radio button</td>
+	   		<td>
+	   			{% h.radio("sex", ["Male", "Female"], data['sex'] ) %}
+	   		</td>
+		</tr>
+	    <tr>
+	   		<td>Selection</td>
+	   		<td>
+	   			{% h.select("selection", ["First", "Second", "Third"], selected=data['selection']) %}
+	   		</td>
+		</tr>
+	    <tr>
+	   		<td>Textarea</td>
+	   		<td> <textarea name="text" rows="3" cols="30">{{data['text']}}</textarea></td>
+		</tr>
+		
+	</table>
+	<p>
+	<p>
+	<input type="submit">
+</form>	
+
+{% endblock %}
