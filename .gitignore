@@ -1,4 +1,5 @@
 .settings
-*.pyc
+*.py[cod]
 .pydevproject
 .settings
+app/view/code/
