@@ -29,6 +29,17 @@
 """
 Common code used for testing
 
+To run this script without embeded http/json server, start with --noserver
+Example
+    
+    ./test_basium --noserver
+
+A suitable standalone server can be started with
+
+    export PYTHONPATH=/opt/basium
+    wsgi/handler --port 8051
+
+
 Preparation to database before testing:
 
     sqlite3
@@ -47,10 +58,10 @@ Preparation to database before testing:
 
         create a database called basium_db
             sudo -u postgres createdb basium_db --owner=basium_user
-            
 
     json
         uses the psql driver on the server side, see psql
+
 
 """
 
@@ -91,10 +102,9 @@ class ObjectFactory:
     Create a new object and initialize the columns with decent mostly
     unique values that can be used during testing
     """
-    
     def __init__(self):
         pass
-    
+
     def new(self, cls, p):
         obj = cls()
         for colname, column in obj._iterNameColumn():
@@ -106,18 +116,18 @@ class ObjectFactory:
             elif isinstance(column, basium_model.DateCol):
                 year = 2012
                 month = (p % 12) + 1
-                day = (p % 28) + 1 
-                val = datetime.date(year,month,day)
+                day = (p % 28) + 1
+                val = datetime.date(year, month, day)
             elif isinstance(column, basium_model.DateTimeCol):
                 year = 2012
                 month = (p % 12) + 1
-                day = (p % 28) + 1 
+                day = (p % 28) + 1
                 hour = (p % 24)
                 minute = (p % 60)
                 second = (p % 60)
-                val = datetime.datetime(year,month,day,hour,minute,second)
+                val = datetime.datetime(year, month, day, hour, minute, second)
             elif isinstance(column, basium_model.DecimalCol):
-                val = decimal.Decimal( "%d.%02d" % ( p, p % 100 ) )
+                val = decimal.Decimal("%d.%02d" % (p, p % 100))
             elif isinstance(column, basium_model.FloatCol):
                 val = float(str(p) + '.' + str(p))
             elif isinstance(column, basium_model.IntegerCol):
@@ -128,15 +138,15 @@ class ObjectFactory:
                 print("Unknown column type: %s" % column)
                 sys.exit(1)
             obj._values[colname] = val
-        
         return obj
 
 objFactory = ObjectFactory()
-   
+
 
 class TestFunctions(unittest.TestCase):
-    """TestFunctions, test the store, load, delete, filter orm functions"""
-
+    """
+    TestFunctions, test the store, load, delete, filter orm functions
+    """
     def setUp(self):
         # Based on driver, create a dbconf object
         self.dbconf = None
@@ -151,7 +161,7 @@ class TestFunctions(unittest.TestCase):
                                password='secret', database='basium_db')
         else:
             self.fail("Unknown driver %s" % self.driver)
-    
+
         self.db = basium.Basium(driver=self.driver, dbconf=self.dbconf, checkTables=True) #, logger=logger)
         self.db.log.logger.setLevel(logging.ERROR)
         self.db.addClass(self.Cls)
@@ -165,51 +175,55 @@ class TestFunctions(unittest.TestCase):
          Read out an object with the _id from above
          Compare and see if the two are equal
         """
-        log.info("Store object in table '%s'" % obj1._table )
+        log.info("Store object in table '%s'" % obj1._table)
         try:
-            data1 = self.db.store(obj1)
+            # data1 = self.db.store(obj1)
+            self.db.store(obj1)
         except bc.Error as e:
-            self.assertFalse( True, msg="Could not store object %s" % e)
-        
-        log.info("Load same object from table '%s'" % (obj1._table) )
+            self.assertFalse(True, msg="Could not store object %s" % e)
+
+        log.info("Load same object from table '%s'" % (obj1._table))
         obj2._id = obj1._id
         try:
             rows = self.db.load(obj2)
         except bc.Error as e:
-            self.assertFalse( True, msg="Could not load object %s" % e)
+            self.assertFalse(True, msg="Could not load object %s" % e)
 
         self.assertEqual( len(rows), 1, msg="Only expected one row in result, got %s" % len(rows))
-        
+
         obj2 = rows[0]
         self.assertEqual(obj1, obj2, msg = "Stored and loaded object does not have same content")
-    
+
         log.info("  There is a total of %i rows in the '%s' table" % (self.db.count(obj1), obj1._table ) )
 
     def testInsert(self):
-        """Store an object, read it out again and compare if they are equal"""
-    
-        obj1 = objFactory.new( self.Cls, 1 )
+        """
+        Store an object, read it out again and compare if they are equal
+        """
+        obj1 = objFactory.new(self.Cls, 1)
         obj2 = self.Cls()
         self.runtest2(obj1, obj2)
-    
-        obj3 = objFactory.new( self.Cls, 2 )
+
+        obj3 = objFactory.new(self.Cls, 2)
         obj4 = self.Cls()
         self.runtest2(obj3, obj4)
 
     def testUpdate(self):
-        """Test the update functionality"""
-        test1 = objFactory.new( self.Cls, 1 )
+        """
+        Test the update functionality
+        """
+        test1 = objFactory.new(self.Cls, 1)
         try:
             data = self.db.store(test1)
         except bc.Error as e:
             self.assertFalse(True, msg="Can't store new object %s" % e)
-        
+
         test1.varcharTest += " more text"
         try:
             _id = self.db.store(test1)
         except bc.Error as e:
             self.assertFalse(True, msg="Can't update object %s" % e)
-        
+
         test2 = self.Cls(_id)
         try:
             data = self.db.load(test2)
@@ -217,20 +231,21 @@ class TestFunctions(unittest.TestCase):
             self.assertFalse(True, msg="Can't load updated object %s" % e)
 
         test2 = data[0]
-        self.assertEqual(test1.varcharTest, test2.varcharTest, msg =
-            "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest) )
+        self.assertEqual(test1.varcharTest, test2.varcharTest, msg=
+            "Update failed, expected '%s' in field, got '%s'" % (test1.varcharTest, test2.varcharTest))
 
     def testQuery(self):
-        """Test the query functionality"""
-        
+        """
+        Test the query functionality
+        """
         # first create the objects in the database
         first = None
-        for rowid in range(100,115):
-            obj1 = objFactory.new( self.Cls, rowid )
+        for rowid in range(100, 115):
+            obj1 = objFactory.new(self.Cls, rowid)
             try:
                 data = self.db.store(obj1)
             except bc.Error as e:
-                self.assertFalse( True, msg="Could not store object %s" % e)
+                self.assertFalse(True, msg="Could not store object %s" % e)
             if not first:
                 first = obj1._id
 
@@ -241,40 +256,47 @@ class TestFunctions(unittest.TestCase):
             data = self.db.load(query)
         except bc.Error as e:
             self.assertFalse(True, msg="Can't query objects %s" % e)
-        
+
         self.assertEqual(len(data), 10, msg="Wrong number of objects returned, expected %s got %s" % (10, len(data)))
         if len(data) == 10:
             for i in range(0, 10):
                 self.assertEqual(data[i].intTest, i+103)
-    
+
     def testDelete(self):
-        test1 = objFactory.new( self.Cls, 1 )
-        log.info("Store object in table '%s'" % test1._table )
+        """
+        Test the delete functionality
+        """
+        test1 = objFactory.new(self.Cls, 1)
+        log.info("Store object in table '%s'" % test1._table)
         try:
-            _id = self.db.store(test1)
+            # _id = self.db.store(test1)
+            self.db.store(test1)
         except bc.Error as e:
             self.assertFalse(True, msg="Can't store new object %s" % e)
-        
+
         rowsaffected = None
-        log.info("Delete object in table '%s'" % test1._table )
+        log.info("Delete object in table '%s'" % test1._table)
         try:
             rowsaffected = self.db.delete(test1)
         except bc.Error as e:
-            self.assertFalse(True, msg="Can't delete object %s" % e) 
-        
+            self.assertFalse(True, msg="Can't delete object %s" % e)
+
         self.assertEqual(rowsaffected, 1)
-    
-        # Try to get the object we just deleted        
-        log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table )
+
+        # Try to get the object we just deleted
+        log.info("Trying to get deleted object in table '%s' (should fail)" % test1._table)
         test2 = self.Cls()
         try:
-            data = self.db.load(test2)
+            # data = self.db.load(test2)
+            self.db.load(test2)
         except bc.Error as e:
             self.assertTrue(True, msg="Expected error when loading deleted object %s" % e)
 
 
 class TestModel(unittest.TestCase):
-    """Test the ORM model class"""
+    """
+    Test the ORM model class
+    """
 
     class TestModel(basium_model.Model):
         booleanTest = basium_model.BooleanCol()
@@ -284,7 +306,7 @@ class TestModel(unittest.TestCase):
         floatTest = basium_model.FloatCol()
         intTest = basium_model.IntegerCol()
         varcharTest = basium_model.VarcharCol()
-    
+
     class TestModelDefault(basium_model.Model):
         booleanTest = basium_model.BooleanCol(default=True)
         dateTest = basium_model.DateCol(default="NOW")
@@ -319,12 +341,14 @@ class TestModel(unittest.TestCase):
 
 
 def get_suite():
-    """Return a testsuite with this modules all tests"""
+    """
+    Return a testsuite with this modules all tests
+    """
     suite = unittest.TestSuite()
     testloader = unittest.TestLoader()
-    
-    suite.addTests( unittest.TestLoader().loadTestsFromTestCase(TestModel) )
-    
+
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestModel))
+
     for driver in drivers:
         testnames = testloader.getTestCaseNames(TestFunctions)
         for name in testnames:
@@ -337,10 +361,13 @@ def get_suite():
 
 
 def runServer():
-    """Start an WSGI server as a separate thread, needed for the json driver test"""
+    """
+    Start an WSGI server as a separate thread,
+    needed for the json driver test
+    """
     log.info("Starting embedded WSGI server")
 
-    driver = "psql"    
+    driver = "psql"
     dbconf = basium.DbConf(host='localhost', port=5432, username='basium_user', password='secret', database='basium_db')
     db = basium.Basium(driver=driver, dbconf=dbconf, checkTables=True)
     db.setDebug(bc.DEBUG_ALL)

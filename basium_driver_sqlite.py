@@ -31,9 +31,9 @@ Basium database driver that handles SQLite
 
 All database operations are tried twice if any error occurs, clearing the
 connection if an error occurs. This makes all operations to reconnect if the
-connection to the database has been lost. 
+connection to the database has been lost.
 
-SQLite only handles direct files, but the file can be located on a remote 
+SQLite only handles direct files, but the file can be located on a remote
 media that needs to be reconnected
 """
 
@@ -51,8 +51,8 @@ except ImportError:
 if err:
     raise bc.Error(1, err)
 
+
 class ColumnInfo:
-    
     def __init__(self, arg):
         self.cid = arg["cid"]
         self.name = arg["name"]
@@ -60,18 +60,20 @@ class ColumnInfo:
         self.notnull = arg["notnull"]
         self.default = arg["dflt_value"]
         self.pk = arg["pk"]
-        
+
 
 class BooleanCol(basium_driver.Column):
-    """"Stores boolean as number: 0 or 1"""
+    """
+    Stores boolean as number: 0 or 1
+    """
 
     def typeToSql(self):
         sql = "tinyint(1)"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default:
                 sql += " default 1"
             else:
@@ -82,23 +84,25 @@ class BooleanCol(basium_driver.Column):
         return value == 1
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         if value:
             return 1
         return 0
-    
+
 
 class DateCol(basium_driver.Column):
-    """Stores a date"""
+    """
+    Stores a date
+    """
 
     def typeToSql(self):
         sql = "date"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % self.default
         return sql
 
@@ -108,9 +112,9 @@ class DateCol(basium_driver.Column):
         elif isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
@@ -120,14 +124,14 @@ class DateTimeCol(basium_driver.Column):
     Stores date+time
     ignores microseconds
     """
-    
+
     def typeToSql(self):
         sql = 'datetime'
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None and self.default != 'NOW':
+            sql += " not null"
+        if self.default is not None and self.default != 'NOW':
             sql += " default %s" % self.default
         return sql
 
@@ -149,34 +153,36 @@ class DecimalCol(basium_driver.Column):
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default '%s'" % str(self.default)
         return sql
 
     def toPython(self, value):
-        if value == None:
+        if value is None:
             return None
         if isinstance(value, decimal.Decimal):
             return value
         return decimal.Decimal(value)
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return float(value)
 
 
 class FloatCol(basium_driver.Column):
-    """Stores a floating point number"""
+    """
+    Stores a floating point number
+    """
 
     def typeToSql(self):
         sql = "float"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % str(self.default)
         return sql
 
@@ -184,26 +190,28 @@ class FloatCol(basium_driver.Column):
         if isinstance(value, str):
             value = float(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-    
+
 class IntegerCol(basium_driver.Column):
-    """Stores an integer"""
+    """
+    Stores an integer
+    """
 
     def typeToSql(self):
         if self.primary_key:
-            return "INTEGER PRIMARY KEY";
+            return "INTEGER PRIMARY KEY"
         sql = 'INTEGER'  # no length in sqlite % self.length
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
-            if self.default: 
+            sql += " not null"
+        if self.default is not None:
+            if self.default:
                 sql += " default %i" % self.default
         return sql
 
@@ -211,9 +219,9 @@ class IntegerCol(basium_driver.Column):
         if isinstance(value, str):
             value = int(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
@@ -223,20 +231,20 @@ class VarcharCol(basium_driver.Column):
     Stores a string
     sqlite ignores the length so it is not used
     """
+
     def typeToSql(self):
         sql = 'varchar'
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default != '':
                 sql += " default '%s'" % self.default
         return sql
 
 
 class Action:
-    
     def __init__(self, msg=None, unattended=None, sqlcmd=None):
         self.msg = msg
         self.unattended = unattended
@@ -246,7 +254,7 @@ class Driver:
     def __init__(self, log=None, dbconf=None):
         self.log = log
         self.dbconf = dbconf
-        
+
         self.dbconnection = None
         self.tables = None
         self.connectionStatus = None
@@ -258,7 +266,7 @@ class Driver:
             self.cursor = self.dbconnection.cursor()
         except sqlite3.Error as e:
             raise bc.Error(1, e.args[0])
-    
+
     def disconnect(self):
         self.dbconnection = None
         self.tables = None
@@ -269,14 +277,14 @@ class Driver:
         to handle timeouts
         """
         for i in range(0, 2):
-            if self.dbconnection == None:
+            if self.dbconnection is None:
                 self.connect()
             try:
                 if self.debug & bc.DEBUG_SQL:
                     self.log.debug('SQL=%s' % sql)
                     if values:
                         self.log.debug('   =%s' % values)
-                if values != None:
+                if values is not None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
@@ -286,17 +294,20 @@ class Driver:
 
             except sqlite3.Error as e:
                 if i == 1:
-                    raise bc.Error( 1, e.args[0] )
-    
+                    raise bc.Error(1, e.args[0])
+
     def isDatabase(self, dbName):
         """
         Returns True if the database exist
-        We always return true, sqlite automatically creates the database when opened
+        We always return true, sqlite automatically creates
+        the database when opened
         """
         return True
 
     def isTable(self, tableName):
-        """Returns True if the table exist"""
+        """
+        Returns True if the table exist
+        """
         if not self.tables:
             self.tables = {}
             sql = "SELECT name FROM sqlite_master WHERE type='table'"
@@ -309,7 +320,9 @@ class Driver:
         return tableName in self.tables
 
     def createTable(self, obj):
-        """Create a table"""
+        """
+        Create a table
+        """
         sql = 'CREATE TABLE %s (' % obj._table
         columnlist = []
         for colname, column in obj._iterNameColumn():
@@ -329,7 +342,7 @@ class Driver:
          4 default value
          5 pk - primary key
         """
-        if  tabletype[5] > 0:
+        if tabletype[5] > 0:
             tmp = 'INTEGER PRIMARY KEY'
         else:
             tmp = tabletype[2]
@@ -345,7 +358,7 @@ class Driver:
         Returns None if table does not exist
         Returns list of Action, zero length if nothing needs to be done
         """
-        
+
         sql = "PRAGMA table_info([%s])" % obj._table
         self.execute(sql)
 
@@ -382,7 +395,7 @@ class Driver:
                         ))
 
         for colname, tabletype in tabletypes.items():
-            if not colname in obj._columns:
+            if colname not in obj._columns:
                 actions.append(Action(
                         msg="Error: Column '%s' in SQL Table NOT used, should be removed" % colname,
                         unattended=False,
@@ -426,7 +439,7 @@ class Driver:
                     self.log.debug("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
         for action in actions:
-            if not 'DROP' in action.sqlcmd:
+            if 'DROP' not in action.sqlcmd:
                 self.log.debug("Fixing %s" % action.msg)
                 self.log.debug("  Cmd: %s" % action.sqlcmd)
                 self.cursor.execute(action.sqlcmd)
@@ -439,13 +452,13 @@ class Driver:
         self.execute(sql, values)
         try:
             row = self.cursor.fetchone()
-            if row != None:
+            if row is not None:
                 key = 'count(*)'
                 rows = int(row[key])
             else:
                 raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
         except sqlite3.Error as e:
-            raise bc.Error( 1, e.args[0] )
+            raise bc.Error(1, e.args[0])
         return rows
 
     def select(self, query):
@@ -454,7 +467,7 @@ class Driver:
         Returns an object that can be iterated over, returning rows
         If there is any errors, an exception is raised
         """
-        sql = "SELECT * FROM %s" % query.table() 
+        sql = "SELECT * FROM %s" % query.table()
         sql2, values = query.toSql()
         sql += sql2.replace("%s", "?")
         self.execute(sql, values)
@@ -497,7 +510,7 @@ class Driver:
          "DELETE FROM EMPLOYEE WHERE AGE > '%d'" % (20)
         returns number of rows deleted
         """
-        sql = "DELETE FROM %s" % query.table() 
+        sql = "DELETE FROM %s" % query.table()
         sql2, values = query.toSql()
         if sql2 == '':
             raise bc.Error(1, 'Missing query on delete(), empty query is not accepted')
@@ -506,5 +519,5 @@ class Driver:
         try:
             data = self.cursor.rowcount
         except sqlite3.Error as e:
-            raise bc.Error( 1, e.args[0] )
+            raise bc.Error(1, e.args[0])
         return data

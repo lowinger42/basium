@@ -37,7 +37,8 @@ DEBUG_ALL        = 1 <<  2 - 1
 
 import logging.handlers
 
-class Logger():
+
+class Logger:
 
     def __init__(self, loglevel=logging.DEBUG, formatstr='%(asctime)s %(levelname)s %(message)s ', syslog=False):
         self.logger = logging.getLogger('basium')
@@ -46,18 +47,18 @@ class Logger():
         # remove all handlers
         for hdlr in self.logger.handlers:
             self.logger.removeHandler(hdlr)
-        
+
         if syslog:
             self.syslogger = logging.handlers.SysLogHandler(address='/dev/logger')
             self.syslogger.setLevel(loglevel)
-            
+
             self.formatter = logging.Formatter('%(module)s [%(process)d]: %(levelname)s %(message)s')
             self.syslogger.setFormatter(self.formatter)
             self.logger.addHandler(self.syslogger)
         else:
             self.consolehandler = logging.StreamHandler()
             self.consolehandler.setLevel(loglevel)
-            
+
             self.formatter = logging.Formatter(formatstr)
             self.consolehandler.setFormatter(self.formatter)
             self.logger.addHandler(self.consolehandler)
@@ -82,14 +83,12 @@ class Logger():
         self.logger.debug(msg)
 
 
-
-class Response():
+class Response:
     """
     Main result object from functions etc.
-    
+
     Makes it possible to return both status and the result data
     """
-    
     def __init__(self, errno=0, errmsg=''):
         self.errno = errno
         self.errmsg = errmsg
@@ -110,16 +109,15 @@ class Response():
     def setError(self, errno=1, errmsg=''):
         self.errno = errno
         self.errmsg = errmsg
-        
+
     def dict(self):
-        return { "errno": self.errno, "errmsg": self.errmsg, "data": self.data}
+        return {"errno": self.errno, "errmsg": self.errmsg, "data": self.data}
 
 
 class Error(Exception):
     def __init__(self, errno=1, errmsg=""):
         self.errno = errno
         self.errmsg = errmsg
-    
-    def __str__(self):
-        return "errno=%s, errmsg=%s" % (self.errno, self.errmsg)        
 
+    def __str__(self):
+        return "errno=%s, errmsg=%s" % (self.errno, self.errmsg)

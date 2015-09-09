@@ -36,7 +36,7 @@ connection to the database has been lost.
 To use this driver, install the mysql.connector
     In ubuntu
         sudo apt-get install python3-mysql.connector
-    
+
 """
 
 import datetime
@@ -55,15 +55,17 @@ if err:
 
 
 class BooleanCol(basium_driver.Column):
-    """Stores boolean as number: 0 or 1"""
+    """
+    Stores boolean as number: 0 or 1
+    """
 
     def typeToSql(self):
         sql = "tinyint(1)"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default:
                 sql += " default 1"
             else:
@@ -74,23 +76,25 @@ class BooleanCol(basium_driver.Column):
         return value == 1
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         if value:
             return 1
         return 0
-    
+
 
 class DateCol(basium_driver.Column):
-    """Stores a date"""
+    """
+    Stores a date
+    """
 
     def typeToSql(self):
         sql = "date"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % self.default
         return sql
 
@@ -100,9 +104,9 @@ class DateCol(basium_driver.Column):
         if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
@@ -113,14 +117,14 @@ class DateTimeCol(basium_driver.Column):
     ignores microseconds
     if default is 'NOW' the current date+time is stored
     """
-    
+
     def typeToSql(self):
         sql = 'datetime'
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None and self.default != 'NOW':
+            sql += " not null"
+        if self.default is not None and self.default != 'NOW':
             sql += " default %s" % self.default
         return sql
 
@@ -141,34 +145,36 @@ class DecimalCol(basium_driver.Column):
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default '%s'" % str(self.default)
         return sql
 
     def toPython(self, value):
-        if value == None:
+        if value is None:
             return None
         if isinstance(value, decimal.Decimal):
             return value
         return decimal.Decimal(value)
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
 
 class FloatCol(basium_driver.Column):
-    """Stores a floating point number"""
+    """
+    Stores a floating point number
+    """
 
     def typeToSql(self):
         sql = "float"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % str(self.default)
         return sql
 
@@ -176,26 +182,28 @@ class FloatCol(basium_driver.Column):
         if isinstance(value, str):
             value = float(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-    
+
 class IntegerCol(basium_driver.Column):
-    """Stores an integer"""
+    """
+    Stores an integer
+    """
 
     def typeToSql(self):
         if self.primary_key:
-            return "serial";
+            return "serial"
         sql = 'int(%s)' % self.length
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
-            if self.default: 
+            sql += " not null"
+        if self.default is not None:
+            if self.default:
                 sql += " default %i" % self.default
         return sql
 
@@ -203,34 +211,36 @@ class IntegerCol(basium_driver.Column):
         if isinstance(value, str):
             value = int(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
 
 class VarcharCol(basium_driver.Column):
-    """Stores a string"""
+    """
+    Stores a string
+    """
 
     def typeToSql(self):
         sql = 'varchar(%d)' % self.length
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default != '':
                 sql += " default '%s'" % self.default
         return sql
 
 
 class Action:
-    
     def __init__(self, msg=None, unattended=None, sqlcmd=None):
         self.msg = msg
         self.unattended = unattended
         self.sqlcmd = sqlcmd
+
 
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
     """A cursor class that returns rows as dictionary"""
@@ -246,7 +256,7 @@ class Driver:
         self.log = log
         self.dbconf = dbconf
         self.dbconf.database = self.dbconf.database
-        
+
         self.dbconnection = None
         self.connectionStatus = None
         self.tables = None
@@ -255,7 +265,7 @@ class Driver:
         try:
             if not self.dbconf.port:
                 self.dbconf.port = 3306
-            self.dbconnection = mysql.connector.connect (
+            self.dbconnection = mysql.connector.connect(
                                     host=self.dbconf.host,
                                     port=int(self.dbconf.port),
                                     user=self.dbconf.username,
@@ -269,7 +279,7 @@ class Driver:
             if self.dbconnection:
                 self.dbconnection.commit()
         except mysql.connector.Error as err:
-            raise bc.Error( err.errno, str(err) )
+            raise bc.Error(err.errno, str(err))
 
     def disconnect(self):
         self.dbconnection = None
@@ -277,16 +287,16 @@ class Driver:
 
     def execute(self, sql, values=None, commit=False):
         """
-        Execute a query, 
+        Execute a query,
         if error try to reconnect and redo the query to handle timeouts
-        """    
+        """
         for i in range(0, 2):
-            if self.dbconnection == None:
+            if self.dbconnection is None:
                 self.connect()
                 if self.debug & bc.DEBUG_SQL:
                     self.log.debug('SQL=%s, values=%s' % (sql, values))
             try:
-                if values != None:
+                if values is not None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
@@ -294,17 +304,19 @@ class Driver:
                     self.dbconnection.commit()
                 return
             except mysql.connector.Error as err:
-                if self.dbconnection != None:
+                if self.dbconnection is not None:
                     try:
                         self.dbconnection.commit()
                     except mysql.connector.Error as err:
                         pass
                 if i == 1:
-                    raise bc.Error( err.errno, str(err) )
+                    raise bc.Error(err.errno, str(err))
                 self.disconnect()
-    
+
     def isDatabase(self, dbName):
-        """Returns True if the database exist"""
+        """
+        Returns True if the database exist
+        """
         sql = "SELECT IF(EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s'), 'Yes','No')" % dbName
         exist = False
         self.execute(sql)
@@ -317,7 +329,9 @@ class Driver:
         return exist
 
     def isTable(self, tableName):
-        """Returns True if the table exist"""
+        """
+        Returns True if the table exist
+        """
         if not self.tables:
             # Read all tables and cache locally
             self.tables = {}
@@ -332,7 +346,9 @@ class Driver:
         return tableName in self.tables
 
     def createTable(self, obj):
-        """Create a tablet"""
+        """
+        Create a tablet
+        """
         sql = 'CREATE TABLE %s (\n   ' % obj._table
         columnlist = []
         for colname, column in obj._iterNameColumn():
@@ -379,7 +395,7 @@ class Driver:
                         ))
 
         for colname, tabletype in tabletypes.items():
-            if not colname in obj._columns:
+            if colname not in obj._columns:
                 actions.append(Action(
                         msg="Error: Column '%s' in SQL Table NOT used, should be removed" % colname,
                         unattended=False,
@@ -423,7 +439,8 @@ class Driver:
                     return True
 
         # we first remove columns, so we dont get into conflicts
-        # with the new columns, for example changing primary key (there can only be one primary key)
+        # with the new columns, for example changing primary key
+        # (there can only be one primary key)
         for action in actions:
             if 'DROP' in action.sqlcmd:
                 if self.debug & bc.DEBUG_TABLE_MGMT:
@@ -431,7 +448,7 @@ class Driver:
                     self.log.debug("  Cmd: " + action.sqlcmd)
                 self.execute(action.sqlcmd, commit=True)
         for action in actions:
-            if not 'DROP' in action.sqlcmd:
+            if 'DROP' not in action.sqlcmd:
                 if self.debug & bc.DEBUG_TABLE_MGMT:
                     self.log.debug("Fixing " + action.msg)
                     self.log.debug("  Cmd: " + action.sqlcmd)
@@ -446,7 +463,7 @@ class Driver:
         self.execute(sql, values)
         try:
             row = self.cursor.fetchone()
-            if row == None:
+            if row is None:
                 raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
             rows = int(row['count(*)'])
         except mysql.connector.Error as err:
@@ -459,7 +476,7 @@ class Driver:
         Returns an object that can be iterated over, returning rows
         If there is any errors, an DriverError exception is raised
         """
-        sql = "SELECT * FROM %s" % query.table() 
+        sql = "SELECT * FROM %s" % query.table()
         sql2, values = query.toSql()
         sql += sql2
         self.execute(sql, values)
@@ -483,7 +500,9 @@ class Driver:
         return self.cursor.lastrowid
 
     def update(self, table, values):
-        """Update a row in the table"""
+        """
+        Update a row in the table
+        """
         parms = []
         vals = []
         for key, val in values.items():

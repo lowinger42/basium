@@ -32,6 +32,7 @@ Definition of the object (table) used for unit tests
 
 import basium_model
 
+
 class BasiumTest(basium_model.Model):
     booleanTest = basium_model.BooleanCol()
     dateTest = basium_model.DateCol()

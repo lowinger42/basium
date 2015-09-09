@@ -53,11 +53,16 @@ import basium_driver
 # handles the database specific functions such
 # as converting to/from SQL types
 #
-# The JSON driver handles toSql differently compared to a standard sql driver, 
-# it converts to string and utf-8 encodes the data, so it can be sent in a 
+# The JSON driver handles toSql differently compared to a standard sql driver,
+# it converts to string and utf-8 encodes the data, so it can be sent in a
 # HTTP POST/PUT message
 #
+
+
 class BooleanCol(basium_driver.BooleanCol):
+    """
+    stores a boolean
+    """
 
     @classmethod
     def toPython(self, value):
@@ -66,15 +71,18 @@ class BooleanCol(basium_driver.BooleanCol):
         return value
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         if value:
             return "True"
         return "False"
 
-# stores a date
+
 class DateCol(basium_driver.DateCol):
-    
+    """
+    stores a date
+    """
+
     @classmethod
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
@@ -82,16 +90,18 @@ class DateCol(basium_driver.DateCol):
         if isinstance(value, str):
             value = datetime.datetime.strptime(value[:10], '%Y-%m-%d').date()
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-# stores date+time
-# ignores microseconds
+
 class DateTimeCol(basium_driver.DateTimeCol):
-    
+    """
+    stores date+time, ignores microseconds
+    """
+
     @classmethod
     def toPython(self, value):
         if value == "NULL":
@@ -99,69 +109,78 @@ class DateTimeCol(basium_driver.DateTimeCol):
         if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
-    
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value.strftime('%Y-%m-%d %H:%M:%S')
-        
+
 
 # stores a fixed precision number
 class DecimalCol(basium_driver.DecimalCol):
-    
+
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default '%s'" % str(self.default)
         return sql
 
     @classmethod
     def toPython(self, value):
-        if value == None:
+        if value is None:
             return None
         if isinstance(value, decimal.Decimal):
             return value
         return decimal.Decimal(value)
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-# stores a floating point number
+
 class FloatCol(basium_driver.FloatCol):
-    
+    """
+    stores a floating point number
+    """
+
     @classmethod
     def toPython(self, value):
         if isinstance(value, str):
             value = float(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-# stores an integer
+
 class IntegerCol(basium_driver.IntegerCol):
-    
+    """
+    stores an integer
+    """
+
     @classmethod
     def toPython(self, value):
         if isinstance(value, str):
             value = int(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-# stores a string
+
 class VarcharCol(basium_driver.VarcharCol):
+    """
+    stores a string
+    """
 
     @classmethod
     def toPython(self, value):
@@ -173,14 +192,15 @@ class VarcharCol(basium_driver.VarcharCol):
             return value
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
 
 class RequestWithMethod(urllib.request.Request):
-    """Helper class, to implement HTTP GET, POST, PUT, DELETE"""
-    
+    """
+    Helper class, to implement HTTP GET, POST, PUT, DELETE
+    """
     def __init__(self, *args, **kwargs):
         self._method = kwargs.pop('method', None)
         urllib.request.Request.__init__(self, *args, **kwargs)
@@ -193,13 +213,13 @@ class Driver(basium_driver.Driver):
     def __init__(self, log=None, dbconf=None):
         self.log = log
         self.dbconf = dbconf
-        
+
         self.uri = '%s/api' % (self.dbconf.host)
 
     def connect(self):
         """
         dummy, json api is stateless, we don't need connect
-        
+
         todo, could potentially check if server is reachable
         """
         pass
@@ -210,7 +230,7 @@ class Driver(basium_driver.Driver):
         respdata = None
         info = None
         req = RequestWithMethod(url, method=method)
-        if self.dbconf.username != None:
+        if self.dbconf.username is not None:
             auth = '%s:%s' % (self.dbconf.username, self.dbconf.password)
             auth = auth.encode("utf-8")
             req.add_header(b"Authorization", b"Basic " + base64.b64encode(auth))
@@ -219,15 +239,14 @@ class Driver(basium_driver.Driver):
                 resp = urllib.request.urlopen(req, urllib.parse.urlencode(data, encoding="utf-8").encode("ascii") )
             else:
                 resp = urllib.request.urlopen(req)
-            info = resp.info
         except urllib.error.HTTPError as e:
             raise bc.Error(1, "HTTPerror %s" % e)
         except urllib.error.URLError as e:
             raise bc.Error(1, "URLerror %s" % e)
-        
+
         if decode:
             encoding = resp.headers.get_content_charset()
-            if encoding == None:
+            if encoding is None:
                 encoding = "utf-8"
             try:
                 tmp = resp.read().decode(encoding)
@@ -237,21 +256,21 @@ class Driver(basium_driver.Driver):
                 raise bc.Error(1, "JSON ValueError for " + tmp)
             except TypeError:
                 raise bc.Error(1, "JSON TypeError for " + tmp)
-    
+
             try:
                 if res['errno'] != 0:
                     raise bc.Error(res['errno'], res['errmsg'])
                 respdata = res["data"]
             except KeyError:
                 raise bc.Error(1, "Result keyerror, missing errno/errmsg")
-    
+
         return respdata, info
 
     def isDatabase(self, dbName):
         """
         Check if a database exist
         """
-        url = '%s/_database/%s' %(self.uri, dbName )
+        url = '%s/_database/%s' % (self.uri, dbName)
         data, info = self.execute(method='GET', url=url, decode=True)
         return data
 
@@ -259,7 +278,7 @@ class Driver(basium_driver.Driver):
         """
         Check if a table exist
         """
-        url = '%s/_table/%s' %(self.uri, tableName )
+        url = '%s/_table/%s' % (self.uri, tableName)
         data, info = self.execute(method='GET', url=url, decode=True)
         return data
 
@@ -278,20 +297,22 @@ class Driver(basium_driver.Driver):
 #         response = c.Response()
 #         response.data = []
 #         return response
-    
+
 #     def modifyTable(self, obj, actions):
 #         """
 #         Modify a database table so it corresponds to a object attributes and types
 #         Not valid for JSON, due to security issues
 #         """
 #         return True
-    
+
     def count(self, query):
-        """Count the number of objects, filtered by query"""
+        """
+        Count the number of objects, filtered by query
+        """
         if len(query._where) == 0:
-            url = '%s/%s' %(self.uri, query.table() )
+            url = '%s/%s' % (self.uri, query.table())
         else:
-            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
+            url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
         data, info = self.execute(method='HEAD', url=url)
         return int( info().get('X-Result-Count') )
     
@@ -300,7 +321,7 @@ class Driver(basium_driver.Driver):
         Fetch one or multiple rows from a database
         Returns an object that can be iterated over, returning rows
         If there is any errors, an DriverError exception is raised
-        
+
         two different formats:
           simple: <url>/<table>/<id>
           query : <url>/<table>/filter?column=oper,value[&column=oper,value]
@@ -310,8 +331,8 @@ class Driver(basium_driver.Driver):
             # simple
             url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
         else:
-            # real query 
-            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
+            # real query
+            url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
         data, info = self.execute(method='GET', url=url, decode=True)
         return data
 
@@ -336,7 +357,7 @@ class Driver(basium_driver.Driver):
             # simple
             url = '%s/%s/%i' % (self.uri, query.table(), query._where[0].value)
         else:
-            # real query 
-            url = '%s/%s/filter?%s' %(self.uri, query.table(), query.encode() )
-        data, info = self.execute('DELETE', url, decode = True)
+            # real query
+            url = '%s/%s/filter?%s' % (self.uri, query.table(), query.encode())
+        data, info = self.execute('DELETE', url, decode=True)
         return data

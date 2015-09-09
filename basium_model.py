@@ -36,23 +36,27 @@ import inspect
 import pprint
 import datetime
 
-# import basium_common as bc
 
 class Column:
-    """Base class for all different column types"""
+    """
+    Base class for all different column types
+    """
 
     def getDefault(self):
         return self.default
 
-class BooleanCol(Column):
 
+class BooleanCol(Column):
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
 
+
 class DateCol(Column):
-    """Stores a date"""
+    """
+    Stores a date
+    """
     def __init__(self, primary_key=False, nullable=False, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -63,13 +67,13 @@ class DateCol(Column):
             return datetime.datetime.now().date()
         return self.default
 
+
 class DateTimeCol(Column):
     """
     Stores date+time
     ignores microseconds
     if default is 'NOW' the current date+time is stored
     """
-    
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -79,6 +83,7 @@ class DateTimeCol(Column):
         if self.default == 'NOW':
             return datetime.datetime.now().replace(microsecond=0)
         return self.default
+
 
 class DecimalCol(Column):
     """
@@ -92,23 +97,32 @@ class DecimalCol(Column):
         self.maxdigits = maxdigits
         self.decimal = decimal
 
+
 class FloatCol(Column):
-    """Stores a floating point number"""
+    """
+    Stores a floating point number
+    """
     def __init__(self, primary_key=False, nullable=True, default=None):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
-    
+
+
 class IntegerCol(Column):
-    """Stores an integer"""
+    """
+    Stores an integer
+    """
     def __init__(self, primary_key=False, nullable=True, default=None, length=11):
         self.primary_key = primary_key
         self.nullable = nullable
         self.default = default
         self.length = length
 
+
 class VarcharCol(Column):
-    """Stores a string"""
+    """
+    Stores a string
+    """
     def __init__(self, primary_key=False, nullable=True, default=None, length=255):
         self.primary_key = primary_key
         self.nullable = nullable
@@ -118,10 +132,12 @@ class VarcharCol(Column):
 
 class Q:
     pass
-    
-class ModelMetaClass(type):
-    """Metaclass that helps constructing the classes that should be persisted"""
 
+
+class ModelMetaClass(type):
+    """
+    Metaclass that helps constructing the classes that should be persisted
+    """
     def __init__(cls, name, bases, dct):
         super(ModelMetaClass, cls).__init__(name, bases, dct)
         cls._primary_key = ['_id']
@@ -132,18 +148,20 @@ class ModelMetaClass(type):
         cls._columns = {}
         cls._values = {}
 
-              
+
 class Model(metaclass=ModelMetaClass):
-    """Base class for all classes that should be persistable"""
+    """
+    Base class for all classes that should be persistable
+    """
     __metaclass__ = ModelMetaClass
 
-    def __init__(self, id_value = -1):
+    def __init__(self, id_value=-1):
         _id = IntegerCol(primary_key=True)
         _id._model = self
         _id.name = '_id'
-        columns = { '_id': _id }
-        values = { '_id': id_value }
-        
+        columns = {'_id': _id}
+        values = {'_id': id_value}
+
         # create instance variables of the class columns
         q = Q()
         q._id = _id
@@ -157,7 +175,7 @@ class Model(metaclass=ModelMetaClass):
         object.__setattr__(self, '_columns', columns)
         object.__setattr__(self, '_values', values)
         object.__setattr__(self, 'q', q)
-    
+
     def __setattr__(self, attr, value):
         if attr in self._columns:
             self._values[attr] = value
@@ -174,7 +192,7 @@ class Model(metaclass=ModelMetaClass):
         return pprint.pformat(self._getValues(), indent=4)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         for colname in self._iterName():
             if colname != '_id':
@@ -194,7 +212,7 @@ class Model(metaclass=ModelMetaClass):
         for colname, column in self._iterNameColumn():
             res[colname] = column.toSql(self._values[colname])
         return res
-    
+
     def _getStrValues(self):
         """return all columns as a dictionary, data presented as strings"""
         res = {}
@@ -203,15 +221,15 @@ class Model(metaclass=ModelMetaClass):
         return res
 
     def _isPrimaryKey(self, pkey):
-        if pkey != None:
-            if self._primary_key != None:
+        if pkey is not None:
+            if self._primary_key is not None:
                 return pkey in self._primary_key
         return False
-    
+
     def _iterName(self):
         for colname in self._columns.keys():
             yield colname
-            
+
     def _iterNameColumn(self):
-        for colname,column in self._columns.items():
+        for colname, column in self._columns.items():
             yield colname, column

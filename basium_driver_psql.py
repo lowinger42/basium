@@ -71,7 +71,7 @@ class Column:
 
     def toSql(self, value):
         return value
-    
+
     # Convert a 'describe table' to sqltype
     #
     #    from "describe <table"
@@ -83,7 +83,7 @@ class Column:
     #        'Type': 'timestamp'},
     #
     def tableTypeToSql(self, tabletype):
-        if  tabletype['Key'] == 'PRI':
+        if tabletype['Key'] == 'PRI':
             tmp = 'serial'
         else:
             tmp = tabletype['Type']
@@ -95,15 +95,17 @@ class Column:
 
 
 class BooleanCol(basium_driver.Column):
-    """Stores boolean as number: 0 or 1"""
+    """
+    Stores boolean as number: 0 or 1
+    """
 
     def typeToSql(self):
         sql = "boolean"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default:
                 sql += " default TRUE"
             else:
@@ -114,23 +116,25 @@ class BooleanCol(basium_driver.Column):
         return value == 1
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         if value:
             return 'TRUE'
         return 'FALSE'
-    
+
 
 class DateCol(basium_driver.Column):
-    """Stores a date"""
-    
+    """
+    Stores a date
+    """
+
     def typeToSql(self):
         sql = "date"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % self.default
         return sql
 
@@ -140,9 +144,9 @@ class DateCol(basium_driver.Column):
         if isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
@@ -152,14 +156,14 @@ class DateTimeCol(basium_driver.Column):
     Stores date+time
     ignores microseconds
     """
-    
+
     def typeToSql(self):
         sql = 'timestamp without time zone'
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None and self.default != 'NOW':
+            sql += " not null"
+        if self.default is not None and self.default != 'NOW':
             sql += " default %s" % self.default
         return sql
 
@@ -174,40 +178,42 @@ class DecimalCol(basium_driver.Column):
     stores a fixed precision number
     we cheat and represent this as a float in python
     """
-    
+
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default '%s'" % str(self.default)
         return sql
 
     def toPython(self, value):
-        if value == None:
+        if value is None:
             return None
         if isinstance(value, decimal.Decimal):
             return value
         return decimal.Decimal(value)
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
 
 class FloatCol(basium_driver.Column):
-    """Stores a floating point number"""
-    
+    """
+    Stores a floating point number
+    """
+
     def typeToSql(self):
         sql = "float"
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default %s" % str(self.default)
         return sql
 
@@ -215,16 +221,18 @@ class FloatCol(basium_driver.Column):
         if isinstance(value, str):
             value = float(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
-    
+
 class IntegerCol(basium_driver.Column):
-    """Stores an integer"""
-    
+    """
+    Stores an integer
+    """
+
     def typeToSql(self):
         if self.primary_key:
             return "SERIAL PRIMARY KEY"
@@ -232,9 +240,9 @@ class IntegerCol(basium_driver.Column):
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
-            if self.default: 
+            sql += " not null"
+        if self.default is not None:
+            if self.default:
                 sql += " default %i" % self.default
         return sql
 
@@ -242,30 +250,31 @@ class IntegerCol(basium_driver.Column):
         if isinstance(value, str):
             value = int(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
 
 class VarcharCol(basium_driver.Column):
-    """Stores a string"""
+    """
+    Stores a string
+    """
 
     def typeToSql(self):
         sql = 'varchar(%d)' % self.length
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             if self.default != '':
                 sql += " default '%s'" % self.default
         return sql
 
 
 class Action:
-    
     def __init__(self, msg=None, unattended=None, sqlcmd=None):
         self.msg = msg
         self.unattended = unattended
@@ -287,24 +296,24 @@ class Driver:
                 host=self.dbconf.host, port=self.dbconf.port, user=self.dbconf.username, password=self.dbconf.password, dbname=self.dbconf.database)
             self.cursor = self.dbconnection.cursor(cursor_factory=psycopg2.extras.DictCursor)
         except psycopg2.DatabaseError as e:
-            raise bc.Error( 1, str(e) )
-    
+            raise bc.Error(1, str(e))
+
     def disconnect(self):
         self.dbconnection = None
         self.tables = None
 
-    def execute(self, sql, values = None, commit=False):
+    def execute(self, sql, values=None, commit=False):
         """
         Execute a query
         If error try to reconnect and redo the query to handle timeouts
         """
         for i in range(0, 2):
-            if self.dbconnection == None:
+            if self.dbconnection is None:
                 self.connect()
             try:
                 if self.debug & bc.DEBUG_SQL:
                     self.log.debug(self.cursor.mogrify(sql, values))
-                if values != None:
+                if values is not None:
                     self.cursor.execute(sql, values)
                 else:
                     self.cursor.execute(sql)
@@ -314,16 +323,18 @@ class Driver:
 
             except psycopg2.DatabaseError as e:
                 if i == 1:
-                    raise bc.Error( 1, str(e) )
+                    raise bc.Error(1, str(e))
                 self.disconnect()
 #                    try:
 #                        self.dbconnection.rollback()    # make sure to clear any previous hanging transactions
 #                    except psycopg2.DatabaseError, e:
 #                        pass
-    
+
     def isDatabase(self, dbName):
-        """Returns True if the database exist"""
-        sql = "select * from pg_database where datname=%s" # % dbName
+        """
+        Returns True if the database exist
+        """
+        sql = "select * from pg_database where datname=%s"  # % dbName
         values = (dbName,)
         self.execute(sql, values)
         try:
@@ -331,11 +342,13 @@ class Driver:
             if row and len(row) > 0:
                 exist = row[0] == dbName
         except psycopg2.DatabaseError as e:
-            raise bc.Error( 1, str(e) )
+            raise bc.Error(1, str(e))
         return exist
 
     def isTable(self, tableName):
-        """Returns True if the table exist"""
+        """
+        Returns True if the table exist
+        """
         if not self.tables:
             self.tables = {}
             sql = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
@@ -345,11 +358,13 @@ class Driver:
                 for row in self.cursor.fetchall():
                     self.tables[row[0]] = 1
             except psycopg2.DatabaseError as e:
-                raise bc.Error( 1, str(e) )
+                raise bc.Error(1, str(e))
         return tableName in self.tables
 
     def createTable(self, obj):
-        """Create a table"""
+        """
+        Create a table
+        """
         sql = 'CREATE TABLE %s (' % obj._table
         columnlist = []
         for colname, column in obj._iterNameColumn():
@@ -466,11 +481,11 @@ class Driver:
         self.execute(sql, values)
         try:
             row = self.cursor.fetchone()
-            if row == None:
+            if row is None:
                 raise bc.Error(1, 'Cannot query for count(*) in %s' % (query.table()))
             data = int(row[0])
         except psycopg2.DatabaseError as e:
-            raise bc.Error( 1, str(e) )
+            raise bc.Error(1, str(e))
         return data
 
     def select(self, query):
@@ -479,7 +494,7 @@ class Driver:
         Returns an object that can be iterated over, returning rows
         If there is any errors, an exception is raised
         """
-        sql = "SELECT * FROM %s" % query.table() 
+        sql = "SELECT * FROM %s" % query.table()
         sql2, values = query.toSql()
         sql += sql2
         self.execute(sql, values)
@@ -503,13 +518,16 @@ class Driver:
         try:
             data = self.cursor.fetchone()[0]
         except psycopg2.DatabaseError as e:
-            raise bc.Error( 1, str(e) )
+            raise bc.Error(1, str(e))
         return data
 
     def update(self, table, values):
-        """Update a row in the table"""
+        """
+        Update a row in the table
+        """
         parms = []
         vals = []
+        
         for key, val in values.items():
             if key != '_id':
                 parms.append('"%s"=%%s' % key)

@@ -51,16 +51,17 @@ NE = '!='
 
 
 class BasiumOrm:
-
-    def startOrm(self, driver = None, drivermodule = None):
+    def startOrm(self, driver=None, drivermodule=None):
         """
         mixin, let the various model classes also inherit from the
         corresponding driver classes. We change the class so all
         future instances will have correct base classes
-        The driver class is inserted first, so it overrides any generic basium_model class
-        
+        The driver class is inserted first, so it overrides any
+        generic basium_model class
+
         todo: is there a better way to do this?
-              it would be nice to have the model instance decoupled from the driver
+            it would be nice to have the model instance decoupled
+            from the driver
         """
         self.driver = driver
         self.drivermodule = drivermodule
@@ -86,7 +87,7 @@ class BasiumOrm:
            False if the database does not exist
            None  if there was an error
         """
-        exist = self.driver.isDatabase(dbName) 
+        exist = self.driver.isDatabase(dbName)
         if exist:
             self.log.debug("SQL Database '%s' exist" % dbName)
         else:
@@ -94,7 +95,9 @@ class BasiumOrm:
         return exist
 
     def isTable(self, obj):
-        """Check if a table exist in the database"""
+        """
+        Check if a table exist in the database
+        """
         exist = self.driver.isTable(obj._table)
         if exist:
             self.log.debug("SQL Table '%s' does exist" % obj._table)
@@ -103,7 +106,9 @@ class BasiumOrm:
         return exist
 
     def createTable(self, obj):
-        """Create a table that can store objects"""
+        """
+        Create a table that can store objects
+        """
         self.driver.createTable(obj)
         return True
 
@@ -140,13 +145,16 @@ class BasiumOrm:
     def load(self, query_):
         """
         Fetch one or multiple rows from table, each stored in a object
-        If no query is specified, the default is to fetch one object identified with the object._id
+        If no query is specified, the default is to fetch one object
+        identified with the object._id
+
         Query can be either
             An instance of Model()
             An instance of Query()
+
         Driver returns an object that can be iterated over one row at a time
         or throws DriverError
-        
+
         Note: when loading a single object, an error is returned if not found. 
         Workaround is to use a query instead
         """
@@ -162,9 +170,9 @@ class BasiumOrm:
         data = []
         for row in self.driver.select(query):
             newobj = query._model.__class__()
-            for colname,column in newobj._iterNameColumn():
+            for colname, column in newobj._iterNameColumn():
                 try:
-                    newobj._values[colname] = column.toPython( row[colname] )
+                    newobj._values[colname] = column.toPython(row[colname])
                 except (KeyError, ValueError):
                     pass
             data.append(newobj)
@@ -172,7 +180,7 @@ class BasiumOrm:
             raise bc.Error(1, "Unknown ID %s in table %s" % (query_._id, query_._table))
 
         return data
-    
+
     def store(self, obj):
         """
         Store the query in the database
@@ -185,22 +193,23 @@ class BasiumOrm:
 
         if obj._id >= 0:
             # update
-            data = self.driver.update(obj._table, columns)
+            # data = self.driver.update(obj._table, columns)
+            self.driver.update(obj._table, columns)
         else:
             # insert
             obj._id = self.driver.insert(obj._table, columns)
         return obj._id
-    
+
     def delete(self, query_):
         """
         Delete objects in the table.
         query_ can be either
             An instance of Model()
             An instance of Query()
-        
+
         If instance of model, that instance will be deleted
         If query, the objects matching the query is deleted
-        """ 
+        """
         one = False
         if isinstance(query_, basium_model.Model):
             query = Query().filter(query_.q._id, EQ, query_._id)
@@ -214,10 +223,10 @@ class BasiumOrm:
             query_._id = -1
         return rowcount
 
-    def query(self, obj = None):
+    def query(self, obj=None):
         """
-        Create and return a query object
-        Convenience method, makes it unnecessary to import the basium_orm module
+        Create and return a query object. This is a convenience method,
+        makes it unnecessary to import the basium_orm module
         just for doing queries
         """
         q = Query(obj)
@@ -229,7 +238,7 @@ class Query():
     Class that build queries
     """
 
-    def __init__(self, model = None, log=None):
+    def __init__(self, model=None, log=None):
         self._model = model
         self.log = log
 
@@ -257,16 +266,16 @@ class Query():
         return self._table
 
     class _Where:
-        def __init__(self, column = None, operand = None, value = None):
+        def __init__(self, column=None, operand=None, value=None):
             self.column = column
             self.operand = operand
             self.value = value
 
         def toSql(self):
-            sql = '%s %s %%s' % (self.column.name, self.operand )
-            value = self.column.toSql( self.value )
+            sql = '%s %s %%s' % (self.column.name, self.operand)
+            value = self.column.toSql(self.value)
             return (sql, value)
-        
+
         def encode(self):
             return "w=" + urllib.parse.quote("%s,%s,%s" % (self.column.name, self.operand, self.value), ',:=' )
 
@@ -277,10 +286,10 @@ class Query():
     class _Group:
         def __init__(self):
             pass
-        
+
         def toSql(self):
             return None
-        
+
         def encode(self):
             return None
 
@@ -291,16 +300,16 @@ class Query():
         def __init__(self, column=None, desc=False):
             self.column = column
             self.desc = desc
-        
+
         def toSql(self):
             sql = '%s' % (self.column.name)
             if self.desc:
                 sql += ' DESC'
             return sql
-        
+
         def encode(self):
             return "o=" + urllib.parse.quote("%s,%s" % (self.column.name, self.desc ))
-        
+
         def decode(self, obj, value):
             tmp = value.split(',')
             if len(tmp) < 1 or len(tmp) > 2:
@@ -317,13 +326,13 @@ class Query():
 
         def toSql(self):
             offset = 0
-            if self.offset != None:
+            if self.offset is not None:
                 offset = self.offset
-            return ' LIMIT %i OFFSET %i' % ( self.rowcount, offset)
-        
+            return ' LIMIT %i OFFSET %i' % (self.rowcount, offset)
+
         def encode(self):
             return "l=" + urllib.parse.quote("%s,%s" % (self.offset, self.rowcount))
-        
+
         def decode(self, value):
             tmp = value.split(',')
             if len(tmp) != 2:
@@ -342,31 +351,31 @@ class Query():
         if not isinstance(column, basium_model.Column):
             self.log.error('Query.filter() called with a non-Column %s' % column)
             return None
-        if self._model == None:
+        if self._model is None:
             self._model = column._model
             self._table = column._model._table
         elif self._table != column._model._table:
             self.log.error('Filter from multiple tables not implemented')
             return None
-        self._where.append( self._Where(column=column, operand=operand, value=value) )
+        self._where.append(self._Where(column=column, operand=operand, value=value))
         return self
-    
+
     def group(self):
         """Add a group. Returns self so it can be chained"""
         return self
 
-    def order(self, column, desc = False):
+    def order(self, column, desc=False):
         """Add a sort order. Returns self so it can be chained"""
         if not isinstance(column, basium_model.Column):
             self.log.error('Query.order() called with a non-Column %s' % column)
             return None
-        if self._model == None:
+        if self._model is None:
             self._model = column._model
             self._table = column._model._table
         elif self._table != column._model._table:
             self.log.error('Order from multiple tables not implemented')
             return None
-        self._order.append( self._Order(column=column, desc=desc) )
+        self._order.append(self._Order(column=column, desc=desc))
         return self
 
     def limit(self, offset=None, rowcount=None):
@@ -377,7 +386,7 @@ class Query():
         """
         self._limit = self._Limit(offset, rowcount)
         return self
-        
+
     def toSql(self):
         """
         Return the query as SQL
@@ -392,7 +401,7 @@ class Query():
         if len(self._where) > 0:
             sql += ' where ('
             addComma = False
-            if self._where != None:
+            if self._where is not None:
                 for where in self._where:
                     if addComma:
                         sql += ' and '
@@ -413,7 +422,7 @@ class Query():
                     addComma = True
                 sql += order.toSql()
 
-        if self._limit != None:
+        if self._limit is not None:
             sql += self._limit.toSql()
 
         return (sql, value)
@@ -421,21 +430,21 @@ class Query():
     def encode(self):
         """Return the query as a string that can be appended to an URI"""
         url = []
-        
+
         # where
         for where in self._where:
-            url.append(where.encode() )
+            url.append(where.encode())
 
         # group
-        
+
         # order
         for order in self._order:
-            url.append(order.encode() )
-        
+            url.append(order.encode())
+
         # limit
         if self._limit:
             url.append(self._limit.encode())
-        
+
         return "&".join(url)
 
     def decode(self, url):
@@ -443,7 +452,7 @@ class Query():
         if isinstance(url, bytes):
             url = url.decode("ascii)")
         u = urllib.parse.parse_qsl(url, keep_blank_values=True)
-        
+
         self._reset()
         for (key, val) in u:
             if key == 'w':

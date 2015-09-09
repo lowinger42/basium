@@ -55,8 +55,11 @@ import basium_model
 
 Error = bc.Error
 
+
 class DbConf:
-    """Information to the selected database driver, how to connect to database"""
+    """
+    Information to the selected database driver, how to connect to database
+    """
     def __init__(self, host=None, port=None, username=None, password=None, database=None, debugSQL=False, log=None):
         self.host = host
         self.port = None
@@ -67,8 +70,9 @@ class DbConf:
 
 
 class Basium(basium_orm.BasiumOrm):
-    """Main class for basium usage"""
-    
+    """
+    Main class for basium usage
+    """
     def __init__(self, logger=None, driver=None, checkTables=True, dbconf=None):
         global log
         if logger:
@@ -76,12 +80,12 @@ class Basium(basium_orm.BasiumOrm):
             log = logger
             log.debug("Switching to external logger")
         else:
-            self.log = log # use simple logger
+            self.log = log  # use simple logger
         self.log.info("Basium logging started.")
         self.drivername = driver
         self.checkTables = checkTables
         self.dbconf = dbconf
-        
+
         self.cls = {}
         self.drivermodule = None
         self.Response = bc.Response      # for convenience in dynamic pages
@@ -103,7 +107,7 @@ class Basium(basium_orm.BasiumOrm):
             return False
         self.cls[cls._table] = cls
         return True
-    
+
     class JsonOrmEncoder(json.JSONEncoder):
         """Handle additional types in JSON encoder"""
         def default(self, obj):
@@ -125,7 +129,7 @@ class Basium(basium_orm.BasiumOrm):
         if self.drivermodule:
             self.log.error("basium::start() already called")
             return None
-            
+
         driverfile = "basium_driver_%s" % self.drivername
         try:
             self.drivermodule = __import__(driverfile)
@@ -144,7 +148,7 @@ class Basium(basium_orm.BasiumOrm):
         if not self.isDatabase(self.dbconf.database):
             log.error("Database %s does not exist" % self.dbconf.database)
             return None
-    
+
         for cls in self.cls.values():
             obj = cls()
             if not self.isTable(obj):
@@ -156,18 +160,26 @@ class Basium(basium_orm.BasiumOrm):
                     actions = self.verifyTable(obj)
                     if actions != None and len(actions) > 0:
                         self.modifyTable(obj, actions)
-    
+
         return True
 
+
 def dateFromStr(s):
-    """Take a date formatted as a string and return a datetime object"""
+    """
+    Take a date formatted as a string and return a datetime object
+    """
     return datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
 
+
 def strFromDate(d):
-    """Take a date object and return a string"""
+    """
+    Take a date object and return a string
+    """
     return d.strftime('%Y-%m-%d')
 
-def strFromDatetime(d):
-    """Take a datetime object and return a string"""
-    return d.strftime('%Y-%m-%d %H:%M:%S')
 
+def strFromDatetime(d):
+    """
+    Take a datetime object and return a string
+    """
+    return d.strftime('%Y-%m-%d %H:%M:%S')

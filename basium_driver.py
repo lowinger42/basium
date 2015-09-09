@@ -66,7 +66,7 @@ class Column:
     #        'Type': 'timestamp'},
     #
     def tableTypeToSql(self, tabletype):
-        if  tabletype['Key'] == 'PRI':
+        if tabletype['Key'] == 'PRI':
             tmp = 'serial'
         else:
             tmp = tabletype['Type']
@@ -83,26 +83,29 @@ class BooleanCol(Column):
         return value == 1
 
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         if value:
             return 'TRUE'
         return 'FALSE'
- 
+
+
 class DateCol(Column):
-    """Stores a date"""
-    
+    """
+    Stores a date
+    """
     def toPython(self, value):
         if isinstance(value, datetime.datetime):
             value = value.date()
         elif isinstance(value, str):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').date()
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
+
 
 class DateTimeCol(Column):
     """
@@ -110,7 +113,6 @@ class DateTimeCol(Column):
     ignores microseconds
     if default is 'NOW' the current date+time is stored
     """
-    
     def getDefault(self):
         if self.default == 'NOW':
             return datetime.datetime.now().replace(microsecond=0)
@@ -121,59 +123,67 @@ class DateTimeCol(Column):
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         return value
 
+
 class DecimalCol(Column):
-    """Stores a fixed precision number"""
-    
+    """
+    Stores a fixed precision number
+    """
     def typeToSql(self):
         sql = 'decimal(%d,%d)' % (self.maxdigits, self.decimal)
         if self.nullable:
             sql += " null"
         else:
-            sql += " not null" 
-        if self.default != None:
+            sql += " not null"
+        if self.default is not None:
             sql += " default '%s'" % str(self.default)
         return sql
 
     def toPython(self, value):
-        if value == None:
+        if value is None:
             return None
         if isinstance(value, decimal.Decimal):
             return value
         return decimal.Decimal(value)
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
+
 class FloatCol(Column):
     """Stores a floating point number"""
-    
+
     def toPython(self, value):
         if isinstance(value, str):
             value = float(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return str(value)
 
+
 class IntegerCol(Column):
-    """Stores an integer"""
-    
+    """
+    Stores an integer
+    """
     def toPython(self, value):
         if isinstance(value):
             value = int(value)
         return value
-        
+
     def toSql(self, value):
-        if value == None:
+        if value is None:
             return "NULL"
         return value
 
+
 class VarcharCol(Column):
-    """Stores a string"""
+    """
+    Stores a string
+    """
     def toPython(self, value):
         if isinstance(value, str):
             return value
@@ -205,13 +215,13 @@ class Driver:
 
     def verifyTable(self, obj):
         return []
-    
+
     def modifyTable(self, obj, actions):
         return True
 
     def count(self, query):
         raise bc.Error(1, 'Not implemented')
-    
+
     def select(self, query):
         raise bc.Error(1, "Not implemented")
 
