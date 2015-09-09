@@ -75,14 +75,13 @@ import logging
 import basium_common as bc
 import basium
 import basium_model
-import basium_wsgihandler
+import wsgi.handler
 
 import test_tables
 
 # ----- Start of module globals
 
 log = basium.log
-log.info("Python version %s" % str(sys.version_info))
 
 drivers = [
     "psql",
@@ -93,6 +92,7 @@ drivers = [
 
 # ----- End of module globals
 
+log.info("Python version %s" % str(sys.version_info))
 
 log.logger.setLevel(logging.ERROR)  # Keep the basium logger quiet
 
@@ -375,18 +375,24 @@ def runServer():
     db.addClass(test_tables.BasiumTest)
     if not db.start():
         log.error("Cannot start database driver for wsgi server")
-    
-    server = basium_wsgihandler.Server(basium=db)
+
+    server = wsgi.handler.Server(basium=db)
     server.daemon = True
     server.start()    # run in thread
+
     while not server.ready:
         time.sleep(0.1)
 
 
 if __name__ == "__main__":
-    if "json" in drivers:
+    embeddedServer = False
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--noserver':
+            embeddedServer = True
+
+    if "json" in drivers and embeddedServer:
         runServer()
-        
+
     suite = get_suite()
     runner = unittest.TextTestRunner()
     runner.run(suite)
