@@ -85,9 +85,9 @@ log = basium.log
 log.info("Python version %s" % str(sys.version_info))
 
 drivers = [
-    "psql", 
+    "psql",
     "mysql",
-    "sqlite", 
+    "sqlite",
     "json",
 ]
 

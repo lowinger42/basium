@@ -158,7 +158,7 @@ class Basium(basium_orm.BasiumOrm):
             else:
                 if self.checkTables:
                     actions = self.verifyTable(obj)
-                    if actions != None and len(actions) > 0:
+                    if actions is not None and len(actions) > 0:
                         self.modifyTable(obj, actions)
 
         return True

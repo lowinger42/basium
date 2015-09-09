@@ -243,7 +243,10 @@ class Action:
 
 
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
-    """A cursor class that returns rows as dictionary"""
+    """
+    A cursor class that returns rows as dictionary
+    """
+
     def _row_to_python(self, rowdata, desc=None):
         row = super(MySQLCursorDict, self)._row_to_python(rowdata, desc)
         if row:
