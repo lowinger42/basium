@@ -302,35 +302,39 @@ class Server(threading.Thread):
 
 
 if __name__ == "__main__":
-    import optparse
+    import argparse
     import test_tables
 
     log.info("Starting embedded WSGI server. Note: use only for development and evaluation")
 
-    parser = optparse.OptionParser()
-    parser.add_option("--docroot",  dest="documentroot", default="/opt/basium/app" )
-    parser.add_option("--host",     dest="host",     default="127.0.0.1")
-    parser.add_option("--port",     dest="port",     default=8888, type=int)
-    parser.add_option("--dbdriver", dest="dbdriver", default="psql")
-    parser.add_option("--dbname",   dest="dbname",   default="basium_db")
-    parser.add_option("--dbuser",   dest="dbuser",   default="basium_user")
-    parser.add_option("--dbpass",   dest="dbpass",   default="secret")
-    (opt, args) = parser.parse_args()
+
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--docroot",  dest="documentroot", default="/opt/basium/app" )
+    parser.add_argument("--host",     dest="host",     default="127.0.0.1")
+    parser.add_argument("--port",     dest="port",     default=8888, type=int)
+    parser.add_argument("--dbdriver", dest="dbdriver", default="psql")
+    parser.add_argument("--dbname",   dest="dbname",   default="basium_db")
+    parser.add_argument("--dbuser",   dest="dbuser",   default="basium_user")
+    parser.add_argument("--dbpass",   dest="dbpass",   default="secret")
+    
+    args = parser.parse_args()
+    # (opt, args) = parser.parse_args()
 
     print("Using:")
-    for key in vars(opt):
-        print("  %13s: %s" % (key, getattr(opt, key)))
+    for key in vars(args):
+        print("  %13s: %s" % (key, getattr(args, key)))
 
-    app = wsgi.common.App(documentroot=opt.documentroot)
+    app = wsgi.common.App(documentroot=args.documentroot)
 
-    app.dbconf = basium.DbConf(host=opt.host, port=opt.port, username=opt.dbuser, password=opt.dbpass, database=opt.dbname)
+    app.dbconf = basium.DbConf(host=args.host, port=args.port, username=args.dbuser, password=args.dbpass, database=args.dbname)
 
-    app.db = basium.Basium(driver=opt.dbdriver, dbconf=app.dbconf, checkTables=True)
+    app.db = basium.Basium(driver=args.dbdriver, dbconf=app.dbconf, checkTables=True)
     app.db.setDebug(bc.DEBUG_ALL)
     app.db.addClass(test_tables.BasiumTest)
     if not app.db.start():
         log.error("Cannot start database driver for wsgi server")
 
     appServer = AppServer(app=app)
-    httpd = wsgiref.simple_server.make_server(opt.host, opt.port, appServer, handler_class=WSGIloghandler)
+    httpd = wsgiref.simple_server.make_server(args.host, args.port, appServer, handler_class=WSGIloghandler)
     httpd.serve_forever()
