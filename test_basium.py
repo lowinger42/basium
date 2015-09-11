@@ -385,10 +385,10 @@ def runServer():
 
 
 if __name__ == "__main__":
-    embeddedServer = False
+    embeddedServer = True
     if len(sys.argv) > 1:
         if sys.argv[1] == '--noserver':
-            embeddedServer = True
+            embeddedServer = False
 
     if "json" in drivers and embeddedServer:
         runServer()
