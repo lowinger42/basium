@@ -119,7 +119,7 @@ class Tokenizer:
         while True:
             c = self.get_char()
             if c is None:
-                raise WsgiError("Missing token %s" % token)
+                raise wsgi.common.WsgiError("Missing token %s" % token)
             s += c
             if s.endswith(token):
                 return s[:-len(token)]
@@ -149,7 +149,7 @@ class Tokenizer:
         print("Compile error line number %d" % self.line_row)
         print("line: %s" % self.line, end="")
         print("  at: %s^" % (" " * self.line_col))
-        raise WsgiError(msg, errcode)
+        raise wsgi.common.WsgiError(msg, errcode)
 
 
 class CompileView:
@@ -189,7 +189,7 @@ class CompileView:
         print("Compile error line number %d" % self.line_no)
         print("line: %s" % self.line, end="")
         print("  at: %s^" % (" " * self.ix))
-        raise WsgiError(msg, errcode)
+        raise wsgi.common.WsgiError(msg, errcode)
 
     def compile_block(self, blockname):
         """
@@ -250,7 +250,7 @@ class CompileView:
                         # end of indent
                         # log.debug("end")
                         if self.indent < 2:
-                            raise WsgiError("Too many 'end', no matching 'begin' (colon)", 403)
+                            raise wsgi.common.WsgiError("Too many 'end', no matching 'begin' (colon)", 403)
                         self.indent -= 1
                         self.tokenizer.expect_token("%}")
                         self.end_out_text()
@@ -359,7 +359,7 @@ class CompileView:
         view_filename = "%s/%s" % (app.view_dir, view_filename_rel)
 
         if not os.path.exists(view_filename):
-            raise WsgiError("No such view %s" % view_filename, 404)
+            raise wsgi.common.WsgiError("No such view %s" % view_filename, 404)
 
         module_dir, module_name = os.path.split(view_filename_rel)
         module_name = os.path.splitext(module_name)[0]
