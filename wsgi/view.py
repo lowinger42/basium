@@ -257,10 +257,16 @@ class CompileView:
                         continue
                     # assume everything else is python code, just copy
                     # if it ends with a colon, increase indent
+                    # if end is found, remove from output and decrease indent
                     self.tokenizer.unget(token)
                     lines = self.tokenizer.get_until("%}")
                     for line in lines.split("\n"):
                         line = line.strip()
+                        if line == 'end':
+                            self.indent -= 1
+                            continue
+                        if line == 'else:':
+                            self.indent -= 1
                         self.out_python(line)
                         self.out_python("\n")
                         self.end_out_text()
